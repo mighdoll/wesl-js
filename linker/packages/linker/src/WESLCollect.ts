@@ -67,15 +67,17 @@ export function refIdent(cc: CollectContext): RefIdentElem {
 
 /** create declaration Ident and add to context */
 export function declIdentElem(cc: CollectContext): DeclIdentElem {
-  const { src, start, end } = cc;
+  const { start, end } = cc;
   const app = cc.app as WeslParseState;
   const { srcModule } = app.stable;
-  const originalName = src.slice(start, end);
+  const originalName = cc.tags.decl_name?.[0] as string;
 
   const kind = "decl";
   const declElem = null as any; // we'll set declElem later
-  const ident: DeclIdent = { kind, originalName, scope: null as any, declElem }; // we'll set declElem later
-  const identElem: DeclIdentElem = { kind, start, end, srcModule, ident };
+  const scope = null as any; // we'll set scope later
+  const typeRef = cc.tags.typeRefElem?.[0] as TypeRefElem | undefined;
+  const ident: DeclIdent = { kind, originalName, scope, declElem }; 
+  const identElem: DeclIdentElem = { kind, start, end, typeRef, srcModule, ident };
 
   saveIdent(cc, identElem);
   return identElem;
@@ -138,10 +140,10 @@ export function collectVarLike<E extends VarLikeElem>(
   kind: E["kind"],
 ): CollectPair<E> {
   return collectElem(kind, (cc: CollectContext, openElem: PartElem<E>) => {
-    const name = cc.tags.declIdent?.[0] as DeclIdentElem;
-    const typeRef = cc.tags.typeRefElem?.[0] as TypeRefElem;
+    const name = cc.tags.var_name?.[0] as DeclIdentElem;
+    // elemToString(name); //?
     const decl_scope = cc.tags.decl_scope?.[0] as Scope;
-    const partElem = { ...openElem, name, typeRef } as E;
+    const partElem = { ...openElem, name } as E;
     const varElem = withTextCover(partElem, cc);
     (name.ident as DeclIdent).declElem = varElem as DeclarationElem;
     name.ident.scope = decl_scope;
@@ -169,8 +171,7 @@ export const collectFnParam = collectElem(
   "param",
   (cc: CollectContext, openElem: PartElem<FnParamElem>) => {
     const name = cc.tags.paramName?.[0]! as DeclIdentElem;
-    const typeRef = cc.tags.typeRefElem?.[0]! as TypeRefElem;
-    const elem: FnParamElem = { ...openElem, name, typeRef };
+    const elem: FnParamElem = { ...openElem, name };
     const paramElem = withTextCover(elem, cc);
     name.ident.declElem = paramElem;
 

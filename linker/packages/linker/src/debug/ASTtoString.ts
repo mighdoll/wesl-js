@@ -70,11 +70,8 @@ function addVarishFields(
     kind === "const" ||
     kind === "override"
   ) {
-    const { name, typeRef } = elem;
+    const { name } = elem;
     str.add(" " + name.ident.originalName);
-    if (typeRef) {
-      str.add(":" + typeRefElemToString(typeRef));
-    }
     return true;
   }
 }
@@ -103,7 +100,11 @@ function addMemberRef(elem: AbstractElem, str: LineWrapper): true | undefined {
 
 function addDeclIdent(elem: AbstractElem, str: LineWrapper): true | undefined {
   if (elem.kind === "decl") {
-    str.add(" %" + elem.ident.originalName);
+    const { ident, typeRef } = elem;
+    str.add(" %" + ident.originalName);
+    if (typeRef) {
+      str.add(" : " + typeRefElemToString(typeRef));
+    }
     return true;
   }
 }
@@ -191,7 +192,10 @@ function addFnFields(elem: AbstractElem, str: LineWrapper): true | undefined {
     str.add("(");
     const paramStrs = params
       .map(
-        p => p.name.ident.originalName + ": " + typeRefElemToString(p.typeRef),
+        p => // TODO DRY
+          p.name.ident.originalName +
+          ": " +
+          typeRefElemToString(p.name.typeRef!),
       )
       .join(", ");
     str.add(paramStrs);

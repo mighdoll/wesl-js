@@ -126,16 +126,16 @@ const opt_attributes = repeat(attribute);
 // prettier-ignore
 export const typeNameDecl = 
   req(
-    word                            .collect(declIdentElem, "typeName")
-  );
+    word                            .ptag("decl_name")
+  )                                 .collect(declIdentElem, "typeName");
 
 /** parse an identifier into a TypeNameElem */
 // prettier-ignore
 export const fnNameDecl = 
   req(
-    word                            .collect(declIdentElem, "fnName"),
+    word                            .ptag("decl_name"),
     "missing fn name",
-  );
+  )                                 .collect(declIdentElem, "fnName");
 
 // prettier-ignore
 const std_type_specifier = seq(
@@ -171,10 +171,12 @@ export const type_specifier: Parser<any> = tagScope(
 )                                   .ctag("typeRefElem");
 
 // prettier-ignore
-const optionally_typed_ident = seq(
-  word                              .collect(declIdentElem, "declIdent"),
-  opt(seq(":", type_specifier)),
-);
+const optionally_typed_ident = tagScope(
+  seq(
+    word                              .ptag("decl_name"),
+    opt(seq(":", type_specifier)),
+  )                                   .collect(declIdentElem)
+)                                     .ctag("var_name");
 
 const req_optionally_typed_ident = req(optionally_typed_ident);
 
@@ -209,8 +211,8 @@ export const fn_call = seq(
 const fnParam = tagScope(
   seq(
     opt_attributes,
-    word                              .collect(declIdentElem, "paramName"),
-    opt(seq(":", req(type_specifier))),
+    word                              .ptag("decl_name"),
+    opt(seq(":", req(type_specifier))).collect(declIdentElem, "paramName"),
   )                                   .collect(collectFnParam),
 )                                     .ctag("fnParam");
 
@@ -222,7 +224,7 @@ const local_variable_decl = seq(
   () => opt_template_list,
   req_optionally_typed_ident,
   opt(seq("=", () => expression)),
-)                                     .collect(collectVarLike("var"), "variable_decl");
+)                                     .collect(collectVarLike("var"));
 
 // prettier-ignore
 const global_variable_decl = seq(
@@ -518,7 +520,8 @@ const global_value_decl = or(
 // prettier-ignore
 export const global_alias = seq(
   "alias",
-  req(word)                           .collect(declIdentElem, "declIdent"),
+  req(word)                           .ptag("decl_name")
+                                      .collect(declIdentElem, "var_name"),
   req("="),
   req(type_specifier)                 .collect(scopeCollect(), "decl_scope"),
   req(";"),
@@ -551,7 +554,7 @@ export const global_decl = tagScope(
     seq(
       opt_attributes, 
       global_variable_decl, 
-      ";")                          .collect(collectVarLike("gvar"), "g_variable_decl"),
+      ";")                          .collect(collectVarLike("gvar")),
     global_value_decl,
     ";",
     global_alias,

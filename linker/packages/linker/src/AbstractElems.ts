@@ -24,6 +24,7 @@ export type ContainerElem =
   | FnElem
   | GlobalVarElem
   | ImportElem
+  | LetElem
   | ModuleElem
   | OverrideElem
   | FnParamElem
@@ -91,6 +92,7 @@ export interface DeclIdentElem extends AbstractElemBase {
   kind: DeclIdent["kind"];
   ident: DeclIdent;
   srcModule: SrcModule;
+  typeRef?: TypeRefElem; // TODO Consider a variant for fn params and alias where typeRef is required
 }
 
 /* ------   Synthetic element (for transformations, not produced by grammar) ------   */
@@ -126,7 +128,6 @@ export interface ConstAssertElem extends ElemWithContentsBase {
 export interface ConstElem extends ElemWithContentsBase {
   kind: "const";
   name: DeclIdentElem;
-  typeRef?: TypeRefElem;
 }
 
 /** an expression (generally we don't need details of expressions, just their contained idents) */
@@ -146,7 +147,6 @@ export interface FnElem extends ElemWithContentsBase {
 export interface GlobalVarElem extends ElemWithContentsBase {
   kind: "gvar";
   name: DeclIdentElem;
-  typeRef?: TypeRefElem;
 }
 
 /** an import statement */
@@ -164,14 +164,12 @@ export interface ModuleElem extends ElemWithContentsBase {
 export interface OverrideElem extends ElemWithContentsBase {
   kind: "override";
   name: DeclIdentElem;
-  typeRef?: TypeRefElem;
 }
 
 /** a parameter in a function declaration */
 export interface FnParamElem extends ElemWithContentsBase {
   kind: "param";
   name: DeclIdentElem;
-  typeRef: TypeRefElem;
 }
 
 /** simple references to structures, like myStruct.bar
@@ -212,5 +210,4 @@ export interface TypeRefElem extends ElemWithContentsBase {
 export interface VarElem extends ElemWithContentsBase {
   kind: "var";
   name: DeclIdentElem;
-  typeRef?: TypeRefElem;
 }
