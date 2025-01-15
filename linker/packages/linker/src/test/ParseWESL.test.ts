@@ -1160,3 +1160,69 @@ test("member reference with extra components", () => {
      '"
   `);
 });
+
+test.only("parse let declaration", () => {
+  const src = `
+    fn vertexMain() {
+      let char = array<u32, 2>(0, 0);
+    }
+  `;
+  const ast = parseTest(src);
+  const astString = astToString(ast.moduleElem);
+  expect(astString).toMatchInlineSnapshot(`
+    "module
+      text '
+        '
+      fn vertexMain()
+        text 'fn '
+        decl %vertexMain
+        text '() {
+          '
+        let char
+          text 'let '
+          decl %char
+          text ' = '
+          ref array
+          text '<'
+          type u32
+            ref u32
+          text ', '
+          expression '2'
+            text '2'
+          text '>(0, 0)'
+        text ';
+        }'
+      text '
+      '"
+  `);
+});
+
+test.only("parse let declaration with type", () => {
+  const src = `
+    fn vertexMain() {
+      let char : u32 = 0;
+    }
+  `;
+  const ast = parseTest(src);
+  const astString = astToString(ast.moduleElem);
+  expect(astString).toMatchInlineSnapshot(`
+    "module
+      text '
+        '
+      fn vertexMain()
+        text 'fn '
+        decl %vertexMain
+        text '() {
+          '
+        let char
+          text 'let '
+          decl %char : u32
+          type u32
+            ref u32
+          text ' = 0'
+        text ';
+        }'
+      text '
+      '"
+  `);
+});
