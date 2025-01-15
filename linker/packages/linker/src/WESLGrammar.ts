@@ -467,11 +467,20 @@ const lhs_expression: Parser<any> = or(
   seq("*", () => lhs_expression),
 );
 
-const variable_or_value_statement = or(
-  // Also covers the = expression case
-  local_variable_decl,
-  seq("const", req_optionally_typed_ident, req("="), expression),
-  seq("let", req_optionally_typed_ident, req("="), expression),
+// prettier-ignore
+const variable_or_value_statement = tagScope(
+    or(
+    // Also covers the = expression case
+    local_variable_decl,
+    seq("const", req_optionally_typed_ident, req("="), expression),
+    seq(
+      "let", 
+      req_optionally_typed_ident          .ctag("var_name"), 
+      req("="), 
+      expression
+      )                                   .collect(collectVarLike("let"),
+    ),
+  )
 );
 
 const variable_updating_statement = or(

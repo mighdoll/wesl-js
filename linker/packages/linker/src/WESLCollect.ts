@@ -13,6 +13,7 @@ import {
   GlobalVarElem,
   GrammarElem,
   ImportElem,
+  LetElem,
   ModuleElem,
   NameElem,
   OverrideElem,
@@ -132,6 +133,7 @@ export type PartElem<T extends ContainerElem = ContainerElem > =
 type VarLikeElem =
   | GlobalVarElem
   | VarElem
+  | LetElem
   | ConstElem
   | OverrideElem
   | AliasElem;

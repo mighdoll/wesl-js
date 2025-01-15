@@ -66,6 +66,7 @@ function addVarishFields(
   const { kind } = elem;
   if (
     kind === "var" ||
+    kind === "let" ||
     kind === "gvar" ||
     kind === "const" ||
     kind === "override"

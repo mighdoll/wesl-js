@@ -211,3 +211,8 @@ export interface VarElem extends ElemWithContentsBase {
   kind: "var";
   name: DeclIdentElem;
 }
+
+export interface LetElem extends ElemWithContentsBase {
+  kind: "let";
+  name: DeclIdentElem;
+}
