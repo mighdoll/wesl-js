@@ -61,6 +61,7 @@ export function lowerAndEmitElem(e: AbstractElem, ctx: EmitContext): void {
     // container elements just emit their child elements
     case "param":
     case "var":
+    case "let":
     case "module":
     case "member":
     case "memberRef":
