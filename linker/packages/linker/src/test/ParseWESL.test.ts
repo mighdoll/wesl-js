@@ -61,12 +61,12 @@ test("parse global var", () => {
   const astString = astToString(ast.moduleElem);
   expect(astString).toMatchInlineSnapshot(`
     "module
-      gvar x:i32
+      gvar %x : i32
         text 'var '
-        decl %x
-        text ': '
-        type i32
-          ref i32
+        decl %x : i32
+          text ': '
+          type i32
+            ref i32
         text ' = 1;'"
   `);
 });
