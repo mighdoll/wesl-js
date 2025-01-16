@@ -25,6 +25,7 @@ import {
   TypeRefElem,
   VarElem,
 } from "./AbstractElems.ts";
+import { elemToString } from "./debug/ASTtoString.ts";
 import {
   ImportTree,
   PathSegment,
@@ -63,26 +64,31 @@ export function refIdent(cc: CollectContext): RefIdentElem {
   ident.refIdentElem = identElem;
 
   saveIdent(cc, identElem);
+  addToOpenElem(cc, identElem);
   return identElem;
 }
 
 /** create declaration Ident and add to context */
-export function declIdentElem(cc: CollectContext): DeclIdentElem {
-  const { start, end } = cc;
-  const app = cc.app as WeslParseState;
-  const { srcModule } = app.stable;
-  const originalName = cc.tags.decl_name?.[0] as string;
+export const declIdentElem = collectElem(
+  "decl",
+  (cc: CollectContext, openElem: PartElem<DeclIdentElem>) => {
+    const originalName = cc.tags.decl_name?.[0] as string;
+    const { srcModule } = cc.app.stable as WeslAST;
 
-  const kind = "decl";
-  const declElem = null as any; // we'll set declElem later
-  const scope = null as any; // we'll set scope later
-  const typeRef = cc.tags.typeRefElem?.[0] as TypeRefElem | undefined;
-  const ident: DeclIdent = { kind, originalName, scope, declElem }; 
-  const identElem: DeclIdentElem = { kind, start, end, typeRef, srcModule, ident };
+    const declElem = null as any; // we'll set declElem later
+    const scope = null as any; // we'll set scope later
+    const typeRef = cc.tags.typeRefElem?.[0] as TypeRefElem | undefined;
+    const ident: DeclIdent = { kind: "decl", originalName, scope, declElem };
+    const partial: DeclIdentElem = { ...openElem, typeRef, srcModule, ident };
+    // skip past name ident (which isn't in contents)
+    const newCc = { ...cc, start: cc.start + originalName.length };
+    const identElem = withTextCover(partial, newCc);
+    // collectLog(cc, "declIdentElem", elemToString(identElem));
 
-  saveIdent(cc, identElem);
-  return identElem;
-}
+    saveIdent(cc, identElem);
+    return identElem;
+  },
+);
 
 let identId = 0;
 /** add Ident to current open scope, add IdentElem to current open element */
@@ -94,7 +100,6 @@ function saveIdent(
   ident.id = identId++;
   const weslContext: WeslParseContext = cc.app.context;
   weslContext.scope.idents.push(ident);
-  addToOpenElem(cc, identElem);
 }
 
 /** start a new child Scope */

@@ -20,6 +20,7 @@ export type ContainerElem =
   | AttributeElem
   | ConstAssertElem
   | ConstElem
+  | DeclIdentElem
   | ExpressionElem
   | FnElem
   | GlobalVarElem
@@ -36,10 +37,10 @@ export type ContainerElem =
 
 // prettier-ignore
 export type TerminalElem = 
-  | TextElem 
   | NameElem 
-  | RefIdentElem 
-  | DeclIdentElem;
+  | RefIdentElem
+  | TextElem 
+  ;
 
 export type DeclarationElem =
   | AliasElem
@@ -87,14 +88,6 @@ export interface RefIdentElem extends AbstractElemBase {
   srcModule: SrcModule;
 }
 
-/** a declaration identifier (aka a symbol declaration) */
-export interface DeclIdentElem extends AbstractElemBase {
-  kind: DeclIdent["kind"];
-  ident: DeclIdent;
-  srcModule: SrcModule;
-  typeRef?: TypeRefElem; // TODO Consider a variant for fn params and alias where typeRef is required
-}
-
 /* ------   Synthetic element (for transformations, not produced by grammar) ------   */
 
 /** generated element, produced after parsing and binding */
@@ -104,6 +97,14 @@ export interface SyntheticElem {
 }
 
 /* ------   Container Elements  (contain other elements)  ------   */
+
+/** a declaration identifier (aka a symbol declaration) */
+export interface DeclIdentElem extends ElemWithContentsBase {
+  kind: DeclIdent["kind"];
+  ident: DeclIdent;
+  srcModule: SrcModule;
+  typeRef?: TypeRefElem; // TODO Consider a variant for fn params and alias where typeRef is required
+}
 
 /** an alias statement */
 export interface AliasElem extends ElemWithContentsBase {
