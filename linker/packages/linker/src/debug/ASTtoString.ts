@@ -71,8 +71,7 @@ function addVarishFields(
     kind === "const" ||
     kind === "override"
   ) {
-    const { name } = elem;
-    str.add(" " + name.ident.originalName);
+    addDeclIdent(elem.name, str);
     return true;
   }
 }
