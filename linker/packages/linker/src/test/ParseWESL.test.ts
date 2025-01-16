@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 import { astToString } from "../debug/ASTtoString.ts";
 import { importToString } from "../debug/ImportToString.ts";
-import { parseTest } from "./TestUtil.ts";
+import { parseTest, parseTestRaw } from "./TestUtil.ts";
 
 test("parse empty string", () => {
   const ast = parseTest("");
@@ -1161,7 +1161,7 @@ test("member reference with extra components", () => {
   `);
 });
 
-test.only("parse let declaration", () => {
+test("parse let declaration", () => {
   const src = `
     fn vertexMain() {
       let char = array<u32, 2>(0, 0);
@@ -1197,7 +1197,7 @@ test.only("parse let declaration", () => {
   `);
 });
 
-test.only("parse let declaration with type", () => {
+test("parse let declaration with type", () => {
   const src = `
     fn vertexMain() {
       let char : u32 = 0;
