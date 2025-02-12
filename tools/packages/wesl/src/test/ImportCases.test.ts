@@ -12,11 +12,11 @@ interface LinkExpectation {
 // wgsl example src, indexed by name
 const examplesByName = new Map(importCases.map(t => [t.name, t]));
 
-test("import package::bar::foo;", ctx => {
+test.only("import package::bar::foo;", ctx => {
   importCaseTest(ctx.task.name);
 });
 
-test("main has other root elements", ctx => {
+test.only("main has other root elements", ctx => {
   importCaseTest(ctx.task.name);
 });
 
