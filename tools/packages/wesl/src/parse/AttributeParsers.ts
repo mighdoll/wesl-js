@@ -1,0 +1,297 @@
+/**
+ * Direct token parsers for WESL attributes without mini-parse combinators.
+ * These functions return null on parse failure for efficient backtracking.
+ */
+
+import type { ParserContext } from "mini-parse";
+import type {
+  BinaryExpression,
+  BinaryOperator,
+  ElifAttribute,
+  ElseAttribute,
+  ExpressionElem,
+  IfAttribute,
+  Literal,
+  ParenthesizedExpression,
+  TranslateTimeExpressionElem,
+  TranslateTimeFeature,
+  UnaryExpression,
+  UnaryOperator,
+} from "../AbstractElems.ts";
+import { consume, consumeKind, expect, tryParse } from "./ParseUtil.ts";
+import type { WeslToken } from "./WeslStream.ts";
+
+// Parser functions that return null on failure
+export function parseLiteral(context: ParserContext): Literal | null {
+  const { stream } = context;
+
+  // Check by kind and text
+  const token =
+    consumeKind(stream, "keyword", "true") ||
+    consumeKind(stream, "keyword", "false");
+
+  if (token) {
+    return makeLiteral(token as WeslToken<"keyword">);
+  }
+
+  return null;
+}
+
+export function parseTranslateTimeFeature(
+  context: ParserContext,
+): TranslateTimeFeature | null {
+  const { stream } = context;
+  const token = consumeKind(stream, "word");
+
+  return token ? makeTranslateTimeFeature(token as WeslToken<"word">) : null;
+}
+
+export function parseElseAttribute(
+  context: ParserContext,
+): ElseAttribute | null {
+  const { stream } = context;
+
+  // Clean text-based matching
+  if (!consume(stream, "@")) return null;
+  if (!consume(stream, "else")) return null;
+
+  return makeElseAttribute();
+}
+
+// Expression parsers for @if conditions
+export function parseAttributeIfPrimaryExpression(
+  context: ParserContext,
+): Literal | ParenthesizedExpression | TranslateTimeFeature | null {
+  const { stream } = context;
+
+  // Try literal first
+  const literal = parseLiteral(context);
+  if (literal) return literal;
+
+  // Try parenthesized expression
+  if (consume(stream, "(")) {
+    const expr = parseAttributeIfExpression(context);
+    if (!expr) return null;
+    expect(stream, ")", "Expected ')' after expression");
+    return makeParenthesizedExpression(expr);
+  }
+
+  // Try translate-time feature
+  return parseTranslateTimeFeature(context);
+}
+
+export function parseAttributeIfUnaryExpression(
+  context: ParserContext,
+): ExpressionElem | null {
+  const { stream } = context;
+
+  // Try unary operator
+  const opToken = consume(stream, "!");
+  if (opToken) {
+    const expr = parseAttributeIfUnaryExpression(context);
+    if (!expr) return null;
+    return makeUnaryExpression(
+      makeUnaryOperator(opToken as WeslToken<"symbol">),
+      expr,
+    );
+  }
+
+  // Fall back to primary expression
+  return parseAttributeIfPrimaryExpression(context);
+}
+
+function parseBinaryOperatorChain(
+  context: ParserContext,
+  left: ExpressionElem,
+  operator: "||" | "&&",
+  firstToken: WeslToken,
+): ExpressionElem | null {
+  const { stream } = context;
+  const operands: [BinaryOperator, ExpressionElem][] = [];
+
+  // Add first operand
+  const op = makeBinaryOperator({ text: operator, span: firstToken.span });
+  const right = parseAttributeIfUnaryExpression(context);
+  if (!right) return null;
+  operands.push([op, right]);
+
+  // Continue collecting same operators
+  while (true) {
+    const nextToken = consume(stream, operator);
+    if (!nextToken) break;
+
+    const nextOp = makeBinaryOperator({ text: operator, span: nextToken.span });
+    const nextRight = parseAttributeIfUnaryExpression(context);
+    if (!nextRight) return null;
+    operands.push([nextOp, nextRight]);
+  }
+
+  return makeRepeatingBinaryExpression(left, operands);
+}
+
+export function parseAttributeIfExpression(
+  context: ParserContext,
+): ExpressionElem | null {
+  const { stream } = context;
+
+  return tryParse(stream, () => {
+    const left = parseAttributeIfUnaryExpression(context);
+    if (!left) return null;
+
+    // Check for || operators first
+    const firstOr = consume(stream, "||");
+    if (firstOr) {
+      return parseBinaryOperatorChain(context, left, "||", firstOr);
+    }
+
+    // Otherwise check for && operators
+    const firstAnd = consume(stream, "&&");
+    if (firstAnd) {
+      return parseBinaryOperatorChain(context, left, "&&", firstAnd);
+    }
+
+    return left;
+  });
+}
+
+export function parseIfAttribute(context: ParserContext): IfAttribute | null {
+  const { stream } = context;
+
+  return tryParse(stream, () => {
+    // Capture position before @
+    const atPos = (stream as any).checkpoint();
+    if (!consume(stream, "@")) return null;
+    if (!consume(stream, "if")) return null;
+
+    expect(stream, "(", "Expected '(' after @if");
+
+    const expr = parseAttributeIfExpression(context);
+    if (!expr) return null;
+
+    consume(stream, ","); // optional comma
+    expect(stream, ")", "Expected ')' after @if expression");
+    const endPos = (stream as any).checkpoint();
+
+    const translateTimeExpr = makeTranslateTimeExpressionElem({
+      value: expr,
+      span: [atPos, endPos],
+    });
+
+    return makeIfAttribute(translateTimeExpr);
+  });
+}
+
+export function parseElifAttribute(
+  context: ParserContext,
+): ElifAttribute | null {
+  const { stream } = context;
+
+  return tryParse(stream, () => {
+    // Capture position before @
+    const atPos = (stream as any).checkpoint();
+    if (!consume(stream, "@")) return null;
+    if (!consume(stream, "elif")) return null;
+
+    expect(stream, "(", "Expected '(' after @elif");
+
+    const expr = parseAttributeIfExpression(context);
+    if (!expr) return null;
+
+    consume(stream, ","); // optional comma
+    expect(stream, ")", "Expected ')' after @elif expression");
+    const endPos = (stream as any).checkpoint();
+
+    const translateTimeExpr = makeTranslateTimeExpressionElem({
+      value: expr,
+      span: [atPos, endPos],
+    });
+
+    return makeElifAttribute(translateTimeExpr);
+  });
+}
+
+// Helper functions to create AST nodes
+function makeLiteral(token: WeslToken<"keyword" | "number">): Literal {
+  return {
+    kind: "literal",
+    value: token.text,
+    span: token.span,
+  };
+}
+
+function makeTranslateTimeFeature(
+  token: WeslToken<"word">,
+): TranslateTimeFeature {
+  return {
+    kind: "translate-time-feature",
+    name: token.text,
+    span: token.span,
+  };
+}
+
+function makeElseAttribute(): ElseAttribute {
+  return { kind: "@else" };
+}
+
+function makeIfAttribute(param: TranslateTimeExpressionElem): IfAttribute {
+  return { kind: "@if", param };
+}
+
+function makeElifAttribute(param: TranslateTimeExpressionElem): ElifAttribute {
+  return { kind: "@elif", param };
+}
+
+function makeTranslateTimeExpressionElem(args: {
+  value: ExpressionElem;
+  span: [number, number];
+}): TranslateTimeExpressionElem {
+  return {
+    kind: "translate-time-expression",
+    expression: args.value,
+    span: args.span,
+  };
+}
+
+function makeParenthesizedExpression(
+  expression: ExpressionElem,
+): ParenthesizedExpression {
+  return {
+    kind: "parenthesized-expression",
+    expression,
+  };
+}
+
+function makeUnaryOperator(token: WeslToken<"symbol">): UnaryOperator {
+  return { value: token.text as any, span: token.span };
+}
+
+function makeBinaryOperator(token: {
+  text: string;
+  span: readonly [number, number];
+}): BinaryOperator {
+  return { value: token.text as any, span: token.span as [number, number] };
+}
+
+function makeUnaryExpression(
+  operator: UnaryOperator,
+  expression: ExpressionElem,
+): UnaryExpression {
+  return { kind: "unary-expression", operator, expression };
+}
+
+function makeRepeatingBinaryExpression(
+  start: ExpressionElem,
+  repeating: [BinaryOperator, ExpressionElem][],
+): ExpressionElem {
+  let result: ExpressionElem = start;
+  for (const [op, right] of repeating) {
+    const binaryExpression: BinaryExpression = {
+      kind: "binary-expression",
+      operator: op,
+      left: result,
+      right,
+    };
+    result = binaryExpression;
+  }
+  return result;
+}

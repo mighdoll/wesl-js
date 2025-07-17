@@ -65,7 +65,7 @@ import {
   else_attribute,
   if_attribute,
 } from "./AttributeGrammar.ts";
-import { weslImports } from "./ImportGrammar.ts";
+import { weslImportsDirect } from "./ImportGrammar.ts";
 import { qualified_ident, word } from "./WeslBaseGrammar.ts";
 import {
   argument_expression_list,
@@ -607,7 +607,7 @@ const global_decl = tagScope(
 
 // prettier-ignore
 export const weslRoot = seq(
-  weslExtension(weslImports),
+  weslExtension(weslImportsDirect),
   repeat(global_directive),
   repeat(global_decl),
   req(eof(), "invalid WESL, expected EOF"),

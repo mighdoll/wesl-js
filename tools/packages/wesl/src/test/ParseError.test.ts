@@ -7,7 +7,7 @@ test("parse fn foo() { invalid }", () => {
   expect(() => parseTest(src)).toThrowErrorMatchingInlineSnapshot(`
     [Error: ./test.wesl:1:15 error: invalid ident
     fn foo() { let }
-                  ^^]
+                  ^]
   `);
 });
 
@@ -29,7 +29,7 @@ test("parse invalid name", () => {
   expect(() => parseTest(src)).toThrowErrorMatchingInlineSnapshot(`
     [Error: ./test.wesl:1:4 error: expected identifier
     var package = 3;
-       ^^^^^^^^]
+       ^]
   `);
 });
 
