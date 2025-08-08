@@ -12,7 +12,9 @@ import {
   reportResults,
   runBenchmarks,
   runsSection,
+  totalTimeSection,
 } from "bencher";
+import { adaptiveLocSection } from "../src/AdaptiveLocSection.ts";
 import { loadBaselineImports } from "../src/BaselineVariations.ts";
 import { loadExamples, type WeslSource } from "../src/LoadExamples.ts";
 import { locSection } from "../src/LocSection.ts";
@@ -50,9 +52,17 @@ async function main() {
     reports.some(({ measuredResults }) => measuredResults.cpu !== undefined),
   );
 
-  const sections = hasGcData(results)
-    ? [locSection, meanTimeSection, gcSection, runsSection]
-    : [locSection, meanTimeSection, runsSection];
+  // Use adaptive sections when --adaptive is enabled
+  let sections: any[];
+  if (args.adaptive) {
+    sections = hasGcData(results)
+      ? [adaptiveLocSection, gcSection, runsSection, totalTimeSection]
+      : [adaptiveLocSection, runsSection, totalTimeSection];
+  } else {
+    sections = hasGcData(results)
+      ? [locSection, meanTimeSection, gcSection, runsSection]
+      : [locSection, meanTimeSection, runsSection];
+  }
 
   // Add CPU section if CPU data is available
   const finalSections = hasCpuData

@@ -14,10 +14,15 @@ export interface MeasuredResults {
     min: number;
     max: number;
     avg: number;
+    p25?: number;
     p50: number;
     p75: number;
+    p95?: number;
     p99: number;
     p999: number;
+    cv?: number;
+    mad?: number;
+    outlierRate?: number;
   };
 
   /** Heap size increase during test run (kilobytes) */
@@ -53,4 +58,14 @@ export interface MeasuredResults {
    * Excludes parallel thread collection time and indirect slowdowns.
    */
   nodeGcTime?: NodeGCTime;
+
+  /** Total time spent collecting samples (seconds) */
+  totalTime?: number;
+
+  /** Convergence information for adaptive mode */
+  convergence?: {
+    converged: boolean;
+    confidence: number;
+    reason: string;
+  };
 }

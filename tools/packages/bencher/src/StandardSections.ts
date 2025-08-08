@@ -1,6 +1,10 @@
 import type { ReportColumnGroup, ResultsMapper } from "./BenchmarkReport.ts";
 import type { MeasuredResults } from "./MeasuredResults.ts";
 import {
+  formatCoefficientOfVariation,
+  formatConvergence,
+} from "./table-util/ConvergenceFormatters.ts";
+import {
   integer,
   percent,
   percentPrecision,
@@ -13,7 +17,6 @@ export interface TimeStats {
   p99?: number;
 }
 
-/** Extract and format time statistics */
 export const timeSection: ResultsMapper<TimeStats> = {
   extract: (results: MeasuredResults) => ({
     mean: results.time?.avg,
@@ -48,11 +51,9 @@ export const timeSection: ResultsMapper<TimeStats> = {
 };
 
 export interface GcStats {
-  /** mean time of garbage collection across all runs */
-  gc?: number;
+  gc?: number; // GC time as fraction of total bench time
 }
 
-/** Extract and format GC percentage */
 export const gcSection: ResultsMapper<GcStats> = {
   extract: (results: MeasuredResults) => {
     let gcTime: number | undefined;
@@ -61,7 +62,6 @@ export const gcSection: ResultsMapper<GcStats> = {
       const totalBenchTime = time.avg * samples.length;
       if (totalBenchTime > 0) {
         gcTime = nodeGcTime.inRun / totalBenchTime;
-        // Ignore meaningless measurements where GC exceeds benchmark time
         if (gcTime > 1) {
           gcTime = undefined;
         }
@@ -89,7 +89,6 @@ export interface CpuStats {
   cpuStall?: number;
 }
 
-/** Extract and format CPU counters */
 export const cpuSection: ResultsMapper<CpuStats> = {
   extract: (results: MeasuredResults) => ({
     cpuCacheMiss: results.cpuCacheMiss,
@@ -118,7 +117,6 @@ export interface RunStats {
   runs?: number;
 }
 
-/** Extract number of benchmark runs */
 export const runsSection: ResultsMapper<RunStats> = {
   extract: (results: MeasuredResults) => ({
     runs: results.samples.length,
@@ -130,6 +128,113 @@ export const runsSection: ResultsMapper<RunStats> = {
           key: "runs",
           title: "runs",
           formatter: integer,
+        },
+      ],
+    },
+  ],
+};
+
+export interface AdaptiveTimeStats {
+  mean?: number;
+  p50?: number;
+  totalTime?: number;
+}
+
+export const adaptiveTimeSection: ResultsMapper<AdaptiveTimeStats> = {
+  extract: (results: MeasuredResults) => ({
+    mean: results.time?.avg,
+    p50: results.time?.p50,
+    totalTime: results.totalTime,
+  }),
+  columns: (): ReportColumnGroup<AdaptiveTimeStats>[] => [
+    {
+      groupTitle: "time",
+      columns: [
+        {
+          key: "mean",
+          title: "mean",
+          formatter: timeMs,
+          comparable: true,
+        },
+        {
+          key: "p50",
+          title: "p50",
+          formatter: timeMs,
+          comparable: true,
+        },
+      ],
+    },
+  ],
+};
+
+export const totalTimeSection: ResultsMapper<{ totalTime?: number }> = {
+  extract: (results: MeasuredResults) => ({
+    totalTime: results.totalTime,
+  }),
+  columns: (): ReportColumnGroup<{ totalTime?: number }>[] => [
+    {
+      columns: [
+        {
+          key: "totalTime",
+          title: "time",
+          formatter: v => {
+            if (typeof v !== "number") return "";
+            const timeout = 30;
+            if (v >= timeout) {
+              return `[${v.toFixed(1)}s]`;
+            }
+            return `${v.toFixed(1)}s`;
+          },
+        },
+      ],
+    },
+  ],
+};
+
+export interface AdaptiveStats {
+  median?: number;
+  mean?: number;
+  cv?: number;
+  confidence?: number;
+}
+
+export const adaptiveSection: ResultsMapper<AdaptiveStats> = {
+  extract: (results: MeasuredResults) => ({
+    median: results.time?.p50,
+    mean: results.time?.avg,
+    cv: results.time?.cv,
+    confidence: results.convergence?.confidence,
+  }),
+  columns: (): ReportColumnGroup<AdaptiveStats>[] => [
+    {
+      groupTitle: "time",
+      columns: [
+        {
+          key: "median",
+          title: "median",
+          formatter: timeMs,
+          comparable: true,
+        },
+        {
+          key: "mean",
+          title: "mean",
+          formatter: timeMs,
+          comparable: true,
+        },
+        {
+          key: "cv",
+          title: "±CV",
+          formatter: formatCoefficientOfVariation,
+        },
+      ],
+    },
+    {
+      groupTitle: "confidence",
+      columns: [
+        {
+          key: "confidence",
+          title: "converged",
+          formatter: formatConvergence,
         },
       ],
     },
