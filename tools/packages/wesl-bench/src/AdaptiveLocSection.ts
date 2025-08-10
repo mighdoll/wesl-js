@@ -20,7 +20,7 @@ export const adaptiveLocSection: ResultsMapper<AdaptiveLocStats> = {
     const locSecMean = results.time?.avg
       ? lines / (results.time.avg / 1000)
       : undefined;
-    
+
     const locSecP50 = results.time?.p50
       ? lines / (results.time.p50 / 1000)
       : undefined;
@@ -43,7 +43,7 @@ export const adaptiveLocSection: ResultsMapper<AdaptiveLocStats> = {
         {
           key: "locCI",
           title: "±CI",
-          formatter: (v) => (typeof v === "number" ? `±${v.toFixed(1)}%` : ""),
+          formatter: v => (typeof v === "number" ? `±${v.toFixed(1)}%` : ""),
         },
         {
           key: "locSecP50",

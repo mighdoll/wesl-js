@@ -48,11 +48,11 @@ const garbageGroup: BenchGroup<void> = {
           }
           arrays.push(innerArray);
         }
-        
+
         // Reduce all arrays to generate more garbage
-        return arrays.map(arr => 
-          arr.reduce((sum, val) => sum + val, 0)
-        ).reduce((total, sum) => total + sum, 0);
+        return arrays
+          .map(arr => arr.reduce((sum, val) => sum + val, 0))
+          .reduce((total, sum) => total + sum, 0);
       },
     },
   ],
