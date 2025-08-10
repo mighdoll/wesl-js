@@ -1,5 +1,3 @@
-import * as d3 from "d3";
-
 export interface BenchmarkStyle {
   color: string;
   fillColor: string;
@@ -10,22 +8,24 @@ export interface BenchmarkStyle {
   isBaseline: boolean;
 }
 
-export function getBenchmarkStyles(benchmarkNames: string[]): Map<string, BenchmarkStyle> {
+export function getBenchmarkStyles(
+  benchmarkNames: string[],
+): Map<string, BenchmarkStyle> {
   const styles = new Map<string, BenchmarkStyle>();
-  
-  benchmarkNames.forEach((name, index) => {
+
+  benchmarkNames.forEach((name, _index) => {
     const isBaseline = name.includes("(baseline)");
-    
+
     if (isBaseline) {
       // Baseline style: hollow orange circles/rectangles
       styles.set(name, {
         color: "#ffa500",
         fillColor: "none",
-        strokeColor: "#ffa500", 
+        strokeColor: "#ffa500",
         strokeWidth: 2,
         fillOpacity: 0,
         strokeOpacity: 0.8,
-        isBaseline: true
+        isBaseline: true,
       });
     } else {
       // Main benchmark: filled blue circles/rectangles
@@ -37,17 +37,17 @@ export function getBenchmarkStyles(benchmarkNames: string[]): Map<string, Benchm
         strokeWidth: 0,
         fillOpacity: 0.8,
         strokeOpacity: 0.8,
-        isBaseline: false
+        isBaseline: false,
       });
     }
   });
-  
+
   return styles;
 }
 
 export function createLegendData(benchmarkNames: string[]) {
   const styles = getBenchmarkStyles(benchmarkNames);
-  
+
   return benchmarkNames
     .sort((a, b) => {
       const aBaseline = a.includes("(baseline)");
@@ -58,6 +58,6 @@ export function createLegendData(benchmarkNames: string[]) {
     })
     .map(name => ({
       name,
-      style: styles.get(name)!
+      style: styles.get(name)!,
     }));
 }

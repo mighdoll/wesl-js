@@ -1,4 +1,4 @@
-import type { QQPoint, OutlierInfo } from '../types.ts';
+import type { OutlierInfo, QQPoint } from "../types.ts";
 
 /** Calculate Q-Q plot data points for normality testing */
 export function calculateQQData(samples: number[]): QQPoint[] {
@@ -13,9 +13,9 @@ export function calculateQQData(samples: number[]): QQPoint[] {
   return standardized.map((value, i) => {
     const p = (i + 0.5) / n;
     const theoretical = normalInverse(p, 0, 1); // Standard normal
-    return { 
+    return {
       sample: value * stdDev + mean, // Convert back to original scale
-      theoretical: theoretical * stdDev + mean
+      theoretical: theoretical * stdDev + mean,
     };
   });
 }
@@ -64,57 +64,67 @@ function percentile(sorted: number[], p: number): number {
   return sorted[lower] * (1 - weight) + sorted[upper] * weight;
 }
 
+// Beasley-Springer-Moro algorithm coefficients
+const normalInverseCoeffs = {
+  // Coefficients for central region
+  a: [
+    -3.969683028665376e1, 2.209460984245205e2, -2.759285104469687e2,
+    1.38357751867269e2, -3.066479806614716e1, 2.506628277459239,
+  ],
+  b: [
+    -5.447609879822406e1, 1.615858368580409e2, -1.556989798598866e2,
+    6.680131188771972e1, -1.328068155288572e1,
+  ],
+  // Coefficients for tail regions
+  c: [
+    -7.784894002430293e-3, -3.223964580411365e-1, -2.400758277161838,
+    -2.549732539343734, 4.374664141464968, 2.938163982698783,
+  ],
+  d: [
+    7.784695709041462e-3, 3.224671290700398e-1, 2.445134137142996,
+    3.754408661907416,
+  ],
+  thresholds: { low: 0.02425, high: 0.97575 },
+};
+
+function evaluatePolynomial(coeffs: number[], x: number): number {
+  return coeffs.reduce((sum, coeff, i) => sum + coeff * x ** i, 0);
+}
+
+function calculateTailZ(q: number, c: number[], d: number[]): number {
+  const numerator = evaluatePolynomial([...c].reverse(), q);
+  const denominator = evaluatePolynomial([...d, 1].reverse(), q);
+  return numerator / denominator;
+}
+
+function calculateCentralZ(
+  q: number,
+  r: number,
+  a: number[],
+  b: number[],
+): number {
+  const numerator = q * evaluatePolynomial([...a].reverse(), r);
+  const denominator = evaluatePolynomial([...b, 1].reverse(), r);
+  return numerator / denominator;
+}
+
 /** Normal inverse cumulative distribution function (approximation) */
 function normalInverse(p: number, mean: number, stdDev: number): number {
-  const a1 = -3.969683028665376e1;
-  const a2 = 2.209460984245205e2;
-  const a3 = -2.759285104469687e2;
-  const a4 = 1.38357751867269e2;
-  const a5 = -3.066479806614716e1;
-  const a6 = 2.506628277459239;
+  const { low, high } = normalInverseCoeffs.thresholds;
+  const { a, b, c, d } = normalInverseCoeffs;
 
-  const b1 = -5.447609879822406e1;
-  const b2 = 1.615858368580409e2;
-  const b3 = -1.556989798598866e2;
-  const b4 = 6.680131188771972e1;
-  const b5 = -1.328068155288572e1;
-
-  const c1 = -7.784894002430293e-3;
-  const c2 = -3.223964580411365e-1;
-  const c3 = -2.400758277161838;
-  const c4 = -2.549732539343734;
-  const c5 = 4.374664141464968;
-  const c6 = 2.938163982698783;
-
-  const d1 = 7.784695709041462e-3;
-  const d2 = 3.224671290700398e-1;
-  const d3 = 2.445134137142996;
-  const d4 = 3.754408661907416;
-
-  const pLow = 0.02425;
-  const pHigh = 1 - pLow;
-
-  let q: number;
-  let r: number;
-
-  if (p < pLow) {
-    q = Math.sqrt(-2 * Math.log(p));
-    const z =
-      (((((c1 * q + c2) * q + c3) * q + c4) * q + c5) * q + c6) /
-      ((((d1 * q + d2) * q + d3) * q + d4) * q + 1);
-    return mean + stdDev * z;
-  } else if (p <= pHigh) {
-    q = p - 0.5;
-    r = q * q;
-    const z =
-      ((((((a1 * r + a2) * r + a3) * r + a4) * r + a5) * r + a6) * q) /
-      (((((b1 * r + b2) * r + b3) * r + b4) * r + b5) * r + 1);
-    return mean + stdDev * z;
+  let z: number;
+  if (p < low) {
+    const q = Math.sqrt(-2 * Math.log(p));
+    z = calculateTailZ(q, c, d);
+  } else if (p <= high) {
+    const q = p - 0.5;
+    const r = q * q;
+    z = calculateCentralZ(q, r, a, b);
   } else {
-    q = Math.sqrt(-2 * Math.log(1 - p));
-    const z =
-      -(((((c1 * q + c2) * q + c3) * q + c4) * q + c5) * q + c6) /
-      ((((d1 * q + d2) * q + d3) * q + d4) * q + 1);
-    return mean + stdDev * z;
+    const q = Math.sqrt(-2 * Math.log(1 - p));
+    z = -calculateTailZ(q, c, d);
   }
+
+  return mean + stdDev * z;
 }
