@@ -1,8 +1,8 @@
 #!/usr/bin/env -S node --expose-gc --allow-natives-syntax
 import {
-  benchExports,
   type BenchGroup,
   type BenchSuite,
+  benchExports,
   parseBenchArgs,
 } from "../src/index.ts";
 

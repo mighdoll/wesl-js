@@ -8,11 +8,11 @@ import type { BenchmarkData, PlotDataPoint } from "./types.ts";
 interface ProcessedBenchmark {
   name: string;
   samples: number[];
-  stats: any;
+  stats: any; // time statistics from BenchmarkResult
   isBaseline: boolean;
 }
 
-function prepareBenchmarkData(group: any): ProcessedBenchmark[] {
+function prepareBenchmarks(group: any): ProcessedBenchmark[] {
   const benchmarks = [];
 
   if (group.baseline) {
@@ -36,7 +36,7 @@ function prepareBenchmarkData(group: any): ProcessedBenchmark[] {
   return benchmarks;
 }
 
-function createPlotData(benchmarks: ProcessedBenchmark[]): {
+function createPlotPoints(benchmarks: ProcessedBenchmark[]): {
   allSamples: PlotDataPoint[];
   timeSeries: PlotDataPoint[];
 } {
@@ -61,7 +61,7 @@ function createPlotData(benchmarks: ProcessedBenchmark[]): {
   return { allSamples, timeSeries };
 }
 
-function createGroupHTML(groupId: string): string {
+function createGroupLayout(groupId: string): string {
   return `
     <div class="plot-grid">
       <div class="plot-container">
@@ -91,7 +91,7 @@ function createGroupHTML(groupId: string): string {
   `;
 }
 
-function createStatisticCard(label: string, value: string): string {
+function createStatCard(label: string, value: string): string {
   return `
     <div style="background: white; padding: 10px; border-radius: 4px; text-align: center;">
       <div style="font-size: 12px; color: #666; text-transform: uppercase;">${label}</div>
@@ -100,23 +100,24 @@ function createStatisticCard(label: string, value: string): string {
   `;
 }
 
-function createBenchmarkStatsHTML(benchmark: ProcessedBenchmark): string {
+function createStatsHTML(benchmark: ProcessedBenchmark): string {
   const stats = benchmark.stats;
   return `
     <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
       <h4 style="margin-bottom: 10px; color: #333;">${benchmark.name}</h4>
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
-        ${createStatisticCard("Min", `${stats.min.toFixed(3)}ms`)}
-        ${createStatisticCard("Median", `${stats.p50.toFixed(3)}ms`)}
-        ${createStatisticCard("Mean", `${stats.mean.toFixed(3)}ms`)}
-        ${createStatisticCard("Max", `${stats.max.toFixed(3)}ms`)}
-        ${createStatisticCard("P75", `${stats.p75.toFixed(3)}ms`)}
-        ${createStatisticCard("P99", `${stats.p99.toFixed(3)}ms`)}
+        ${createStatCard("Min", `${stats.min.toFixed(3)}ms`)}
+        ${createStatCard("Median", `${stats.p50.toFixed(3)}ms`)}
+        ${createStatCard("Mean", `${stats.mean.toFixed(3)}ms`)}
+        ${createStatCard("Max", `${stats.max.toFixed(3)}ms`)}
+        ${createStatCard("P75", `${stats.p75.toFixed(3)}ms`)}
+        ${createStatCard("P99", `${stats.p99.toFixed(3)}ms`)}
       </div>
     </div>
   `;
 }
 
+/** Main application for rendering benchmark visualizations */
 class BenchmarkVisualizationApp {
   private dataSource: BenchmarkDataSource;
   private appContainer: HTMLElement;
@@ -127,10 +128,7 @@ class BenchmarkVisualizationApp {
     this.appContainer = document.getElementById("app")!;
     this.metadataContainer = document.getElementById("metadata")!;
 
-    // Subscribe to data updates
     this.dataSource.subscribe(this.onDataUpdate.bind(this));
-
-    // Start polling for data
     this.dataSource.startPolling(1000);
   }
 
@@ -167,9 +165,7 @@ class BenchmarkVisualizationApp {
     this.appContainer.innerHTML = "";
 
     data.suites.forEach((suite, suiteIndex) => {
-      // Create suite container
       const suiteContainer = document.createElement("div");
-      // Skip rendering suite name since it's redundant with header
       this.appContainer.appendChild(suiteContainer);
 
       suite.groups.forEach((group, groupIndex) => {
@@ -188,33 +184,30 @@ class BenchmarkVisualizationApp {
     }
 
     const groupContainer = document.createElement("div");
-    groupContainer.innerHTML = createGroupHTML(groupId);
+    groupContainer.innerHTML = createGroupLayout(groupId);
     this.appContainer.appendChild(groupContainer);
 
-    const benchmarks = prepareBenchmarkData(group);
-    const { allSamples, timeSeries } = createPlotData(benchmarks);
+    const benchmarks = prepareBenchmarks(group);
+    const { allSamples, timeSeries } = createPlotPoints(benchmarks);
     const benchmarkNames = benchmarks.map(b => b.name);
 
-    this.renderTimeSeriesChart(groupId, timeSeries);
-    this.renderHistogramChart(groupId, allSamples, benchmarkNames);
+    this.renderTimeSeries(groupId, timeSeries);
+    this.renderHistogram(groupId, allSamples, benchmarkNames);
     this.renderQQPlots(
       groupId,
       benchmarks.filter(b => !b.isBaseline),
     );
-    this.renderStatistics(groupId, benchmarks);
+    this.renderStats(groupId, benchmarks);
   }
 
-  private renderTimeSeriesChart(
-    groupId: string,
-    timeSeries: PlotDataPoint[],
-  ): void {
+  private renderTimeSeries(groupId: string, timeSeries: PlotDataPoint[]): void {
     const container = document.getElementById(`timeseries-${groupId}`);
     if (!container) return;
 
     renderTimeSeriesChart(container, timeSeries);
   }
 
-  private renderHistogramChart(
+  private renderHistogram(
     groupId: string,
     allSamples: PlotDataPoint[],
     benchmarkNames: string[],
@@ -229,7 +222,6 @@ class BenchmarkVisualizationApp {
     const container = document.getElementById(`qq-plots-${groupId}`);
     if (!container) return;
 
-    // Create Q-Q plots for each non-baseline benchmark
     benchmarks.forEach((benchmark, i) => {
       if (!benchmark.samples || benchmark.samples.length < 3) return;
 
@@ -245,7 +237,6 @@ class BenchmarkVisualizationApp {
 
       container.appendChild(plotContainer);
 
-      // Render Q-Q plot
       const qqContainer = document.getElementById(`qq-${groupId}-${i}`);
       if (qqContainer) {
         const qqData = calculateQQData(benchmark.samples);
@@ -254,18 +245,14 @@ class BenchmarkVisualizationApp {
     });
   }
 
-  private renderStatistics(
-    groupId: string,
-    benchmarks: ProcessedBenchmark[],
-  ): void {
+  private renderStats(groupId: string, benchmarks: ProcessedBenchmark[]): void {
     const container = document.getElementById(`stats-${groupId}`);
     if (!container) return;
 
-    container.innerHTML = benchmarks.map(createBenchmarkStatsHTML).join("");
+    container.innerHTML = benchmarks.map(createStatsHTML).join("");
   }
 }
 
-// Initialize the application when DOM is ready
 document.addEventListener("DOMContentLoaded", () => {
   new BenchmarkVisualizationApp();
 });

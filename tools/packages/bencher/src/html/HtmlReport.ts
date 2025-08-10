@@ -72,7 +72,9 @@ function prepareReportData(groups: ReportGroup[]): ReportData {
         ? {
             name: group.baseline.name,
             // Convert samples from nanoseconds to milliseconds
-            samples: group.baseline.measuredResults.samples.map(s => s / 1_000_000),
+            samples: group.baseline.measuredResults.samples.map(
+              s => s / 1_000_000,
+            ),
             stats: group.baseline.measuredResults.time,
           }
         : undefined,

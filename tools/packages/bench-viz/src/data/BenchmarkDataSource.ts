@@ -1,27 +1,25 @@
 import type { BenchmarkData } from "../types.ts";
 
+/** Manages benchmark data fetching and update notifications */
 export class BenchmarkDataSource {
   private data: BenchmarkData | null = null;
   private listeners: Set<(data: BenchmarkData | null) => void> = new Set();
   private pollInterval?: number;
-
   private dataPath: string;
 
   constructor(dataPath = "./data/benchmark-results.json") {
     this.dataPath = dataPath;
   }
 
-  /** Start polling for data updates */
   startPolling(intervalMs = 1000): void {
     this.stopPolling();
-    this.loadData(); // Initial load
+    this.loadData();
 
     this.pollInterval = window.setInterval(() => {
       this.loadData();
     }, intervalMs);
   }
 
-  /** Stop polling for updates */
   stopPolling(): void {
     if (this.pollInterval) {
       clearInterval(this.pollInterval);
@@ -29,7 +27,6 @@ export class BenchmarkDataSource {
     }
   }
 
-  /** Manually load data once */
   async loadData(): Promise<void> {
     try {
       const response = await fetch(this.dataPath);
@@ -58,20 +55,15 @@ export class BenchmarkDataSource {
     }
   }
 
-  /** Subscribe to data changes */
+  /** @return unsubscribe function */
   subscribe(listener: (data: BenchmarkData | null) => void): () => void {
     this.listeners.add(listener);
-
-    // Immediately notify with current data
-    listener(this.data);
-
-    // Return unsubscribe function
+    listener(this.data); // notify immediately with current state
     return () => {
       this.listeners.delete(listener);
     };
   }
 
-  /** Get current data */
   getData(): BenchmarkData | null {
     return this.data;
   }
@@ -80,7 +72,6 @@ export class BenchmarkDataSource {
     this.listeners.forEach(listener => listener(this.data));
   }
 
-  /** Clean up resources */
   destroy(): void {
     this.stopPolling();
     this.listeners.clear();

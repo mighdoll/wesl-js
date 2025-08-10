@@ -1,10 +1,7 @@
 import * as Plot from "@observablehq/plot";
 import { createLegendData } from "./ChartStyles.ts";
 
-/**
- * Creates a standard chart container with legend positioned in the upper right.
- * Used by both TimeSeriesChart and HistogramChart to ensure consistent layout.
- */
+/** @return chart container with legend positioned in upper right */
 export function createChartWithLegend(
   plot: Element,
   benchmarkNames: string[],
@@ -38,14 +35,12 @@ export function createChartWithLegend(
   return chartContainer;
 }
 
-/** Standard chart dimensions and styling shared across chart types */
 export const chartConfig = {
   margins: { left: 70, right: 10, bottom: 60 },
   dimensions: { width: 550, height: 300 },
   style: { fontSize: "12px" },
 };
 
-/** Standard axis configuration */
 export function createAxisConfig(
   label: string,
   config?: Partial<{

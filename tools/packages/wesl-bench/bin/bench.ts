@@ -2,9 +2,9 @@
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  benchExports,
   type BenchGroup,
   type BenchSuite,
+  benchExports,
   cpuSection,
   defaultCliArgs,
   gcSection,

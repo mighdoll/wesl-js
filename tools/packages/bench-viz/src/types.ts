@@ -1,4 +1,4 @@
-/** Complete benchmark data structure from JSON output */
+/** Root benchmark data from JSON output */
 export interface BenchmarkData {
   meta: {
     timestamp: string;
@@ -26,12 +26,9 @@ export interface BenchmarkGroup {
 
 export interface BenchmarkResult {
   name: string;
-  status: 'completed' | 'running' | 'failed';
-  
-  /** Raw execution time samples in milliseconds */
-  samples: number[];
-  
-  /** Statistical summaries */
+  status: "completed" | "running" | "failed";
+
+  samples: number[]; // milliseconds
   time: {
     min: number;
     max: number;
@@ -41,35 +38,32 @@ export interface BenchmarkResult {
     p99: number;
     p999: number;
   };
-  
-  /** Optional performance metrics */
+
   heapSize?: {
     min: number;
     max: number;
     mean: number;
   };
-  
+
   gcTime?: {
     min: number;
     max: number;
     mean: number;
   };
-  
+
   cpu?: {
     instructions?: number;
     cycles?: number;
     cacheMisses?: number;
     branchMisses?: number;
   };
-  
-  /** Execution metadata */
+
   execution: {
     iterations: number;
     totalTime: number;
     warmupRuns?: number;
   };
-  
-  /** Adaptive mode results */
+
   adaptive?: {
     confidenceInterval: {
       lower: number;
@@ -79,10 +73,9 @@ export interface BenchmarkResult {
       confidence: number;
     };
     converged: boolean;
-    stopReason: 'threshold_met' | 'max_time' | 'max_iterations';
+    stopReason: "threshold_met" | "max_time" | "max_iterations";
   };
-  
-  /** Error information */
+
   error?: {
     message: string;
     type: string;
@@ -90,7 +83,6 @@ export interface BenchmarkResult {
   };
 }
 
-/** Data point for plotting */
 export interface PlotDataPoint {
   benchmark: string;
   value: number;
@@ -98,13 +90,11 @@ export interface PlotDataPoint {
   isBaseline?: boolean;
 }
 
-/** Q-Q plot data point */
 export interface QQPoint {
   sample: number;
   theoretical: number;
 }
 
-/** Outlier detection result */
 export interface OutlierInfo {
   outliers: Array<{ value: number; iteration: number }>;
   lowerBound: number;

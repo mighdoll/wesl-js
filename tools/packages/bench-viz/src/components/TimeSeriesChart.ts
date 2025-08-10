@@ -15,7 +15,7 @@ interface TimeUnit {
   formatValue: (d: number) => string;
 }
 
-interface YAxisConfig {
+interface YAxisRange {
   min: number;
   max: number;
 }
@@ -28,6 +28,7 @@ interface ChartData {
   isBaseline: boolean;
 }
 
+/** Choose appropriate time unit based on data magnitude */
 function determineTimeUnit(values: number[]): TimeUnit {
   const avgVal = d3.mean(values)!;
 
@@ -55,7 +56,7 @@ function determineTimeUnit(values: number[]): TimeUnit {
   };
 }
 
-function calculateYAxisRange(values: number[]): YAxisConfig {
+function calcYAxisRange(values: number[]): YAxisRange {
   const dataMin = d3.min(values)!;
   const dataMax = d3.max(values)!;
   const dataRange = dataMax - dataMin;
@@ -65,13 +66,13 @@ function calculateYAxisRange(values: number[]): YAxisConfig {
   const magnitude = 10 ** Math.floor(Math.log10(Math.abs(yMin)));
   yMin = Math.floor(yMin / magnitude) * magnitude;
 
-  if (dataMin > 0 && yMin < 0) yMin = 0;
+  if (dataMin > 0 && yMin < 0) yMin = 0; // keep positive data above zero
   const yMax = dataMax + dataRange * 0.05;
 
   return { min: yMin, max: yMax };
 }
 
-function prepareChartData(
+function prepareData(
   timeSeries: PlotDataPoint[],
   timeUnit: TimeUnit,
 ): ChartData[] {
@@ -84,7 +85,7 @@ function prepareChartData(
   }));
 }
 
-function createPlotMarks(
+function createMarks(
   benchmarks: string[],
   chartData: ChartData[],
   timeUnit: TimeUnit,
@@ -130,8 +131,8 @@ export function renderTimeSeriesChart(
     const benchmarks = [...new Set(timeSeries.map(d => d.benchmark))];
     const allValues = timeSeries.map(d => d.value);
     const timeUnit = determineTimeUnit(allValues);
-    const chartData = prepareChartData(timeSeries, timeUnit);
-    const yAxis = calculateYAxisRange(chartData.map(d => d.displayValue));
+    const chartData = prepareData(timeSeries, timeUnit);
+    const yAxis = calcYAxisRange(chartData.map(d => d.displayValue));
 
     const plot = Plot.plot({
       ...chartConfig.margins,
@@ -148,7 +149,7 @@ export function renderTimeSeriesChart(
         tickFormat: timeUnit.formatValue,
       }),
       marks: [
-        ...createPlotMarks(benchmarks, chartData, timeUnit),
+        ...createMarks(benchmarks, chartData, timeUnit),
         Plot.ruleY([yAxis.min], { stroke: "black", strokeWidth: 1 }),
       ],
     });

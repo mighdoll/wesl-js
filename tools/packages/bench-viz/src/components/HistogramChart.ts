@@ -15,7 +15,8 @@ interface BinConfig {
   maxCount: number;
 }
 
-function calculateBinConfig(
+/** Calculate histogram bins excluding outliers using IQR */
+function calcBinConfig(
   allSamples: PlotDataPoint[],
   benchmarkNames: string[],
 ): BinConfig {
@@ -42,7 +43,7 @@ function calculateBinConfig(
   return { min, max, bins, maxCount: d3.max(allCounts) || 10 };
 }
 
-function createHistogramMarks(
+function createMarks(
   allSamples: PlotDataPoint[],
   benchmarkNames: string[],
   binConfig: BinConfig,
@@ -89,7 +90,7 @@ export function renderHistogramChart(
   }
 
   try {
-    const binConfig = calculateBinConfig(allSamples, benchmarkNames);
+    const binConfig = calcBinConfig(allSamples, benchmarkNames);
 
     const plot = Plot.plot({
       ...chartConfig.margins,
@@ -105,7 +106,7 @@ export function renderHistogramChart(
         domain: [0, binConfig.maxCount * 1.1],
       }),
       marks: [
-        ...createHistogramMarks(allSamples, benchmarkNames, binConfig),
+        ...createMarks(allSamples, benchmarkNames, binConfig),
         Plot.ruleY([0]),
       ],
     });

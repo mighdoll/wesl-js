@@ -8,7 +8,7 @@ import { detectOutliersJsCode, qqDataJsCode } from "./StatisticalUtils.ts";
 
 /** Generate complete HTML document with embedded data and visualizations */
 export function generateHtmlDocument(data: ReportData): string {
-  const hasBaseline = data.groups.some(g => g.baseline);
+  const _hasBaseline = data.groups.some(g => g.baseline);
 
   return `<!DOCTYPE html>
 <html lang="en">

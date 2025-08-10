@@ -22,9 +22,9 @@ export function calculateQQData(samples: number[]): QQPoint[] {
   return standardized.map((value, i) => {
     const p = (i + 0.5) / n;
     const theoretical = normalInverse(p, 0, 1); // Standard normal
-    return { 
+    return {
       sample: value * stdDev + mean, // Convert back to original scale
-      theoretical: theoretical * stdDev + mean
+      theoretical: theoretical * stdDev + mean,
     };
   });
 }

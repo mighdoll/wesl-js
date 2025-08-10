@@ -87,8 +87,6 @@ export function histogramKdePlotCode(): string {
     }`;
 }
 
-
-
 /** Generate sample time series showing each sample in order */
 export function sampleTimeSeriesCode(): string {
   return `

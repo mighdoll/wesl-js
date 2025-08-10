@@ -17,7 +17,6 @@ export function getBenchmarkStyles(
     const isBaseline = name.includes("(baseline)");
 
     if (isBaseline) {
-      // Baseline style: hollow orange circles/rectangles
       styles.set(name, {
         color: "#ffa500",
         fillColor: "none",
@@ -28,7 +27,6 @@ export function getBenchmarkStyles(
         isBaseline: true,
       });
     } else {
-      // Main benchmark: filled blue circles/rectangles
       const baseColor = "#4682b4";
       styles.set(name, {
         color: baseColor,
@@ -45,6 +43,7 @@ export function getBenchmarkStyles(
   return styles;
 }
 
+/** @return sorted legend entries with baseline first */
 export function createLegendData(benchmarkNames: string[]) {
   const styles = getBenchmarkStyles(benchmarkNames);
 

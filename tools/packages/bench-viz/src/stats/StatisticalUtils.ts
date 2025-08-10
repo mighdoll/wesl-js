@@ -1,26 +1,25 @@
 import type { OutlierInfo, QQPoint } from "../types.ts";
 
-/** Calculate Q-Q plot data points for normality testing */
+/** @return Q-Q plot points for normality testing */
 export function calculateQQData(samples: number[]): QQPoint[] {
   const sorted = [...samples].sort((a, b) => a - b);
   const n = sorted.length;
-  const mean = calculateMean(sorted);
-  const stdDev = calculateStdDev(sorted, mean);
+  const mean = calcMean(sorted);
+  const stdDev = calcStdDev(sorted, mean);
 
-  // Standardize the samples to compare against standard normal
   const standardized = sorted.map(x => (x - mean) / stdDev);
 
   return standardized.map((value, i) => {
     const p = (i + 0.5) / n;
-    const theoretical = normalInverse(p, 0, 1); // Standard normal
+    const theoretical = normalInverse(p, 0, 1);
     return {
-      sample: value * stdDev + mean, // Convert back to original scale
+      sample: value * stdDev + mean, // back to original scale
       theoretical: theoretical * stdDev + mean,
     };
   });
 }
 
-/** Detect outliers using IQR method */
+/** @return outliers using IQR method */
 export function detectOutliers(samples: number[]): OutlierInfo {
   const sorted = [...samples].sort((a, b) => a - b);
   const q1 = percentile(sorted, 0.25);
@@ -36,21 +35,18 @@ export function detectOutliers(samples: number[]): OutlierInfo {
   return { outliers, lowerBound, upperBound };
 }
 
-/** Calculate mean of array */
-function calculateMean(values: number[]): number {
+function calcMean(values: number[]): number {
   return values.reduce((sum, val) => sum + val, 0) / values.length;
 }
 
-/** Calculate standard deviation */
-function calculateStdDev(values: number[], mean?: number): number {
-  const m = mean ?? calculateMean(values);
+function calcStdDev(values: number[], mean?: number): number {
+  const m = mean ?? calcMean(values);
   const squaredDiffs = values.map(val => (val - m) ** 2);
   const variance =
     squaredDiffs.reduce((sum, val) => sum + val, 0) / values.length;
   return Math.sqrt(variance);
 }
 
-/** Calculate percentile value */
 function percentile(sorted: number[], p: number): number {
   const index = p * (sorted.length - 1);
   const lower = Math.floor(index);
@@ -66,7 +62,6 @@ function percentile(sorted: number[], p: number): number {
 
 // Beasley-Springer-Moro algorithm coefficients
 const normalInverseCoeffs = {
-  // Coefficients for central region
   a: [
     -3.969683028665376e1, 2.209460984245205e2, -2.759285104469687e2,
     1.38357751867269e2, -3.066479806614716e1, 2.506628277459239,
@@ -75,7 +70,6 @@ const normalInverseCoeffs = {
     -5.447609879822406e1, 1.615858368580409e2, -1.556989798598866e2,
     6.680131188771972e1, -1.328068155288572e1,
   ],
-  // Coefficients for tail regions
   c: [
     -7.784894002430293e-3, -3.223964580411365e-1, -2.400758277161838,
     -2.549732539343734, 4.374664141464968, 2.938163982698783,
@@ -91,24 +85,19 @@ function evaluatePolynomial(coeffs: number[], x: number): number {
   return coeffs.reduce((sum, coeff, i) => sum + coeff * x ** i, 0);
 }
 
-function calculateTailZ(q: number, c: number[], d: number[]): number {
+function calcTailZ(q: number, c: number[], d: number[]): number {
   const numerator = evaluatePolynomial([...c].reverse(), q);
   const denominator = evaluatePolynomial([...d, 1].reverse(), q);
   return numerator / denominator;
 }
 
-function calculateCentralZ(
-  q: number,
-  r: number,
-  a: number[],
-  b: number[],
-): number {
+function calcCentralZ(q: number, r: number, a: number[], b: number[]): number {
   const numerator = q * evaluatePolynomial([...a].reverse(), r);
   const denominator = evaluatePolynomial([...b, 1].reverse(), r);
   return numerator / denominator;
 }
 
-/** Normal inverse cumulative distribution function (approximation) */
+/** Inverse normal CDF using Beasley-Springer-Moro approximation */
 function normalInverse(p: number, mean: number, stdDev: number): number {
   const { low, high } = normalInverseCoeffs.thresholds;
   const { a, b, c, d } = normalInverseCoeffs;
@@ -116,14 +105,14 @@ function normalInverse(p: number, mean: number, stdDev: number): number {
   let z: number;
   if (p < low) {
     const q = Math.sqrt(-2 * Math.log(p));
-    z = calculateTailZ(q, c, d);
+    z = calcTailZ(q, c, d);
   } else if (p <= high) {
     const q = p - 0.5;
     const r = q * q;
-    z = calculateCentralZ(q, r, a, b);
+    z = calcCentralZ(q, r, a, b);
   } else {
     const q = Math.sqrt(-2 * Math.log(1 - p));
-    z = -calculateTailZ(q, c, d);
+    z = -calcTailZ(q, c, d);
   }
 
   return mean + stdDev * z;
