@@ -12,111 +12,6 @@ interface ProcessedBenchmark {
   isBaseline: boolean;
 }
 
-function prepareBenchmarks(group: any): ProcessedBenchmark[] {
-  const benchmarks = [];
-
-  if (group.baseline) {
-    benchmarks.push({
-      name: group.baseline.name + " (baseline)",
-      samples: group.baseline.samples,
-      stats: group.baseline.time,
-      isBaseline: true,
-    });
-  }
-
-  group.benchmarks.forEach((b: any) => {
-    benchmarks.push({
-      name: b.name,
-      samples: b.samples,
-      stats: b.time,
-      isBaseline: false,
-    });
-  });
-
-  return benchmarks;
-}
-
-function createPlotPoints(benchmarks: ProcessedBenchmark[]): {
-  allSamples: PlotDataPoint[];
-  timeSeries: PlotDataPoint[];
-} {
-  const allSamples: PlotDataPoint[] = [];
-  const timeSeries: PlotDataPoint[] = [];
-
-  benchmarks.forEach(b => {
-    if (!b.samples || b.samples.length === 0) return;
-
-    b.samples.forEach((value: number, i: number) => {
-      const point = {
-        benchmark: b.name,
-        value: value,
-        iteration: i,
-        isBaseline: b.isBaseline,
-      };
-      allSamples.push(point);
-      timeSeries.push(point);
-    });
-  });
-
-  return { allSamples, timeSeries };
-}
-
-function createGroupLayout(groupId: string): string {
-  return `
-    <div class="plot-grid">
-      <div class="plot-container">
-        <div class="plot-title">Sample Time Series</div>
-        <div class="plot-description">Execution time for each sample in collection order</div>
-        <div id="timeseries-${groupId}" class="plot-area">
-          <div class="loading">Loading time series...</div>
-        </div>
-      </div>
-      
-      <div class="plot-container">
-        <div class="plot-title">Distribution Histogram</div>
-        <div class="plot-description">Frequency distribution of execution times</div>
-        <div id="histogram-${groupId}" class="plot-area">
-          <div class="loading">Loading histogram...</div>
-        </div>
-      </div>
-    </div>
-    
-    <div class="plot-grid" id="qq-plots-${groupId}">
-      <!-- Q-Q plots will be inserted here -->
-    </div>
-    
-    <div id="stats-${groupId}" style="margin-top: 20px;">
-      <!-- Statistics will be inserted here -->
-    </div>
-  `;
-}
-
-function createStatCard(label: string, value: string): string {
-  return `
-    <div style="background: white; padding: 10px; border-radius: 4px; text-align: center;">
-      <div style="font-size: 12px; color: #666; text-transform: uppercase;">${label}</div>
-      <div style="font-size: 18px; font-weight: 600; color: #333;">${value}</div>
-    </div>
-  `;
-}
-
-function createStatsHTML(benchmark: ProcessedBenchmark): string {
-  const stats = benchmark.stats;
-  return `
-    <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
-      <h4 style="margin-bottom: 10px; color: #333;">${benchmark.name}</h4>
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
-        ${createStatCard("Min", `${stats.min.toFixed(3)}ms`)}
-        ${createStatCard("Median", `${stats.p50.toFixed(3)}ms`)}
-        ${createStatCard("Mean", `${stats.mean.toFixed(3)}ms`)}
-        ${createStatCard("Max", `${stats.max.toFixed(3)}ms`)}
-        ${createStatCard("P75", `${stats.p75.toFixed(3)}ms`)}
-        ${createStatCard("P99", `${stats.p99.toFixed(3)}ms`)}
-      </div>
-    </div>
-  `;
-}
-
 /** Main application for rendering benchmark visualizations */
 class BenchmarkVisualizationApp {
   private dataSource: BenchmarkDataSource;
@@ -256,3 +151,108 @@ class BenchmarkVisualizationApp {
 document.addEventListener("DOMContentLoaded", () => {
   new BenchmarkVisualizationApp();
 });
+
+function prepareBenchmarks(group: any): ProcessedBenchmark[] {
+  const benchmarks = [];
+
+  if (group.baseline) {
+    benchmarks.push({
+      name: group.baseline.name + " (baseline)",
+      samples: group.baseline.samples,
+      stats: group.baseline.time,
+      isBaseline: true,
+    });
+  }
+
+  group.benchmarks.forEach((b: any) => {
+    benchmarks.push({
+      name: b.name,
+      samples: b.samples,
+      stats: b.time,
+      isBaseline: false,
+    });
+  });
+
+  return benchmarks;
+}
+
+function createPlotPoints(benchmarks: ProcessedBenchmark[]): {
+  allSamples: PlotDataPoint[];
+  timeSeries: PlotDataPoint[];
+} {
+  const allSamples: PlotDataPoint[] = [];
+  const timeSeries: PlotDataPoint[] = [];
+
+  benchmarks.forEach(b => {
+    if (!b.samples || b.samples.length === 0) return;
+
+    b.samples.forEach((value: number, i: number) => {
+      const point = {
+        benchmark: b.name,
+        value: value,
+        iteration: i,
+        isBaseline: b.isBaseline,
+      };
+      allSamples.push(point);
+      timeSeries.push(point);
+    });
+  });
+
+  return { allSamples, timeSeries };
+}
+
+function createGroupLayout(groupId: string): string {
+  return `
+    <div class="plot-grid">
+      <div class="plot-container">
+        <div class="plot-title">Sample Time Series</div>
+        <div class="plot-description">Execution time for each sample in collection order</div>
+        <div id="timeseries-${groupId}" class="plot-area">
+          <div class="loading">Loading time series...</div>
+        </div>
+      </div>
+      
+      <div class="plot-container">
+        <div class="plot-title">Distribution Histogram</div>
+        <div class="plot-description">Frequency distribution of execution times</div>
+        <div id="histogram-${groupId}" class="plot-area">
+          <div class="loading">Loading histogram...</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="plot-grid" id="qq-plots-${groupId}">
+      <!-- Q-Q plots will be inserted here -->
+    </div>
+    
+    <div id="stats-${groupId}" style="margin-top: 20px;">
+      <!-- Statistics will be inserted here -->
+    </div>
+  `;
+}
+
+function createStatCard(label: string, value: string): string {
+  return `
+    <div style="background: white; padding: 10px; border-radius: 4px; text-align: center;">
+      <div style="font-size: 12px; color: #666; text-transform: uppercase;">${label}</div>
+      <div style="font-size: 18px; font-weight: 600; color: #333;">${value}</div>
+    </div>
+  `;
+}
+
+function createStatsHTML(benchmark: ProcessedBenchmark): string {
+  const stats = benchmark.stats;
+  return `
+    <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+      <h4 style="margin-bottom: 10px; color: #333;">${benchmark.name}</h4>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
+        ${createStatCard("Min", `${stats.min.toFixed(3)}ms`)}
+        ${createStatCard("Median", `${stats.p50.toFixed(3)}ms`)}
+        ${createStatCard("Mean", `${stats.mean.toFixed(3)}ms`)}
+        ${createStatCard("Max", `${stats.max.toFixed(3)}ms`)}
+        ${createStatCard("P75", `${stats.p75.toFixed(3)}ms`)}
+        ${createStatCard("P99", `${stats.p99.toFixed(3)}ms`)}
+      </div>
+    </div>
+  `;
+}

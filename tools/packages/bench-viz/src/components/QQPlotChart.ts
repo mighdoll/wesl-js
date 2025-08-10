@@ -1,13 +1,6 @@
 import * as Plot from "@observablehq/plot";
 import type { QQPoint } from "../types.ts";
 
-/** Format value for Q-Q plot axis based on magnitude */
-function formatQQ(d: number): string {
-  if (Math.abs(d) < 0.1) return d.toFixed(3);
-  if (Math.abs(d) < 10) return d.toFixed(2);
-  return d.toFixed(1);
-}
-
 export function renderQQPlotChart(
   container: HTMLElement,
   qqData: QQPoint[],
@@ -74,4 +67,11 @@ export function renderQQPlotChart(
     console.error("Error rendering Q-Q plot:", error);
     container.innerHTML = `<div class="error">Error rendering Q-Q plot: ${error instanceof Error ? error.message : String(error)}</div>`;
   }
+}
+
+/** Format value for Q-Q plot axis based on magnitude */
+function formatQQ(d: number): string {
+  if (Math.abs(d) < 0.1) return d.toFixed(3);
+  if (Math.abs(d) < 10) return d.toFixed(2);
+  return d.toFixed(1);
 }

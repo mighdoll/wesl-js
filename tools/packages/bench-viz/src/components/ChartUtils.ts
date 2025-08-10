@@ -19,7 +19,7 @@ export function createChartWithLegend(
       domain: legendData.map(d => d.name),
       range: legendData.map(d => d.style.color),
     },
-    columns: 1,
+    columns: "1",
     marginTop: -10,
     marginLeft: 10,
     width: 120,
@@ -34,12 +34,6 @@ export function createChartWithLegend(
 
   return chartContainer;
 }
-
-export const chartConfig = {
-  margins: { left: 70, right: 10, bottom: 60 },
-  dimensions: { width: 550, height: 300 },
-  style: { fontSize: "12px" },
-};
 
 export function createAxisConfig(
   label: string,
@@ -60,3 +54,9 @@ export function createAxisConfig(
     ...(config?.tickFormat && { tickFormat: config.tickFormat }),
   };
 }
+
+export const chartConfig = {
+  margins: { left: 70, right: 10, bottom: 60 },
+  dimensions: { width: 550, height: 300 },
+  style: { fontSize: "12px" },
+};

@@ -15,6 +15,47 @@ interface BinConfig {
   maxCount: number;
 }
 
+export function renderHistogramChart(
+  container: HTMLElement,
+  allSamples: PlotDataPoint[],
+  benchmarkNames: string[],
+): void {
+  container.innerHTML = "";
+
+  if (allSamples.length === 0) {
+    container.innerHTML = '<div class="error">No sample data available</div>';
+    return;
+  }
+
+  try {
+    const binConfig = calcBinConfig(allSamples, benchmarkNames);
+
+    const plot = Plot.plot({
+      ...chartConfig.margins,
+      ...chartConfig.dimensions,
+      style: chartConfig.style,
+      x: createAxisConfig("Time (ms)", {
+        domain: [binConfig.min, binConfig.max],
+        tickFormat: d => d.toFixed(1),
+      }),
+      y: createAxisConfig("Count", {
+        grid: true,
+        labelOffset: 50,
+        domain: [0, binConfig.maxCount * 1.1],
+      }),
+      marks: [
+        ...createMarks(allSamples, benchmarkNames, binConfig),
+        Plot.ruleY([0]),
+      ],
+    });
+
+    container.appendChild(createChartWithLegend(plot, benchmarkNames));
+  } catch (error) {
+    console.error("Error rendering histogram:", error);
+    container.innerHTML = `<div class="error">Error rendering histogram: ${error instanceof Error ? error.message : String(error)}</div>`;
+  }
+}
+
 /** Calculate histogram bins excluding outliers using IQR */
 function calcBinConfig(
   allSamples: PlotDataPoint[],
@@ -75,45 +116,4 @@ function createMarks(
         stroke: "none",
       });
     });
-}
-
-export function renderHistogramChart(
-  container: HTMLElement,
-  allSamples: PlotDataPoint[],
-  benchmarkNames: string[],
-): void {
-  container.innerHTML = "";
-
-  if (allSamples.length === 0) {
-    container.innerHTML = '<div class="error">No sample data available</div>';
-    return;
-  }
-
-  try {
-    const binConfig = calcBinConfig(allSamples, benchmarkNames);
-
-    const plot = Plot.plot({
-      ...chartConfig.margins,
-      ...chartConfig.dimensions,
-      style: chartConfig.style,
-      x: createAxisConfig("Time (ms)", {
-        domain: [binConfig.min, binConfig.max],
-        tickFormat: d => d.toFixed(1),
-      }),
-      y: createAxisConfig("Count", {
-        grid: true,
-        labelOffset: 50,
-        domain: [0, binConfig.maxCount * 1.1],
-      }),
-      marks: [
-        ...createMarks(allSamples, benchmarkNames, binConfig),
-        Plot.ruleY([0]),
-      ],
-    });
-
-    container.appendChild(createChartWithLegend(plot, benchmarkNames));
-  } catch (error) {
-    console.error("Error rendering histogram:", error);
-    container.innerHTML = `<div class="error">Error rendering histogram: ${error instanceof Error ? error.message : String(error)}</div>`;
-  }
 }
