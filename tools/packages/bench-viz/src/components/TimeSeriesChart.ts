@@ -110,7 +110,7 @@ export class TimeSeriesChart {
         },
         color: { 
           legend: false,
-          scheme: "observable10"
+          scheme: "tableau10"
         },
         marks: [
           // Baseline samples (hollow yellow circles)
@@ -204,7 +204,7 @@ export class TimeSeriesChart {
       this.container.appendChild(plot);
     } catch (error) {
       console.error('Error rendering time series:', error);
-      this.container.innerHTML = `<div class="error">Error rendering time series: ${error.message}</div>`;
+      this.container.innerHTML = `<div class="error">Error rendering time series: ${error instanceof Error ? error.message : String(error)}</div>`;
     }
   }
 }

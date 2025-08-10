@@ -5,7 +5,11 @@ export class BenchmarkDataSource {
   private listeners: Set<(data: BenchmarkData | null) => void> = new Set();
   private pollInterval?: number;
   
-  constructor(private dataPath = './data/benchmark-results.json') {}
+  private dataPath: string;
+  
+  constructor(dataPath = './data/benchmark-results.json') {
+    this.dataPath = dataPath;
+  }
   
   /** Start polling for data updates */
   startPolling(intervalMs = 1000): void {
@@ -43,7 +47,7 @@ export class BenchmarkDataSource {
         }
       }
     } catch (error) {
-      console.log('Waiting for benchmark data...', error.message);
+      console.log('Waiting for benchmark data...', error instanceof Error ? error.message : String(error));
       if (this.data !== null) {
         this.data = null;
         this.notifyListeners();

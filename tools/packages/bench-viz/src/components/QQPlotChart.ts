@@ -73,7 +73,7 @@ export class QQPlotChart {
       this.container.appendChild(plot);
     } catch (error) {
       console.error('Error rendering Q-Q plot:', error);
-      this.container.innerHTML = `<div class="error">Error rendering Q-Q plot: ${error.message}</div>`;
+      this.container.innerHTML = `<div class="error">Error rendering Q-Q plot: ${error instanceof Error ? error.message : String(error)}</div>`;
     }
   }
 }

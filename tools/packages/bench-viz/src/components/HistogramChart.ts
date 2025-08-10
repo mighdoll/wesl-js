@@ -71,7 +71,7 @@ export class HistogramChart {
         color: { 
           legend: false, 
           domain: benchmarkNames,
-          scheme: "observable10"
+          scheme: "tableau10"
         },
         marks: [
           // Overlapping histograms - baseline first (behind), then main benchmark (in front)
@@ -83,21 +83,22 @@ export class HistogramChart {
             return 0;
           }).map((benchmarkName) => {
             const benchmarkSamples = allSamples.filter(d => d.benchmark === benchmarkName);
-            const color = d3.schemeObservable10[benchmarkNames.indexOf(benchmarkName) % d3.schemeObservable10.length];
+            const color = d3.schemeTableau10[benchmarkNames.indexOf(benchmarkName) % d3.schemeTableau10.length];
             
             return Plot.rectY(
               benchmarkSamples,
-              Plot.binX(
-                { y: "count" },
-                { 
-                  x: "value", 
-                  fill: color,
-                  fillOpacity: .5,
-                  strokeWidth: 0.5,
-                  thresholds: bins,
-                  inset: 0.5
-                }
-              )
+              {
+                ...Plot.binX(
+                  { y: "count" },
+                  { 
+                    x: "value", 
+                    thresholds: bins
+                  }
+                ),
+                inset: 0.5,
+                fill: color,
+                fillOpacity: 0.7,
+              }
             );
           }),
           Plot.ruleY([0]),
@@ -122,7 +123,7 @@ export class HistogramChart {
             return 0;
           }).map((name, i) => {
             const isBaseline = name.includes("(baseline)");
-            const color = d3.schemeObservable10[benchmarkNames.indexOf(name) % d3.schemeObservable10.length];
+            const color = d3.schemeTableau10[benchmarkNames.indexOf(name) % d3.schemeTableau10.length];
             const legendY = maxCount * 0.95 - i * (maxCount * 0.08); // Match time series spacing
             const legendX = binMin + (binMax - binMin) * 0.68;
             
@@ -153,7 +154,7 @@ export class HistogramChart {
       this.container.appendChild(plot);
     } catch (error) {
       console.error('Error rendering histogram:', error);
-      this.container.innerHTML = `<div class="error">Error rendering histogram: ${error.message}</div>`;
+      this.container.innerHTML = `<div class="error">Error rendering histogram: ${error instanceof Error ? error.message : String(error)}</div>`;
     }
   }
 }
