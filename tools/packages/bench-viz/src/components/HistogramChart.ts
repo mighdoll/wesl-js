@@ -143,7 +143,7 @@ export class HistogramChart {
             return 0;
           }).map((name, i) => {
             const legendY = maxCount * 0.95 - i * (maxCount * 0.08); // Match time series spacing
-            const legendX = binMin + (binMax - binMin) * 0.72; // Slightly closer to legend boxes
+            const legendX = binMin + (binMax - binMin) * 0.76; // Increased spacing from legend boxes
             
             return Plot.text([{x: legendX, y: legendY, text: name}], {
               x: "x", y: "y", text: "text", fontSize: 12, textAnchor: "start", fill: "#333"
