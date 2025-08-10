@@ -83,7 +83,6 @@ export class HistogramChart {
             return 0;
           }).map((benchmarkName) => {
             const benchmarkSamples = allSamples.filter(d => d.benchmark === benchmarkName);
-            const isBaseline = benchmarkName.includes("(baseline)");
             const color = d3.schemeObservable10[benchmarkNames.indexOf(benchmarkName) % d3.schemeObservable10.length];
             
             return Plot.rectY(
@@ -93,8 +92,7 @@ export class HistogramChart {
                 { 
                   x: "value", 
                   fill: color,
-                  fillOpacity: isBaseline ? 0.6 : 0.8, // baseline more transparent
-                  stroke: "white",
+                  fillOpacity: .5,
                   strokeWidth: 0.5,
                   thresholds: bins,
                   inset: 0.5
