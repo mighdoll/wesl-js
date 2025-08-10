@@ -38,6 +38,7 @@ export class QQPlotChart {
         style: { fontSize: "12px" },
         x: { 
           label: "Theoretical Quantiles (ms)", 
+          labelAnchor: "center",
           domain: [minVal, maxVal], 
           labelOffset: 45,
           labelArrow: "none",
@@ -65,10 +66,7 @@ export class QQPlotChart {
               title: d => `Sample: ${formatQQ(d.sample)}`
             }
           ),
-          Plot.text(
-            [{ x: maxVal * 0.85, y: maxVal * 0.15, text: benchmarkName }],
-            { x: "x", y: "y", text: "text", fontSize: 12 }
-          )
+          // Remove the benchmark name label
         ]
       });
       

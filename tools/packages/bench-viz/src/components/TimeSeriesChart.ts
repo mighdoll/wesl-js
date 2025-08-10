@@ -101,7 +101,8 @@ export class TimeSeriesChart {
           tickFormat: d => d.toString()
         },
         y: { 
-          label: null,
+          label: `Time (${timeUnit})`,
+          labelAnchor: "center",
           labelArrow: "none",
           grid: true,
           domain: [yMin, yMax],
@@ -154,11 +155,11 @@ export class TimeSeriesChart {
           Plot.rect([{
             x1: d3.max(convertedData, d => d.sample)! * 0.65, 
             x2: d3.max(convertedData, d => d.sample)! * 1.05,
-            y1: yMax * 0.75,
-            y2: yMax * 1.05
+            y1: yMax * 0.82,
+            y2: yMax * 1.0
           }], {
             x1: "x1", x2: "x2", y1: "y1", y2: "y2",
-            fill: "white", fillOpacity: 0.9, stroke: "#ddd", strokeWidth: 1
+            fill: "#f8f8f8", fillOpacity: 0.7, stroke: "none"
           }),
           
           // Custom legend - sort so main benchmark is first, baseline second
