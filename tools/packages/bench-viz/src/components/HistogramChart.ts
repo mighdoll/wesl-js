@@ -31,30 +31,19 @@ export class HistogramChart {
       const binMin = Math.max(min, q1 - 1.5 * iqr);
       const binMax = Math.min(max, q3 + 1.5 * iqr);
       
-      // Create bins for each benchmark separately
+      // Use overlapping histogram style with standard binning
       const bins = d3.ticks(binMin, binMax, 25);
-      const binWidth = (bins[1] - bins[0]) * 0.8; // Leave space between groups
-      const barWidth = binWidth / benchmarkNames.length;
       
-      // Bin data for each benchmark
-      const binnedData = benchmarkNames.map((benchmarkName, benchIndex) => {
+      // Calculate max count across all benchmarks for y-axis domain
+      const allCounts = benchmarkNames.flatMap(benchmarkName => {
         const benchmarkSamples = allSamples.filter(d => d.benchmark === benchmarkName);
         const histogram = d3.bin()
           .domain([binMin, binMax])
           .thresholds(bins)
           (benchmarkSamples.map(d => d.value));
-          
-        return histogram.map(bin => ({
-          bin: bin.x0!,
-          count: bin.length,
-          benchmark: benchmarkName,
-          benchmarkIndex: benchIndex,
-          x: bin.x0! + (benchIndex - (benchmarkNames.length - 1) / 2) * barWidth
-        })).filter(d => d.count > 0);
-      }).flat();
-      
-      // Calculate max count for y-axis domain
-      const maxCount = d3.max(binnedData, d => d.count) || 10;
+        return histogram.map(bin => bin.length);
+      });
+      const maxCount = d3.max(allCounts) || 10;
       
       const plot = Plot.plot({
         marginLeft: 70,
@@ -85,23 +74,37 @@ export class HistogramChart {
           scheme: "observable10"
         },
         marks: [
-          // Parallel bars
-          Plot.rect(
-            binnedData,
-            {
-              x1: d => d.x - barWidth/2,
-              x2: d => d.x + barWidth/2,
-              y1: 0,
-              y2: "count",
-              fill: "benchmark",
-              fillOpacity: 0.7,
-              stroke: "white",
-              strokeWidth: 0.5
-            }
-          ),
+          // Overlapping histograms - baseline first (behind), then main benchmark (in front)
+          ...benchmarkNames.sort((a, b) => {
+            const aBaseline = a.includes("(baseline)");
+            const bBaseline = b.includes("(baseline)");
+            if (aBaseline && !bBaseline) return -1;  // baseline first (rendered behind)
+            if (!aBaseline && bBaseline) return 1;
+            return 0;
+          }).map((benchmarkName) => {
+            const benchmarkSamples = allSamples.filter(d => d.benchmark === benchmarkName);
+            const isBaseline = benchmarkName.includes("(baseline)");
+            const color = d3.schemeObservable10[benchmarkNames.indexOf(benchmarkName) % d3.schemeObservable10.length];
+            
+            return Plot.rectY(
+              benchmarkSamples,
+              Plot.binX(
+                { y: "count" },
+                { 
+                  x: "value", 
+                  fill: color,
+                  fillOpacity: isBaseline ? 0.6 : 0.8, // baseline more transparent
+                  stroke: "white",
+                  strokeWidth: 0.5,
+                  thresholds: bins,
+                  inset: 0.5
+                }
+              )
+            );
+          }),
           Plot.ruleY([0]),
           
-          // Legend background box - position relative to data range
+          // Legend background box - match time series positioning
           Plot.rect([{
             x1: binMin + (binMax - binMin) * 0.65, 
             x2: binMin + (binMax - binMin) * 1.05,
@@ -112,7 +115,7 @@ export class HistogramChart {
             fill: "#f8f8f8", fillOpacity: 0.7, stroke: "none"
           }),
           
-          // Legend items - sort so main benchmark is first, baseline second
+          // Legend items - match time series spacing (0.95 - i * 0.08)
           ...benchmarkNames.sort((a, b) => {
             const aBaseline = a.includes("(baseline)");
             const bBaseline = b.includes("(baseline)");
@@ -122,16 +125,16 @@ export class HistogramChart {
           }).map((name, i) => {
             const isBaseline = name.includes("(baseline)");
             const color = d3.schemeObservable10[benchmarkNames.indexOf(name) % d3.schemeObservable10.length];
-            const legendY = maxCount * 0.95 - i * (maxCount * 0.08);
+            const legendY = maxCount * 0.95 - i * (maxCount * 0.08); // Match time series spacing
             const legendX = binMin + (binMax - binMin) * 0.68;
             
-            return Plot.rect([{x1: legendX, x2: legendX + (binMax - binMin) * 0.08, y1: legendY - maxCount * 0.025, y2: legendY + maxCount * 0.025}], {
+            return Plot.rect([{x1: legendX, x2: legendX + (binMax - binMin) * 0.06, y1: legendY - maxCount * 0.02, y2: legendY + maxCount * 0.02}], {
               x1: "x1", x2: "x2", y1: "y1", y2: "y2",
-              fill: color, fillOpacity: 0.7
+              fill: color, fillOpacity: isBaseline ? 0.6 : 0.8
             });
           }),
           
-          // Legend text
+          // Legend text - match time series spacing
           ...benchmarkNames.sort((a, b) => {
             const aBaseline = a.includes("(baseline)");
             const bBaseline = b.includes("(baseline)");
@@ -139,8 +142,8 @@ export class HistogramChart {
             if (aBaseline && !bBaseline) return 1;
             return 0;
           }).map((name, i) => {
-            const legendY = maxCount * 0.95 - i * (maxCount * 0.08);
-            const legendX = binMin + (binMax - binMin) * 0.78;
+            const legendY = maxCount * 0.95 - i * (maxCount * 0.08); // Match time series spacing
+            const legendX = binMin + (binMax - binMin) * 0.72; // Slightly closer to legend boxes
             
             return Plot.text([{x: legendX, y: legendY, text: name}], {
               x: "x", y: "y", text: "text", fontSize: 12, textAnchor: "start", fill: "#333"
