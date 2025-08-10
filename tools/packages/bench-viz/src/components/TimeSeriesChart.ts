@@ -22,9 +22,9 @@ export class TimeSeriesChart {
       const benchmarks = [...new Set(timeSeries.map(d => d.benchmark))];
       
       // Keep values in original milliseconds and determine best unit
-      const sampleData = timeSeries.map((d, i) => ({
+      const sampleData = timeSeries.map((d) => ({
         benchmark: d.benchmark,
-        sample: i,
+        sample: d.iteration, // Use actual sample iteration for overlapping
         value: d.value, // Keep in milliseconds
         isBaseline: d.isBaseline || d.benchmark.includes("(baseline)")
       }));
@@ -90,16 +90,19 @@ export class TimeSeriesChart {
         marginRight: 110,
         width: 550,
         height: 300,
-        style: { fontSize: "14px" },
+        style: { fontSize: "12px" },
         x: { 
           label: "Sample", 
           labelAnchor: "center",
           labelOffset: 45,
+          labelArrow: "none",
           grid: true,
-          domain: [0, d3.max(convertedData, d => d.sample)!]
+          domain: [0, d3.max(convertedData, d => d.sample)!],
+          tickFormat: d => d.toString()
         },
         y: { 
           label: null,
+          labelArrow: "none",
           grid: true,
           domain: [yMin, yMax],
           tickFormat: formatValue

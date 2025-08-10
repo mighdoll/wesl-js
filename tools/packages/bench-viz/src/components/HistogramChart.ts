@@ -37,14 +37,16 @@ export class HistogramChart {
         marginBottom: 60,
         width: 550,
         height: 300,
-        style: { fontSize: "14px" },
+        style: { fontSize: "12px" },
         x: { 
           label: "Time (ms)", 
+          labelAnchor: "center",
           domain: [binMin, binMax], 
           labelOffset: 45,
+          labelArrow: "none",
           tickFormat: d => d.toFixed(1)
         },
-        y: { label: "Count", labelAnchor: "center", grid: true, labelOffset: 50 },
+        y: { label: "Count", labelAnchor: "center", labelArrow: "none", grid: true, labelOffset: 50 },
         color: { 
           legend: false, 
           domain: benchmarkNames,

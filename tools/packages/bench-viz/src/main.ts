@@ -57,7 +57,7 @@ class BenchmarkVisualizationApp {
     data.suites.forEach((suite, suiteIndex) => {
       // Create suite container
       const suiteContainer = document.createElement('div');
-      suiteContainer.innerHTML = `<h2 style="color: #333; margin: 30px 0 20px; font-size: 24px;">${suite.name}</h2>`;
+      // Skip rendering suite name since it's redundant with header
       this.appContainer.appendChild(suiteContainer);
       
       suite.groups.forEach((group, groupIndex) => {
@@ -78,8 +78,6 @@ class BenchmarkVisualizationApp {
     // Create group container
     const groupContainer = document.createElement('div');
     groupContainer.innerHTML = `
-      <h3 style="color: #555; margin: 20px 0 15px; font-size: 20px;">${group.name}</h3>
-      
       <div class="plot-grid">
         <div class="plot-container">
           <div class="plot-title">Sample Time Series</div>
@@ -141,7 +139,7 @@ class BenchmarkVisualizationApp {
         const point = {
           benchmark: b.name,
           value: value,
-          iteration: i,
+          iteration: i, // Keep original sample index for overlapping
           isBaseline: b.isBaseline
         };
         allSamples.push(point);

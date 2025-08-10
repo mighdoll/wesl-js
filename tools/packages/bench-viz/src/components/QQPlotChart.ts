@@ -35,16 +35,18 @@ export class QQPlotChart {
         width: 400,
         height: 400,
         aspectRatio: 1,
-        style: { fontSize: "14px" },
+        style: { fontSize: "12px" },
         x: { 
           label: "Theoretical Quantiles (ms)", 
           domain: [minVal, maxVal], 
           labelOffset: 45,
+          labelArrow: "none",
           tickFormat: formatQQ
         },
         y: { 
           label: "Sample Quantiles (ms)", 
           labelAnchor: "center", 
+          labelArrow: "none",
           domain: [minVal, maxVal], 
           labelOffset: 60,
           tickFormat: formatQQ
