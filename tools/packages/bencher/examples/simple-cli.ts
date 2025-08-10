@@ -1,10 +1,9 @@
 #!/usr/bin/env -S node --expose-gc --allow-natives-syntax
 import {
+  benchExports,
   type BenchGroup,
   type BenchSuite,
-  defaultReport,
   parseBenchArgs,
-  runBenchmarks,
 } from "../src/index.ts";
 
 const stringGroup: BenchGroup<void> = {
@@ -31,9 +30,7 @@ const suite: BenchSuite = {
 };
 
 const args = parseBenchArgs();
-const results = await runBenchmarks(suite, args);
-const report = defaultReport(results, args);
-console.log(report);
+await benchExports(suite, args);
 
 /** Immutable quicksort implementation */
 function quickSort(arr: number[]): number[] {

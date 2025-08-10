@@ -2,12 +2,12 @@
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  adaptiveTimeSection,
   type BenchGroup,
   type BenchSuite,
   cpuSection,
   defaultCliArgs,
   gcSection,
+  generateHtmlReport,
   parseBenchArgs,
   type ReportGroup,
   reportResults,
@@ -15,9 +15,9 @@ import {
   runsSection,
   totalTimeSection,
 } from "bencher";
+import { adaptiveLocSection } from "../src/AdaptiveLocSection.ts";
 import { loadBaselineImports } from "../src/BaselineVariations.ts";
 import { loadExamples, type WeslSource } from "../src/LoadExamples.ts";
-import { adaptiveLocSection } from "../src/AdaptiveLocSection.ts";
 import { locSection } from "../src/LocSection.ts";
 import { meanTimeSection } from "../src/MeanTimeSection.ts";
 import {
@@ -72,6 +72,14 @@ async function main() {
 
   const table = reportResults(reorganized, finalSections);
   console.log(table);
+
+  // Generate HTML report if requested
+  if (args.html || args["export-html"]) {
+    await generateHtmlReport(reorganized, {
+      openBrowser: args.html && !args["export-html"],
+      outputPath: args["export-html"],
+    });
+  }
 }
 
 /** @return true if results contain GC data */
