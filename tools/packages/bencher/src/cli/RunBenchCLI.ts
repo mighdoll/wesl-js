@@ -2,6 +2,7 @@ import { hideBin } from "yargs/helpers";
 import type { BenchGroup, BenchmarkSpec, BenchSuite } from "../Benchmark.ts";
 import type { BenchmarkReport, ReportGroup } from "../BenchmarkReport.ts";
 import { reportResults } from "../BenchmarkReport.ts";
+import { exportBenchmarkJson } from "../export/JsonExport.ts";
 import { generateHtmlReport } from "../html/HtmlReport.ts";
 import type { RunnerOptions } from "../runners/BenchRunner.ts";
 import type { KnownRunner } from "../runners/CreateRunner.ts";
@@ -178,6 +179,11 @@ export async function benchExports(
       openBrowser: args.html && !args["export-html"], // Only open if html flag and no export path
       outputPath: args["export-html"],
     });
+  }
+
+  // Export JSON data if requested
+  if (args.json) {
+    await exportBenchmarkJson(results, args.json, args, suite.name);
   }
 }
 

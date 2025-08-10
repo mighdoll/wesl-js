@@ -2,6 +2,7 @@
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  benchExports,
   type BenchGroup,
   type BenchSuite,
   cpuSection,
@@ -45,6 +46,14 @@ async function main() {
     groups: createBenchGroups(variants, examples, baselineImports, args.worker),
   };
 
+  // Use benchExports for automatic JSON export support
+  if (args.json) {
+    // Simple path: use benchExports which handles table + HTML + JSON
+    await benchExports(suite, args);
+    return;
+  }
+
+  // Original custom logic for when JSON is not needed
   const results = await runBenchmarks(suite, args);
 
   const reorganized = reorganizeReportGroups(results, variants);

@@ -75,6 +75,11 @@ export function defaultCliArgs(yargsInstance: Argv) {
       requiresArg: true,
       describe: "export HTML report to specified file",
     })
+    .option("json", {
+      type: "string",
+      requiresArg: true,
+      describe: "export benchmark data to JSON file",
+    })
     .help()
     .strict();
 }
