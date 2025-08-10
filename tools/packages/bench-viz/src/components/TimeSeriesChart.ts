@@ -90,7 +90,7 @@ export class TimeSeriesChart {
       const yMax = dataMax + dataRange * 0.05;
 
       const benchmarkStyles = getBenchmarkStyles(benchmarks);
-      
+
       const plot = Plot.plot({
         marginLeft: 70,
         marginBottom: 60,
@@ -118,20 +118,23 @@ export class TimeSeriesChart {
         marks: [
           ...benchmarks.map(benchmark => {
             const style = benchmarkStyles.get(benchmark)!;
-            const benchmarkData = convertedData.filter(d => 
-              (d.isBaseline && style.isBaseline) || (!d.isBaseline && !style.isBaseline)
+            const benchmarkData = convertedData.filter(
+              d =>
+                (d.isBaseline && style.isBaseline) ||
+                (!d.isBaseline && !style.isBaseline),
             );
-            
+
             return Plot.dot(benchmarkData, {
               x: "sample",
-              y: "displayValue", 
+              y: "displayValue",
               fill: style.fillColor,
               stroke: style.strokeColor,
               strokeWidth: style.strokeWidth,
               r: 3,
               fillOpacity: style.fillOpacity,
               strokeOpacity: style.strokeOpacity,
-              title: d => `${benchmark}: Sample ${d.sample}: ${formatValue(d.displayValue)}${unitSuffix}`,
+              title: d =>
+                `${benchmark}: Sample ${d.sample}: ${formatValue(d.displayValue)}${unitSuffix}`,
             });
           }),
           // Bottom baseline (black line at the bottom of the domain)
@@ -144,12 +147,12 @@ export class TimeSeriesChart {
       chartContainer.style.display = "flex";
       chartContainer.style.alignItems = "flex-start";
       chartContainer.style.position = "relative";
-      
+
       chartContainer.appendChild(plot);
-      
+
       // Create legend using Plot.legend()
       const legendData = createLegendData(benchmarks);
-      
+
       const legend = Plot.legend({
         color: {
           type: "ordinal",
@@ -161,14 +164,14 @@ export class TimeSeriesChart {
         marginLeft: 10,
         width: 120,
       });
-      
+
       // Position legend mostly inside plot area, upper right corner
       const legendContainer = document.createElement("div");
       legendContainer.style.position = "absolute";
       legendContainer.style.top = "-10px"; // 10px above plot
       legendContainer.style.right = "-10px"; // Only 10px extending to the right
       legendContainer.appendChild(legend);
-      
+
       chartContainer.appendChild(legendContainer);
       this.container.appendChild(chartContainer);
     } catch (error) {
