@@ -113,7 +113,7 @@ export class TimeSeriesChart {
           tickFormat: formatValue,
         },
         color: {
-          legend: true,
+          legend: false,
           scheme: "tableau10",
         },
         marks: [

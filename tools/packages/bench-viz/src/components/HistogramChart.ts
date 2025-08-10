@@ -74,7 +74,7 @@ export class HistogramChart {
           domain: [0, maxCount * 1.1],
         },
         color: {
-          legend: true,
+          legend: false,
           domain: benchmarkNames,
           scheme: "tableau10",
         },
