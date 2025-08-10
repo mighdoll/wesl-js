@@ -1,6 +1,7 @@
 import * as Plot from "@observablehq/plot";
 import * as d3 from "d3";
 import type { PlotDataPoint } from "../types.ts";
+import { getBenchmarkStyles, createLegendData } from "./ChartStyles.ts";
 
 export class HistogramChart {
   private container: HTMLElement;
@@ -50,9 +51,11 @@ export class HistogramChart {
       });
       const maxCount = d3.max(allCounts) || 10;
 
+      const benchmarkStyles = getBenchmarkStyles(benchmarkNames);
+      
       const plot = Plot.plot({
         marginLeft: 70,
-        marginRight: 110,
+        marginRight: 10, // Reduced to make room for external legend
         marginBottom: 60,
         width: 550,
         height: 300,
@@ -73,11 +76,6 @@ export class HistogramChart {
           labelOffset: 50,
           domain: [0, maxCount * 1.1],
         },
-        color: {
-          legend: false,
-          domain: benchmarkNames,
-          scheme: "tableau10",
-        },
         marks: [
           // Overlapping histograms - baseline first (behind), then main benchmark (in front)
           ...benchmarkNames
@@ -92,11 +90,7 @@ export class HistogramChart {
               const benchmarkSamples = allSamples.filter(
                 d => d.benchmark === benchmarkName,
               );
-              const color =
-                d3.schemeTableau10[
-                  benchmarkNames.indexOf(benchmarkName) %
-                    d3.schemeTableau10.length
-                ];
+              const style = benchmarkStyles.get(benchmarkName)!;
 
               return Plot.rectY(benchmarkSamples, {
                 ...Plot.binX(
@@ -107,97 +101,47 @@ export class HistogramChart {
                   },
                 ),
                 inset: 0.5,
-                fill: color,
-                fillOpacity: 0.7,
+                fill: style.fillColor === "none" ? style.strokeColor : style.fillColor,
+                fillOpacity: style.isBaseline ? 0.6 : 0.8,
+                stroke: "none", // No stroke outline on histogram bars
               });
             }),
           Plot.ruleY([0]),
-
-          // Legend background box - match time series positioning
-          Plot.rect(
-            [
-              {
-                x1: binMin + (binMax - binMin) * 0.65,
-                x2: binMin + (binMax - binMin) * 1.05,
-                y1: maxCount * 0.82,
-                y2: maxCount * 1.0,
-              },
-            ],
-            {
-              x1: "x1",
-              x2: "x2",
-              y1: "y1",
-              y2: "y2",
-              fill: "#f8f8f8",
-              fillOpacity: 0.7,
-              stroke: "none",
-            },
-          ),
-
-          // Legend items - match time series spacing (0.95 - i * 0.08)
-          ...benchmarkNames
-            .sort((a, b) => {
-              const aBaseline = a.includes("(baseline)");
-              const bBaseline = b.includes("(baseline)");
-              if (!aBaseline && bBaseline) return -1;
-              if (aBaseline && !bBaseline) return 1;
-              return 0;
-            })
-            .map((name, i) => {
-              const isBaseline = name.includes("(baseline)");
-              const color =
-                d3.schemeTableau10[
-                  benchmarkNames.indexOf(name) % d3.schemeTableau10.length
-                ];
-              const legendY = maxCount * 0.95 - i * (maxCount * 0.08); // Match time series spacing
-              const legendX = binMin + (binMax - binMin) * 0.68;
-
-              return Plot.rect(
-                [
-                  {
-                    x1: legendX,
-                    x2: legendX + (binMax - binMin) * 0.06,
-                    y1: legendY - maxCount * 0.02,
-                    y2: legendY + maxCount * 0.02,
-                  },
-                ],
-                {
-                  x1: "x1",
-                  x2: "x2",
-                  y1: "y1",
-                  y2: "y2",
-                  fill: color,
-                  fillOpacity: isBaseline ? 0.6 : 0.8,
-                },
-              );
-            }),
-
-          // Legend text - match time series spacing
-          ...benchmarkNames
-            .sort((a, b) => {
-              const aBaseline = a.includes("(baseline)");
-              const bBaseline = b.includes("(baseline)");
-              if (!aBaseline && bBaseline) return -1;
-              if (aBaseline && !bBaseline) return 1;
-              return 0;
-            })
-            .map((name, i) => {
-              const legendY = maxCount * 0.95 - i * (maxCount * 0.08); // Match time series spacing
-              const legendX = binMin + (binMax - binMin) * 0.76; // Increased spacing from legend boxes
-
-              return Plot.text([{ x: legendX, y: legendY, text: name }], {
-                x: "x",
-                y: "y",
-                text: "text",
-                fontSize: 12,
-                textAnchor: "start",
-                fill: "#333",
-              });
-            }),
         ],
       });
 
-      this.container.appendChild(plot);
+      // Create container for plot and legend
+      const chartContainer = document.createElement("div");
+      chartContainer.style.display = "flex";
+      chartContainer.style.alignItems = "flex-start";
+      chartContainer.style.position = "relative";
+      
+      chartContainer.appendChild(plot);
+      
+      // Create legend using Plot.legend()
+      const legendData = createLegendData(benchmarkNames);
+      
+      const legend = Plot.legend({
+        color: {
+          type: "ordinal",
+          domain: legendData.map(d => d.name),
+          range: legendData.map(d => d.style.color),
+        },
+        columns: 1,
+        marginTop: -10,
+        marginLeft: 10,
+        width: 120,
+      });
+      
+      // Position legend mostly inside plot area, upper right corner
+      const legendContainer = document.createElement("div");
+      legendContainer.style.position = "absolute";
+      legendContainer.style.top = "-10px"; // 10px above plot
+      legendContainer.style.right = "-10px"; // Only 10px extending to the right
+      legendContainer.appendChild(legend);
+      
+      chartContainer.appendChild(legendContainer);
+      this.container.appendChild(chartContainer);
     } catch (error) {
       console.error("Error rendering histogram:", error);
       this.container.innerHTML = `<div class="error">Error rendering histogram: ${error instanceof Error ? error.message : String(error)}</div>`;

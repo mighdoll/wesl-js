@@ -1,6 +1,7 @@
 import * as Plot from "@observablehq/plot";
 import * as d3 from "d3";
 import type { PlotDataPoint } from "../types.ts";
+import { getBenchmarkStyles, createLegendData } from "./ChartStyles.ts";
 
 export class TimeSeriesChart {
   private container: HTMLElement;
@@ -88,10 +89,12 @@ export class TimeSeriesChart {
 
       const yMax = dataMax + dataRange * 0.05;
 
+      const benchmarkStyles = getBenchmarkStyles(benchmarks);
+      
       const plot = Plot.plot({
         marginLeft: 70,
         marginBottom: 60,
-        marginRight: 110,
+        marginRight: 10, // Reduced to make room for external legend
         width: 550,
         height: 300,
         style: { fontSize: "12px" },
@@ -112,138 +115,62 @@ export class TimeSeriesChart {
           domain: [yMin, yMax],
           tickFormat: formatValue,
         },
-        color: {
-          legend: false,
-          scheme: "tableau10",
-        },
         marks: [
-          // Baseline samples (hollow yellow circles)
-          Plot.dot(
-            convertedData.filter(d => d.isBaseline),
-            {
+          ...benchmarks.map(benchmark => {
+            const style = benchmarkStyles.get(benchmark)!;
+            const benchmarkData = convertedData.filter(d => 
+              (d.isBaseline && style.isBaseline) || (!d.isBaseline && !style.isBaseline)
+            );
+            
+            return Plot.dot(benchmarkData, {
               x: "sample",
-              y: "displayValue",
-              stroke: "#ffa500",
-              fill: "none",
-              strokeWidth: 2,
+              y: "displayValue", 
+              fill: style.fillColor,
+              stroke: style.strokeColor,
+              strokeWidth: style.strokeWidth,
               r: 3,
-              opacity: 0.8,
-              title: d =>
-                `Sample ${d.sample}: ${formatValue(d.displayValue)}${unitSuffix}`,
-            },
-          ),
-          // Non-baseline samples (filled blue circles)
-          Plot.dot(
-            convertedData.filter(d => !d.isBaseline),
-            {
-              x: "sample",
-              y: "displayValue",
-              fill: "#4682b4",
-              r: 3,
-              opacity: 0.8,
-              title: d =>
-                `Sample ${d.sample}: ${formatValue(d.displayValue)}${unitSuffix}`,
-            },
-          ),
+              fillOpacity: style.fillOpacity,
+              strokeOpacity: style.strokeOpacity,
+              title: d => `${benchmark}: Sample ${d.sample}: ${formatValue(d.displayValue)}${unitSuffix}`,
+            });
+          }),
           // Bottom baseline (black line at the bottom of the domain)
           Plot.ruleY([yMin], { stroke: "black", strokeWidth: 1 }),
-          // Y-axis label at the top - positioned well above the chart
-          Plot.text(
-            [
-              {
-                x: d3.max(convertedData, d => d.sample)! * -0.05,
-                y: yMax * 1.08,
-                text: `Time (${timeUnit})`,
-              },
-            ],
-            {
-              x: "x",
-              y: "y",
-              text: "text",
-              fontSize: 12,
-              textAnchor: "middle",
-              fill: "#333",
-            },
-          ),
-
-          // Legend background box
-          Plot.rect(
-            [
-              {
-                x1: d3.max(convertedData, d => d.sample)! * 0.65,
-                x2: d3.max(convertedData, d => d.sample)! * 1.05,
-                y1: yMax * 0.82,
-                y2: yMax * 1.0,
-              },
-            ],
-            {
-              x1: "x1",
-              x2: "x2",
-              y1: "y1",
-              y2: "y2",
-              fill: "#f8f8f8",
-              fillOpacity: 0.7,
-              stroke: "none",
-            },
-          ),
-
-          // Custom legend - sort so main benchmark is first, baseline second
-          ...benchmarks
-            .sort((a, b) => {
-              const aBaseline = a.includes("(baseline)");
-              const bBaseline = b.includes("(baseline)");
-              if (!aBaseline && bBaseline) return -1;
-              if (aBaseline && !bBaseline) return 1;
-              return 0;
-            })
-            .map((benchmark, i) => {
-              const isBaseline = benchmark.includes("(baseline)");
-              const color = isBaseline ? "#ffa500" : "#4682b4"; // Orange for baseline, blue for main
-              const legendY = yMax * 0.95 - i * (yMax * 0.08);
-              const legendX = d3.max(convertedData, d => d.sample)! * 0.68;
-
-              return isBaseline
-                ? Plot.dot([{ x: legendX, y: legendY }], {
-                    x: "x",
-                    y: "y",
-                    stroke: color,
-                    fill: "none",
-                    strokeWidth: 2,
-                    r: 4,
-                  })
-                : Plot.dot([{ x: legendX, y: legendY }], {
-                    x: "x",
-                    y: "y",
-                    fill: color,
-                    r: 4,
-                  });
-            }),
-          // Custom legend text - closer to symbols
-          ...benchmarks
-            .sort((a, b) => {
-              const aBaseline = a.includes("(baseline)");
-              const bBaseline = b.includes("(baseline)");
-              if (!aBaseline && bBaseline) return -1;
-              if (aBaseline && !bBaseline) return 1;
-              return 0;
-            })
-            .map((benchmark, i) => {
-              const legendY = yMax * 0.95 - i * (yMax * 0.08);
-              const legendX = d3.max(convertedData, d => d.sample)! * 0.72;
-
-              return Plot.text([{ x: legendX, y: legendY, text: benchmark }], {
-                x: "x",
-                y: "y",
-                text: "text",
-                fontSize: 12,
-                textAnchor: "start",
-                fill: "#333",
-              });
-            }),
         ],
       });
 
-      this.container.appendChild(plot);
+      // Create container for plot and legend
+      const chartContainer = document.createElement("div");
+      chartContainer.style.display = "flex";
+      chartContainer.style.alignItems = "flex-start";
+      chartContainer.style.position = "relative";
+      
+      chartContainer.appendChild(plot);
+      
+      // Create legend using Plot.legend()
+      const legendData = createLegendData(benchmarks);
+      
+      const legend = Plot.legend({
+        color: {
+          type: "ordinal",
+          domain: legendData.map(d => d.name),
+          range: legendData.map(d => d.style.color),
+        },
+        columns: 1,
+        marginTop: -10,
+        marginLeft: 10,
+        width: 120,
+      });
+      
+      // Position legend mostly inside plot area, upper right corner
+      const legendContainer = document.createElement("div");
+      legendContainer.style.position = "absolute";
+      legendContainer.style.top = "-10px"; // 10px above plot
+      legendContainer.style.right = "-10px"; // Only 10px extending to the right
+      legendContainer.appendChild(legend);
+      
+      chartContainer.appendChild(legendContainer);
+      this.container.appendChild(chartContainer);
     } catch (error) {
       console.error("Error rendering time series:", error);
       this.container.innerHTML = `<div class="error">Error rendering time series: ${error instanceof Error ? error.message : String(error)}</div>`;
