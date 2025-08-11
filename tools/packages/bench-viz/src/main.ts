@@ -3,7 +3,7 @@ import { renderQQPlotChart } from "./components/QQPlotChart.ts";
 import { renderTimeSeriesChart } from "./components/TimeSeriesChart.ts";
 import { BenchmarkDataSource } from "./data/BenchmarkDataSource.ts";
 import { calculateQQData } from "./stats/StatisticalUtils.ts";
-import type { BenchmarkData, PlotDataPoint } from "./types.ts";
+import type { BenchmarkData, PlotDataPoint } from "./data/JsonData.ts";
 
 interface ProcessedBenchmark {
   name: string;

@@ -1,4 +1,4 @@
-import type { OutlierInfo, QQPoint } from "../types.ts";
+import type { OutlierInfo, QQPoint } from "../data/JsonData.ts";
 
 /** @return Q-Q plot points for normality testing */
 export function calculateQQData(samples: number[]): QQPoint[] {

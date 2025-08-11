@@ -1,4 +1,4 @@
-import type { BenchmarkData } from "../types.ts";
+import type { BenchmarkData } from "./JsonData.ts";
 
 /** Manages benchmark data fetching and update notifications */
 export class BenchmarkDataSource {

@@ -1,5 +1,5 @@
 import * as Plot from "@observablehq/plot";
-import type { QQPoint } from "../types.ts";
+import type { QQPoint } from "../data/JsonData.ts";
 
 export function renderQQPlotChart(
   container: HTMLElement,

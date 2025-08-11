@@ -1,6 +1,6 @@
 import * as Plot from "@observablehq/plot";
 import * as d3 from "d3";
-import type { PlotDataPoint } from "../types.ts";
+import type { PlotDataPoint } from "../data/JsonData.ts";
 import { getBenchmarkStyles } from "./ChartStyles.ts";
 import {
   chartConfig,

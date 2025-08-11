@@ -27,8 +27,9 @@ export function createChartWithLegend(
 
   const legendContainer = document.createElement("div");
   legendContainer.style.position = "absolute";
-  legendContainer.style.top = "-10px";
+  legendContainer.style.top = "10px";
   legendContainer.style.right = "-10px";
+  legendContainer.style.backgroundColor = "#00000010";
   legendContainer.appendChild(legend);
   chartContainer.appendChild(legendContainer);
 

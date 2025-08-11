@@ -1,4 +1,5 @@
-/** Root benchmark data from JSON output */
+/** data from the command line tool, delivered in benchmark-results.json */
+
 export interface BenchmarkData {
   meta: {
     timestamp: string;
