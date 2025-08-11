@@ -1,7 +1,6 @@
 import { renderHistogramChart } from "./components/HistogramChart.ts";
 import { renderQQPlotChart } from "./components/QQPlotChart.ts";
 import { renderTimeSeriesChart } from "./components/TimeSeriesChart.ts";
-import { BenchmarkDataSource } from "./data/BenchmarkDataSource.ts";
 import { calculateQQData } from "./stats/StatisticalUtils.ts";
 import type { BenchmarkData, PlotDataPoint } from "./data/JsonData.ts";
 
@@ -14,25 +13,35 @@ interface ProcessedBenchmark {
 
 /** Main application for rendering benchmark visualizations */
 class BenchmarkVisualizationApp {
-  private dataSource: BenchmarkDataSource;
   private appContainer: HTMLElement;
   private metadataContainer: HTMLElement;
 
   constructor() {
-    this.dataSource = new BenchmarkDataSource("./data/benchmark-results.json");
     this.appContainer = document.getElementById("app")!;
     this.metadataContainer = document.getElementById("metadata")!;
-
-    this.dataSource.subscribe(this.onDataUpdate.bind(this));
-    this.dataSource.startPolling(1000);
+    this.loadAndRender();
   }
 
-  private onDataUpdate(data: BenchmarkData | null): void {
+  async loadAndRender(): Promise<void> {
+    try {
+      const response = await fetch("/data/benchmark-results.json");
+      if (!response.ok) {
+        this.showNoData();
+        return;
+      }
+      const data = await response.json() as BenchmarkData;
+      this.render(data);
+    } catch (error) {
+      console.error("Failed to load benchmark data:", error);
+      this.showNoData();
+    }
+  }
+
+  render(data: BenchmarkData | null): void {
     if (!data) {
       this.showNoData();
       return;
     }
-
     this.updateMetadata(data);
     this.renderVisualizations(data);
   }
@@ -148,9 +157,20 @@ class BenchmarkVisualizationApp {
   }
 }
 
+let app: BenchmarkVisualizationApp;
+
 document.addEventListener("DOMContentLoaded", () => {
-  new BenchmarkVisualizationApp();
+  app = new BenchmarkVisualizationApp();
 });
+
+// Hot Module Replacement - reload data when files change
+if (import.meta.hot) {
+  import.meta.hot.accept(() => {
+    if (app) {
+      app.loadAndRender();
+    }
+  });
+}
 
 function prepareBenchmarks(group: any): ProcessedBenchmark[] {
   const benchmarks = [];
