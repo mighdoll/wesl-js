@@ -1,3 +1,5 @@
+pub mod npm_resolver;
+pub mod package_name_utils;
 pub mod parse;
 pub mod resolve;
 
