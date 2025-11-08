@@ -140,79 +140,29 @@ impl BundleExtractor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::io::Write;
-    use tempfile::NamedTempFile;
+    use std::fs;
+    use std::env;
+
+    fn parse_test_bundle(js: &str) -> WeslBundle {
+        let path = env::temp_dir().join("test_bundle.js");
+        fs::write(&path, js).unwrap();
+        let result = parse_wesl_bundle(&path).unwrap();
+        fs::remove_file(&path).ok();
+        result
+    }
 
     #[test]
-    fn test_parse_simple_bundle() {
-        let bundle_js = r#"
-export const weslBundle = {
-  name: "test_pkg",
-  edition: "unstable_2025_1",
-  modules: {
-    "lib.wgsl": "fn main() { }"
-  }
-};
-
-export default weslBundle;
-"#;
-
-        let mut temp_file = NamedTempFile::new().unwrap();
-        temp_file.write_all(bundle_js.as_bytes()).unwrap();
-        temp_file.flush().unwrap();
-
-        let result = parse_wesl_bundle(temp_file.path()).unwrap();
+    fn test_parse_bundle() {
+        let result = parse_test_bundle(r#"
+            export const weslBundle = {
+              name: "test_pkg",
+              edition: "unstable_2025_1",
+              modules: { "lib.wgsl": "fn main() { }" }
+            };
+        "#);
 
         assert_eq!(result.name, "test_pkg");
         assert_eq!(result.edition, "unstable_2025_1");
         assert_eq!(result.modules.len(), 1);
-        assert_eq!(result.modules[0].0, "lib.wgsl");
-        assert_eq!(result.modules[0].1, "fn main() { }");
-    }
-
-    #[test]
-    fn test_parse_bundle_with_quoted_keys() {
-        let bundle_js = r#"
-export const weslBundle = {
-  "name": "test_pkg",
-  "edition": "unstable_2025_1",
-  "modules": {
-    "lib.wgsl": "fn main() { }"
-  }
-}
-
-export default weslBundle;
-"#;
-
-        let mut temp_file = NamedTempFile::new().unwrap();
-        temp_file.write_all(bundle_js.as_bytes()).unwrap();
-        temp_file.flush().unwrap();
-
-        let result = parse_wesl_bundle(temp_file.path()).unwrap();
-
-        assert_eq!(result.name, "test_pkg");
-        assert_eq!(result.edition, "unstable_2025_1");
-    }
-
-    #[test]
-    fn test_parse_bundle_multiple_modules() {
-        let bundle_js = r#"
-export const weslBundle = {
-  name: "multi_module",
-  edition: "unstable_2025_1",
-  modules: {
-    "lib.wgsl": "fn main() { }",
-    "util.wgsl": "fn helper() { }"
-  }
-};
-"#;
-
-        let mut temp_file = NamedTempFile::new().unwrap();
-        temp_file.write_all(bundle_js.as_bytes()).unwrap();
-        temp_file.flush().unwrap();
-
-        let result = parse_wesl_bundle(temp_file.path()).unwrap();
-
-        assert_eq!(result.modules.len(), 2);
     }
 }

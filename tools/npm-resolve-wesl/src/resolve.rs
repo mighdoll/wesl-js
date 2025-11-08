@@ -94,23 +94,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_segment_splitting() {
-        let segments: Vec<&str> = "foo::bar::baz".split("::").collect();
-        assert_eq!(segments, vec!["foo", "bar", "baz"]);
-    }
-
-    #[test]
-    fn test_filters_single_segments() {
-        // Single segments should be filtered out (likely built-ins)
-        let module_paths = vec!["builtin".to_string()];
-        let deps = resolve_dependencies(&module_paths, Path::new("."));
-        assert!(deps.is_empty());
-    }
-
-    #[test]
-    fn test_join_segments() {
-        let segments = vec!["foo", "bar", "baz"];
-        let joined = segments.join("/");
-        assert_eq!(joined, "foo/bar/baz");
+    fn test_resolution_logic() {
+        assert_eq!("foo::bar::baz".split("::").collect::<Vec<_>>(), vec!["foo", "bar", "baz"]);
+        assert_eq!(vec!["foo", "bar"].join("/"), "foo/bar");
+        assert!(resolve_dependencies(&vec!["builtin".to_string()], Path::new(".")).is_empty());
     }
 }
