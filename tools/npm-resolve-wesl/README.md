@@ -6,12 +6,41 @@ This package provides functionality to resolve WESL module paths (e.g., `foo::ba
 
 ## Features
 
+- **CLI Tool**: Resolve WESL module paths from the command line
 - **Module Path Resolution**: Resolves WESL module paths to npm packages using Node.js ESM resolution algorithm
 - **Bundle Parsing**: Parses `weslBundle.js` files to extract shader modules and metadata
 - **OXC-based**: Uses the fast OXC parser and resolver for maximum performance
 - **Compatible with TypeScript implementation**: Mirrors the behavior of the TypeScript `parseDependencies` and `dependencyBundles` functions
 
-## Usage
+## CLI Usage
+
+```bash
+# Resolve a single module path
+npm-resolve-wesl random_wgsl::pcg
+
+# Resolve from a specific project directory
+npm-resolve-wesl foo::bar::baz -d /path/to/project
+
+# Resolve multiple modules
+npm-resolve-wesl pkg1::fn pkg2::util
+
+# Output as JSON
+npm-resolve-wesl random_wgsl::pcg --json
+
+# Verbose mode
+npm-resolve-wesl random_wgsl::pcg --verbose
+```
+
+### Installation
+
+```bash
+cargo install --path .
+# Or for development:
+cargo build --release
+./target/release/npm-resolve-wesl --help
+```
+
+## Library Usage
 
 ### Resolving Dependencies
 
