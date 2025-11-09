@@ -1,4 +1,9 @@
 {
+  "scripts": {
+    "snip-sync": "node --experimental-strip-types tools/packages/snip-sync/src/cli.ts",
+    "snip-sync:watch": "node --experimental-strip-types tools/packages/snip-sync/src/cli.ts --watch",
+    "prepush": "npm run snip-sync"
+  },
   "devDependencies": {
     "@biomejs/biome": "^2.0.6",
     "vitest": "^3.2.4"

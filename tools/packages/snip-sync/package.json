@@ -1,0 +1,24 @@
+{
+  "name": "snip-sync",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Sync code snippets from source files into markdown documentation",
+  "bin": {
+    "snip-sync": "./src/cli.ts"
+  },
+  "scripts": {
+    "snip-sync": "node --experimental-strip-types src/cli.ts"
+  },
+  "dependencies": {
+    "chokidar": "^4.0.3",
+    "cosmiconfig": "^9.0.0",
+    "glob": "^11.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
