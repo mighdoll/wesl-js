@@ -9,6 +9,7 @@ test("parse empty string", () => {
 });
 
 test("parse fn foo() { }", () => {
+  // snippet-start: simple-function
   const src = "fn foo() { }";
   const ast = parseTest(src);
   expect(astToString(ast.moduleElem)).toMatchInlineSnapshot(`
@@ -18,6 +19,7 @@ test("parse fn foo() { }", () => {
         statement
           text '{ }'"
   `);
+  // snippet-end
 });
 
 test("parse fn with calls", () => {
@@ -135,6 +137,7 @@ test("parse const_assert", () => {
 });
 
 test("parse struct", () => {
+  // snippet-start: parse-struct
   const src = `struct foo { bar: i32, zip: u32, } ;`;
   const ast = parseTest(src);
   const astString = astToString(ast.moduleElem);
@@ -158,6 +161,7 @@ test("parse struct", () => {
         text ', }'
       text ' ;'"
   `);
+  // snippet-end
 });
 
 test("parse global diagnostic", () => {
@@ -716,6 +720,7 @@ test("parse @attribute before fn", () => {
 });
 
 test("import package::foo::bar;", ctx => {
+  // snippet-start: import-example
   const src = ctx.task.name;
   const ast = parseTest(src);
   const astString = astToString(ast.moduleElem);
@@ -723,6 +728,7 @@ test("import package::foo::bar;", ctx => {
     "module
       import package::foo::bar;"
   `);
+  // snippet-end
 });
 
 test("parse foo::bar(); ", () => {
