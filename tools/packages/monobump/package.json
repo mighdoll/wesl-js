@@ -1,0 +1,22 @@
+{
+  "name": "monobump",
+  "version": "0.1.0",
+  "description": "Smart version bumping for pnpm monorepos - only bumps changed packages and their dependents",
+  "type": "module",
+  "bin": "./bin/monobump",
+  "files": ["bin", "src"],
+  "scripts": {
+    "test": "vitest",
+    "test:once": "vitest run",
+    "typecheck": "tsgo"
+  },
+  "keywords": ["pnpm", "monorepo", "version", "bump", "release", "semver"],
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "peerDependencies": {
+    "pnpm": ">=9.0.0"
+  },
+  "repository": "github:wgsl-tooling-wg/wesl-js",
+  "license": "MIT"
+}
