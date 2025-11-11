@@ -1,17 +1,17 @@
 import { withLogSpy } from "mini-parse/test-util";
 import { expect, test } from "vitest";
 import { importSyntaxCases } from "wesl-testsuite";
-import { weslImports } from "../parse/ImportGrammar.ts";
+import { weslImportsDirect } from "../parse/ImportGrammar.ts";
 import { testAppParse } from "./TestUtil.ts";
 
 function expectParseFail(src: string): void {
   withLogSpy(() => {
-    expect(() => testAppParse(weslImports, src)).toThrow(); // LATER catch specific error only
+    expect(() => testAppParse(weslImportsDirect, src)).toThrow(); // LATER catch specific error only
   });
 }
 
 function expectParses(src: string): void {
-  const result = testAppParse(weslImports, src);
+  const result = testAppParse(weslImportsDirect, src);
   expect(result.stable.imports.length).toBeGreaterThan(0);
 }
 

@@ -126,6 +126,14 @@ export class WeslStream implements Stream<WeslToken> {
     }
   }
 
+  /** Peek at the next token without consuming it */
+  peek(): WeslToken | null {
+    const pos = this.checkpoint();
+    const token = this.nextToken();
+    this.reset(pos);
+    return token;
+  }
+
   private skipToEol(position: number): number {
     this.eolPattern.lastIndex = position;
     const result = this.eolPattern.exec(this.src);
