@@ -8,13 +8,13 @@
  */
 
 import type { Span } from "mini-parse";
-import type { AbstractElem, ContainerElem } from "../AbstractElems.ts";
+import type { AbstractElem } from "../AbstractElems.ts";
 import type { WeslParseContext, WeslParseState } from "../ParseWESL.ts";
 import {
-  emptyScope,
-  nextIdentId,
   type DeclIdent,
+  emptyScope,
   type Ident,
+  nextIdentId,
   type RefIdent,
   type Scope,
   type SrcModule,
@@ -118,7 +118,7 @@ export function createParseContext(
       return completedScope;
     },
 
-    createRefIdent(name: string, span: Span): RefIdent {
+    createRefIdent(name: string, _span: Span): RefIdent {
       const ident: RefIdent = {
         kind: "ref",
         originalName: name,
@@ -129,7 +129,7 @@ export function createParseContext(
       return ident;
     },
 
-    createDeclIdent(name: string, span: Span, isGlobal = false): DeclIdent {
+    createDeclIdent(name: string, _span: Span, isGlobal = false): DeclIdent {
       const containingScope = state.context.scope;
       const ident: DeclIdent = {
         kind: "decl",
