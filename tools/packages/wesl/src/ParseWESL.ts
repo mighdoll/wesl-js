@@ -41,7 +41,7 @@ export interface WeslParserConfig {
  * Set this to switch between V1 and V2 parsers
  */
 export const weslParserConfig: WeslParserConfig = {
-  useV2Parser: false,
+  useV2Parser: false,  // Default to V1, set to true for V2 testing
 };
 
 /** result of a parse for one wesl module (e.g. one .wesl file)
