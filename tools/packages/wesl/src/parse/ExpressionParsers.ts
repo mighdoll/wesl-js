@@ -72,6 +72,13 @@ export function parseSimpleIdentifier(
   // Link back from ident to elem
   ident.refIdentElem = refIdentElem;
 
+  // Save the RefIdent to the current scope so binding can find it
+  ctx.saveIdent(ident);
+
+  // Add RefIdentElem to current open container's contents (for text element generation)
+  // This makes V2 output match V1's flat text+ref structure
+  ctx.addElem(refIdentElem);
+
   return refIdentElem;
 }
 

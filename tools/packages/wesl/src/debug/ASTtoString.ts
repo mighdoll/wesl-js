@@ -124,6 +124,20 @@ function addElemFields(elem: AbstractElem, str: LineWrapper): void {
     listAttributeElems(elem.attributes, str);
   } else if (kind === "switch-clause") {
     // Nothing to do for now
+  } else if (kind === "literal") {
+    str.add(` literal(${elem.value})`);
+  } else if (kind === "binary-expression") {
+    str.add(` binop(${elem.operator.value})`);
+  } else if (kind === "unary-expression") {
+    str.add(` unop(${elem.operator.value})`);
+  } else if (kind === "call-expression") {
+    str.add(" call");
+  } else if (kind === "parenthesized-expression") {
+    str.add(" parens");
+  } else if (kind === "component-expression") {
+    str.add(" []");
+  } else if (kind === "component-member-expression") {
+    str.add(" .");
   } else {
     assertUnreachable(kind);
   }

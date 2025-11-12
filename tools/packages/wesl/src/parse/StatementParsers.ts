@@ -34,6 +34,10 @@ function attachAttributes<T extends { attributes?: AttributeElem[] }>(
 /**
  * Parse an optional expression followed by semicolon
  * Used for return, expression statements, etc.
+ *
+ * NOTE: We parse expressions but don't add them to contents, since expression
+ * elements don't have start/end positions and would break text element generation.
+ * This is consistent with V1's approach.
  */
 function parseOptionalExpressionStatement(
   stream: WeslStream,
@@ -41,7 +45,7 @@ function parseOptionalExpressionStatement(
 ): StatementElem {
   const startPos = checkpoint(stream);
 
-  // Try to parse expression (may be absent for empty return)
+  // Parse expression for validation (but don't add to contents)
   const expr = parseExpression(stream, ctx);
 
   // Expect semicolon
@@ -186,6 +190,10 @@ function parseSimpleStatement(
 
   // Try to parse as expression statement
   // This includes assignments like `i = i + 1;` or function calls like `foo();`
+
+  // Open statement to collect contents (will be filled with text automatically)
+  openElem(ctx, { kind: "statement", contents: [] });
+
   const expr = parseExpression(stream, ctx);
   if (expr) {
     // Check for assignment operators after the expression
@@ -204,11 +212,14 @@ function parseSimpleStatement(
 
       const endPos = checkpoint(stream);
 
+      // Close and fill with text (don't add expression elements, just create text)
+      const contents = closeElem(ctx, startPos, endPos);
+
       const stmt: StatementElem = {
         kind: "statement",
         start: startPos,
         end: endPos,
-        contents: [],
+        contents,
       };
 
       attachAttributes(stmt, attributes);
@@ -220,16 +231,22 @@ function parseSimpleStatement(
 
     const endPos = checkpoint(stream);
 
+    // Close and fill with text
+    const contents = closeElem(ctx, startPos, endPos);
+
     const stmt: StatementElem = {
       kind: "statement",
       start: startPos,
       end: endPos,
-      contents: [],
+      contents,
     };
 
     attachAttributes(stmt, attributes);
     return stmt;
   }
+
+  // Failed to parse, close the element we opened
+  closeElem(ctx, startPos, startPos);
 
   reset(stream, startPos);
   return null;

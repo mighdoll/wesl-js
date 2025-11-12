@@ -76,6 +76,17 @@ export function lowerAndEmitElem(e: AbstractElem, ctx: EmitContext): void {
       emitDeclIdent(e, ctx);
       return;
 
+    // expression elements (V2 parser creates these)
+    case "literal":
+    case "binary-expression":
+    case "unary-expression":
+    case "call-expression":
+    case "parenthesized-expression":
+    case "component-expression":
+    case "component-member-expression":
+      emitExpression(e, ctx);
+      return;
+
     // container elements just emit their child elements
     case "param":
     case "var":
@@ -264,6 +275,42 @@ export function emitRefIdent(e: RefIdentElem, ctx: EmitContext): void {
 export function emitDeclIdent(e: DeclIdentElem, ctx: EmitContext): void {
   const mangledName = displayName(e.ident);
   ctx.srcBuilder.add(mangledName!, e.start, e.end);
+}
+
+function emitExpression(e: ExpressionElem, ctx: EmitContext): void {
+  const { kind } = e;
+
+  if (kind === "literal") {
+    ctx.srcBuilder.add(e.value, e.span[0], e.span[1]);
+  } else if (kind === "ref") {
+    emitRefIdent(e, ctx);
+  } else if (kind === "binary-expression") {
+    emitExpression(e.left, ctx);
+    ctx.srcBuilder.add(` ${e.operator.value} `, e.operator.span[0], e.operator.span[1]);
+    emitExpression(e.right, ctx);
+  } else if (kind === "unary-expression") {
+    ctx.srcBuilder.add(e.operator.value, e.operator.span[0], e.operator.span[1]);
+    emitExpression(e.expression, ctx);
+  } else if (kind === "parenthesized-expression") {
+    // For parenthesized expressions, emit the inner expression
+    // The parentheses should be in text elements
+    emitExpression(e.expression, ctx);
+  } else if (kind === "call-expression") {
+    emitExpression(e.function, ctx);
+    // Arguments should be in text elements with parentheses
+    e.arguments.forEach(arg => emitExpression(arg, ctx));
+  } else if (kind === "component-expression") {
+    emitExpression(e.base, ctx);
+    emitExpression(e.access, ctx);
+  } else if (kind === "component-member-expression") {
+    emitExpression(e.base, ctx);
+    // The member name should be in text elements with dot
+    if (e.access.kind === "name") {
+      ctx.srcBuilder.add(e.access.name, e.access.start, e.access.end);
+    }
+  } else {
+    assertUnreachable(kind);
+  }
 }
 
 function emitAttribute(e: AttributeElem, ctx: EmitContext): void {
