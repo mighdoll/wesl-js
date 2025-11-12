@@ -106,7 +106,7 @@ export function parseTypedDecl(
   ctx.saveIdent(declIdent);
 
   // Check for optional type annotation `: type`
-  let typeRef: undefined = undefined;
+  let typeRef: TypeRefElem | undefined = undefined;
   let typeScope: undefined = undefined;
   const colonPos = checkpoint(stream);
   if (consume(stream, ":")) {
@@ -118,9 +118,8 @@ export function parseTypedDecl(
     }
     // Add type to contents
     ctx.addElem(parsedTypeRef);
-    // For now, we don't use the parsed type ref in the TypedDeclElem
-    // This maintains compatibility with v1 while consuming the tokens
-    // TODO: Store typeRef when we add full type support
+    // Store the typeRef for astToString summary
+    typeRef = parsedTypeRef;
   }
 
   const endPos = checkpoint(stream);
@@ -181,8 +180,8 @@ export function parseConstDecl(
     throw new Error("Expected expression after '='");
   }
 
-  // Add expression to contents
-  ctx.addElem(expr);
+  // Note: Don't add expr to contents - expressions are ExpressionElem, not GrammarElem
+  // They'll be covered by text elements automatically
 
   // Expect ";"
   expect(stream, ";", "Expected ';' after const declaration");
@@ -242,8 +241,7 @@ export function parseOverrideDecl(
     if (!expr) {
       throw new Error("Expected expression after '='");
     }
-    // Add expression to contents
-    ctx.addElem(expr);
+    // Note: Don't add expr to contents - will be covered by text elements
   }
 
   // Expect ";"
@@ -318,8 +316,7 @@ export function parseVarDecl(
     if (!expr) {
       throw new Error("Expected expression after '='");
     }
-    // Add expression to contents
-    ctx.addElem(expr);
+    // Note: Don't add expr to contents - will be covered by text elements
   }
 
   // Expect ";"
@@ -658,8 +655,7 @@ export function parseLocalVarDecl(
     if (!expr) {
       throw new Error("Expected expression after '='");
     }
-    // Add expression to contents
-    ctx.addElem(expr);
+    // Note: Don't add expr to contents - will be covered by text elements
   }
 
   // Expect ";"
@@ -721,8 +717,7 @@ export function parseLetDecl(
     throw new Error("Expected expression after '='");
   }
 
-  // Add expression to contents
-  ctx.addElem(expr);
+  // Note: Don't add expr to contents - will be covered by text elements
 
   // Expect ";"
   expect(stream, ";", "Expected ';' after let declaration");
