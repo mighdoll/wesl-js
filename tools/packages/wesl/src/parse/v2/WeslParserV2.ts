@@ -19,6 +19,7 @@ import {
   parseStructDecl,
   parseVarDecl,
 } from "../ConstParsers.ts";
+import { parseFnDecl } from "../FnParsers.ts";
 import { parseWeslImports } from "../ImportParsers.ts";
 import type { ParseContext } from "../ParseContext.ts";
 import { createParseContext } from "../ParseContext.ts";
@@ -102,6 +103,8 @@ export class WeslParserV2 {
    * Parse global declarations (const, alias, var, override, struct, fn)
    * Week 2: const
    * Week 3: override, var, alias
+   * Week 4: struct
+   * Week 5: fn (with stub body parsing)
    */
   private parseDeclarations(): void {
     const stream = this.ctx.stream;
@@ -113,7 +116,7 @@ export class WeslParserV2 {
       parseVarDecl, // Week 3
       parseAliasDecl, // Week 3
       parseStructDecl, // Week 4
-      // TODO: Week 5: Add parseFnDecl
+      parseFnDecl, // Week 5
     ];
 
     // Keep parsing declarations until we can't parse any more
