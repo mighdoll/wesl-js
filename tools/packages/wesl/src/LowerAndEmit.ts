@@ -175,7 +175,7 @@ export function emitFn(e: FnElem, ctx: EmitContext): void {
   if (returnType) {
     builder.appendNext("-> ");
     emitAttributes(returnAttributes, ctx);
-    emitContents(returnType, ctx);
+    emitContentsNoWs(returnType, ctx);
     builder.appendNext(" ");
   }
 
