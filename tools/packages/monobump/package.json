@@ -12,7 +12,7 @@
   },
   "keywords": ["pnpm", "monorepo", "version", "bump", "release", "semver"],
   "engines": {
-    "node": ">=24.0.0"
+    "node": ">=22.0.0"
   },
   "peerDependencies": {
     "pnpm": ">=9.0.0"

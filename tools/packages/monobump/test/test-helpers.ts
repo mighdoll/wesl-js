@@ -70,6 +70,12 @@ export async function createTestMonorepo(packages: TestPackage[]): Promise<TestM
     }
   }
 
+  // Initialize pnpm workspace
+  // This is crucial - pnpm needs to recognize the workspace
+  await exec('pnpm install --ignore-workspace', { cwd: root }).catch(() => {
+    // Ignore errors - workspace might not be fully set up yet
+  });
+
   // Initialize git repo
   await exec('git init', { cwd: root });
   await exec('git config user.email "test@example.com"', { cwd: root });
