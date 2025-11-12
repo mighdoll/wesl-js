@@ -17,6 +17,35 @@ import type { WeslStream } from "./WeslStream.ts";
 import { openElem, closeElem } from "./v2/ContentsHelpers.ts";
 
 /**
+ * Check if a type name is a built-in WGSL type
+ */
+function isBuiltInType(name: string): boolean {
+  // Scalar types
+  if (['bool', 'i32', 'u32', 'f32', 'f16'].includes(name)) return true;
+
+  // Vector types (shorthand)
+  if (/^vec[234][iuf]$/.test(name)) return true; // vec2i, vec3f, vec4u, etc.
+
+  // Matrix types (shorthand)
+  if (/^mat[234]x[234][fh]$/.test(name)) return true; // mat2x2f, mat3x3f, etc.
+
+  // Common generic types that can appear without template params in some contexts
+  if (['vec2', 'vec3', 'vec4'].includes(name)) return true;
+  if (['mat2x2', 'mat2x3', 'mat2x4', 'mat3x2', 'mat3x3', 'mat3x4', 'mat4x2', 'mat4x3', 'mat4x4'].includes(name)) return true;
+
+  // Atomic, array, ptr
+  if (['atomic', 'array', 'ptr'].includes(name)) return true;
+
+  // Sampler types
+  if (['sampler', 'sampler_comparison'].includes(name)) return true;
+
+  // Texture types
+  if (name.startsWith('texture_')) return true; // texture_1d, texture_2d, texture_3d, etc.
+
+  return false;
+}
+
+/**
  * Parse a stub expression for template parameters
  * Week 6: Minimal implementation - just consume tokens until comma or >
  * TODO Week 7+: Replace with full expression parser
@@ -138,6 +167,11 @@ export function parseSimpleTypeRef(
   // Use firstToken's start position for accurate span (not startPos which may include leading whitespace)
   const nameStartPos = firstToken.span[0];
   const refIdent = ctx.createRefIdent(fullName, [nameStartPos, nameEndPos]);
+
+  // Mark built-in WGSL types as standard (std) to avoid binding resolution
+  if (isBuiltInType(fullName)) {
+    refIdent.std = true;
+  }
 
   // Open element to collect contents
   openElem(ctx, { kind: "type", contents: [] });
