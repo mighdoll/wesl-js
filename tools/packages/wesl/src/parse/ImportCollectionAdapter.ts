@@ -10,7 +10,7 @@ import {
 } from "mini-parse";
 import type { ImportElem } from "../AbstractElems.ts";
 import { parseWeslImports } from "./ImportParsers.ts";
-import type { WeslToken } from "./WeslStream.ts";
+import type { WeslStream, WeslToken } from "./WeslStream.ts";
 
 /**
  * Primary adapter for WESL import parsing.
@@ -23,8 +23,9 @@ export function createWeslImportsAdapter(): Parser<
 > {
   return new Parser<Stream<WeslToken>, ImportElem[]>({
     fn: (context: ParserContext): OptParserResult<ImportElem[]> => {
-      // Use our direct parser to get all imports
-      const imports = parseWeslImports(context);
+      // Extract WeslStream from context and pass it to the parser
+      const stream = context.stream as WeslStream;
+      const imports = parseWeslImports(stream);
 
       // Return the array (even if empty) to match repeat() behavior
       // The result will be tagged with "owo" by ptag() and then collected

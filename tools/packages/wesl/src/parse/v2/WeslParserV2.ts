@@ -8,20 +8,14 @@
  * Each grammar construct is validated against existing parser's AST output.
  */
 
-import type { Span } from "mini-parse";
-import type {
-  ModuleElem,
-  ImportStatement,
-  AbstractElem,
-  ImportElem,
-} from "../../AbstractElems.ts";
-import type { SrcModule, Scope } from "../../Scope.ts";
+import type { ModuleElem } from "../../AbstractElems.ts";
+import type { WeslAST, WeslParseState } from "../../ParseWESL.ts";
+import type { SrcModule } from "../../Scope.ts";
 import { emptyScope } from "../../Scope.ts";
-import { WeslStream } from "../WeslStream.ts";
+import { parseWeslImports } from "../ImportParsers.ts";
 import type { ParseContext } from "../ParseContext.ts";
 import { createParseContext } from "../ParseContext.ts";
-import type { WeslParseState, WeslAST } from "../../ParseWESL.ts";
-import { parseWeslImports } from "../ImportParsers.ts";
+import { WeslStream } from "../WeslStream.ts";
 
 /**
  * Main parser class for WESL v2
@@ -83,7 +77,7 @@ export class WeslParserV2 {
    */
   private parseImports(): void {
     // Use Phase 2 custom import parser
-    const importElems = parseWeslImports(this.ctx);
+    const importElems = parseWeslImports(this.ctx.stream);
 
     // Add import elements to the module
     for (const importElem of importElems) {

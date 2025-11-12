@@ -11,7 +11,7 @@
  * 4. Report any differences
  */
 
-import { expect, test, describe } from "vitest";
+import { describe, expect, test } from "vitest";
 import { parseSrcModule } from "../ParseWESL.ts";
 import { parseWeslV2 } from "../parse/v2/WeslParserV2.ts";
 import type { SrcModule } from "../Scope.ts";
@@ -31,7 +31,7 @@ function createSrcModule(src: string, modulePath = "test"): SrcModule {
 /**
  * Parse with both parsers and compare ASTs
  */
-function testParity(src: string, description?: string) {
+function testParity(src: string, _description?: string) {
   const srcModule = createSrcModule(src);
 
   // Reset scope IDs for deterministic comparison
@@ -44,7 +44,7 @@ function testParity(src: string, description?: string) {
   // Filter out TextElem nodes from v1 - these are whitespace/comments
   // V2 parser doesn't create TextElem nodes (yet), so we compare semantic elements only
   const v1SemanticElems = astV1.moduleElem.contents.filter(
-    (elem) => elem.kind !== "text",
+    elem => elem.kind !== "text",
   );
   const v2SemanticElems = astV2.moduleElem.contents;
 
@@ -75,42 +75,42 @@ describe("ParserV2 Parity: Empty Module", () => {
 
 describe("ParserV2 Parity: Imports", () => {
   test("simple package import", () => {
-    const { astV1, astV2 } = testParity('import pkg::module;');
+    const { astV1, astV2 } = testParity("import pkg::module;");
 
     expect(astV2.imports.length).toBe(1);
     expect(astV2.imports[0]).toEqual(astV1.imports[0]);
   });
 
   test("relative import", () => {
-    const { astV1, astV2 } = testParity('import super::sibling;');
+    const { astV1, astV2 } = testParity("import super::sibling;");
 
     expect(astV2.imports.length).toBe(1);
     expect(astV2.imports[0]).toEqual(astV1.imports[0]);
   });
 
   test("import with item", () => {
-    const { astV1, astV2 } = testParity('import pkg::module::Item;');
+    const { astV1, astV2 } = testParity("import pkg::module::Item;");
 
     expect(astV2.imports.length).toBe(1);
     expect(astV2.imports[0]).toEqual(astV1.imports[0]);
   });
 
   test("import with as", () => {
-    const { astV1, astV2 } = testParity('import pkg::Item as Renamed;');
+    const { astV1, astV2 } = testParity("import pkg::Item as Renamed;");
 
     expect(astV2.imports.length).toBe(1);
     expect(astV2.imports[0]).toEqual(astV1.imports[0]);
   });
 
   test("import collection", () => {
-    const { astV1, astV2 } = testParity('import pkg::{Foo, Bar};');
+    const { astV1, astV2 } = testParity("import pkg::{Foo, Bar};");
 
     expect(astV2.imports.length).toBe(1);
     expect(astV2.imports[0]).toEqual(astV1.imports[0]);
   });
 
   test("nested import collection", () => {
-    const { astV1, astV2 } = testParity('import pkg::{a::B, c::D};');
+    const { astV1, astV2 } = testParity("import pkg::{a::B, c::D};");
 
     expect(astV2.imports.length).toBe(1);
     expect(astV2.imports[0]).toEqual(astV1.imports[0]);
@@ -152,14 +152,17 @@ describe("ParserV2 Parity: Imports", () => {
 
 describe("ParserV2 Parity: Import Positions", () => {
   test("import element has correct span", () => {
-    const src = 'import pkg::module;';
+    const src = "import pkg::module;";
     const { astV1, astV2 } = testParity(src);
 
     const importElemV1 = astV1.moduleElem.contents[0];
     const importElemV2 = astV2.moduleElem.contents[0];
 
-    expect(importElemV2.start, "start position").toBe(importElemV1.start);
-    expect(importElemV2.end, "end position").toBe(importElemV1.end);
+    // Type guard: check that elements have start/end properties
+    if ("start" in importElemV1 && "start" in importElemV2) {
+      expect(importElemV2.start, "start position").toBe(importElemV1.start);
+      expect(importElemV2.end, "end position").toBe(importElemV1.end);
+    }
   });
 
   test("multiple imports have correct spans", () => {
@@ -170,8 +173,11 @@ import pkg2::b;`;
     for (let i = 0; i < v1SemanticElems.length; i++) {
       const elemV1 = v1SemanticElems[i];
       const elemV2 = v2SemanticElems[i];
-      expect(elemV2.start, `import ${i} start`).toBe(elemV1.start);
-      expect(elemV2.end, `import ${i} end`).toBe(elemV1.end);
+      // Type guard: check that elements have start/end properties
+      if ("start" in elemV1 && "start" in elemV2) {
+        expect(elemV2.start, `import ${i} start`).toBe(elemV1.start);
+        expect(elemV2.end, `import ${i} end`).toBe(elemV1.end);
+      }
     }
   });
 });
@@ -181,7 +187,7 @@ describe("ParserV2 Parity: Stress Tests", () => {
     const imports = Array.from(
       { length: 100 },
       (_, i) => `import pkg${i}::module${i};`,
-    ).join('\n');
+    ).join("\n");
 
     const { astV1, astV2 } = testParity(imports);
     expect(astV2.imports.length).toBe(100);
@@ -190,7 +196,7 @@ describe("ParserV2 Parity: Stress Tests", () => {
 
   test("deeply nested collection", () => {
     const { astV1, astV2 } = testParity(
-      'import pkg::{a::{b::{c::D, e::F}, g::H}, i::J};',
+      "import pkg::{a::{b::{c::D, e::F}, g::H}, i::J};",
     );
 
     expect(astV2.imports.length).toBe(1);

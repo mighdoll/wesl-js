@@ -2,8 +2,6 @@
  * Direct token parsers for WESL attributes without mini-parse combinators.
  * These functions return null on parse failure for efficient backtracking.
  */
-
-import type { ParserContext } from "mini-parse";
 import type {
   BinaryExpression,
   BinaryOperator,
@@ -25,12 +23,10 @@ import {
   expect,
   reset,
 } from "./ParseUtil.ts";
-import type { WeslToken } from "./WeslStream.ts";
+import type { WeslStream, WeslToken } from "./WeslStream.ts";
 
 // Parser functions that return null on failure
-export function parseLiteral(context: ParserContext): Literal | null {
-  const { stream } = context;
-
+export function parseLiteral(stream: WeslStream): Literal | null {
   // Check by kind and text
   const token =
     consumeKind(stream, "keyword", "true") ||
@@ -44,19 +40,14 @@ export function parseLiteral(context: ParserContext): Literal | null {
 }
 
 export function parseTranslateTimeFeature(
-  context: ParserContext,
+  stream: WeslStream,
 ): TranslateTimeFeature | null {
-  const { stream } = context;
   const token = consumeKind(stream, "word");
 
   return token ? makeTranslateTimeFeature(token as WeslToken<"word">) : null;
 }
 
-export function parseElseAttribute(
-  context: ParserContext,
-): ElseAttribute | null {
-  const { stream } = context;
-
+export function parseElseAttribute(stream: WeslStream): ElseAttribute | null {
   // Clean text-based matching
   if (!consume(stream, "@")) return null;
   if (!consume(stream, "else")) return null;
@@ -66,35 +57,31 @@ export function parseElseAttribute(
 
 // Expression parsers for @if conditions
 export function parseAttributeIfPrimaryExpression(
-  context: ParserContext,
+  stream: WeslStream,
 ): Literal | ParenthesizedExpression | TranslateTimeFeature | null {
-  const { stream } = context;
-
   // Try literal first
-  const literal = parseLiteral(context);
+  const literal = parseLiteral(stream);
   if (literal) return literal;
 
   // Try parenthesized expression
   if (consume(stream, "(")) {
-    const expr = parseAttributeIfExpression(context);
+    const expr = parseAttributeIfExpression(stream);
     if (!expr) return null;
     expect(stream, ")", "Expected ')' after expression");
     return makeParenthesizedExpression(expr);
   }
 
   // Try translate-time feature
-  return parseTranslateTimeFeature(context);
+  return parseTranslateTimeFeature(stream);
 }
 
 export function parseAttributeIfUnaryExpression(
-  context: ParserContext,
+  stream: WeslStream,
 ): ExpressionElem | null {
-  const { stream } = context;
-
   // Try unary operator
   const opToken = consume(stream, "!");
   if (opToken) {
-    const expr = parseAttributeIfUnaryExpression(context);
+    const expr = parseAttributeIfUnaryExpression(stream);
     if (!expr) return null;
     return makeUnaryExpression(
       makeUnaryOperator(opToken as WeslToken<"symbol">),
@@ -103,21 +90,20 @@ export function parseAttributeIfUnaryExpression(
   }
 
   // Fall back to primary expression
-  return parseAttributeIfPrimaryExpression(context);
+  return parseAttributeIfPrimaryExpression(stream);
 }
 
 function parseBinaryOperatorChain(
-  context: ParserContext,
+  stream: WeslStream,
   left: ExpressionElem,
   operator: "||" | "&&",
   firstToken: WeslToken,
 ): ExpressionElem | null {
-  const { stream } = context;
   const operands: [BinaryOperator, ExpressionElem][] = [];
 
   // Add first operand
   const op = makeBinaryOperator({ text: operator, span: firstToken.span });
-  const right = parseAttributeIfUnaryExpression(context);
+  const right = parseAttributeIfUnaryExpression(stream);
   if (!right) return null;
   operands.push([op, right]);
 
@@ -127,7 +113,7 @@ function parseBinaryOperatorChain(
     if (!nextToken) break;
 
     const nextOp = makeBinaryOperator({ text: operator, span: nextToken.span });
-    const nextRight = parseAttributeIfUnaryExpression(context);
+    const nextRight = parseAttributeIfUnaryExpression(stream);
     if (!nextRight) return null;
     operands.push([nextOp, nextRight]);
   }
@@ -136,30 +122,27 @@ function parseBinaryOperatorChain(
 }
 
 export function parseAttributeIfExpression(
-  context: ParserContext,
+  stream: WeslStream,
 ): ExpressionElem | null {
-  const { stream } = context;
-
-  const left = parseAttributeIfUnaryExpression(context);
+  const left = parseAttributeIfUnaryExpression(stream);
   if (!left) return null;
 
   // Check for || operators first
   const firstOr = consume(stream, "||");
   if (firstOr) {
-    return parseBinaryOperatorChain(context, left, "||", firstOr);
+    return parseBinaryOperatorChain(stream, left, "||", firstOr);
   }
 
   // Otherwise check for && operators
   const firstAnd = consume(stream, "&&");
   if (firstAnd) {
-    return parseBinaryOperatorChain(context, left, "&&", firstAnd);
+    return parseBinaryOperatorChain(stream, left, "&&", firstAnd);
   }
 
   return left;
 }
 
-export function parseIfAttribute(context: ParserContext): IfAttribute | null {
-  const { stream } = context;
+export function parseIfAttribute(stream: WeslStream): IfAttribute | null {
   const pos = checkpoint(stream);
 
   // Capture position before @
@@ -173,7 +156,7 @@ export function parseIfAttribute(context: ParserContext): IfAttribute | null {
   // COMMIT POINT: We have "@if", so this must be an if attribute
   expect(stream, "(", "Expected '(' after @if");
 
-  const expr = parseAttributeIfExpression(context);
+  const expr = parseAttributeIfExpression(stream);
   if (!expr) return null;
 
   consume(stream, ","); // optional comma
@@ -188,10 +171,7 @@ export function parseIfAttribute(context: ParserContext): IfAttribute | null {
   return makeIfAttribute(translateTimeExpr);
 }
 
-export function parseElifAttribute(
-  context: ParserContext,
-): ElifAttribute | null {
-  const { stream } = context;
+export function parseElifAttribute(stream: WeslStream): ElifAttribute | null {
   const pos = checkpoint(stream);
 
   // Capture position before @
@@ -205,7 +185,7 @@ export function parseElifAttribute(
   // COMMIT POINT: We have "@elif", so this must be an elif attribute
   expect(stream, "(", "Expected '(' after @elif");
 
-  const expr = parseAttributeIfExpression(context);
+  const expr = parseAttributeIfExpression(stream);
   if (!expr) return null;
 
   consume(stream, ","); // optional comma

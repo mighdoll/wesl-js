@@ -3,7 +3,7 @@
  * These parsers work directly with WeslStream without mini-parse combinators.
  */
 
-import { ParseError, type ParserContext } from "mini-parse";
+import { ParseError } from "mini-parse";
 import type {
   AttributeElem,
   ElifAttribute,
@@ -65,11 +65,9 @@ export function prependSegments(
  * Check if the current token is a blacklisted segment word.
  * Returns true if the token is "super", "package", "import", or "as".
  */
-export function isSegmentBlacklist(context: ParserContext): boolean {
-  const { stream } = context;
-  const weslStream = stream as WeslStream;
-  const pos = weslStream.checkpoint();
-  const token = weslStream.nextToken();
+export function isSegmentBlacklist(stream: WeslStream): boolean {
+  const pos = stream.checkpoint();
+  const token = stream.nextToken();
 
   if (!token) {
     return false;
@@ -81,7 +79,7 @@ export function isSegmentBlacklist(context: ParserContext): boolean {
     token.text === "import" ||
     token.text === "as";
 
-  weslStream.reset(pos); // Don't consume, just check
+  stream.reset(pos); // Don't consume, just check
   return isBlacklisted;
 }
 
@@ -89,11 +87,9 @@ export function isSegmentBlacklist(context: ParserContext): boolean {
  * Parse a word that can be used in an import path segment.
  * This is any word or keyword that is not in the blacklist.
  */
-export function parsePackageWord(context: ParserContext): string | null {
-  const { stream } = context;
-
+export function parsePackageWord(stream: WeslStream): string | null {
   // Check blacklist first
-  if (isSegmentBlacklist(context)) {
+  if (isSegmentBlacklist(stream)) {
     return null;
   }
 
@@ -107,9 +103,8 @@ export function parsePackageWord(context: ParserContext): string | null {
  * Returns array of ImportSegments or null if no relative prefix found.
  */
 export function parseImportRelative(
-  context: ParserContext,
+  stream: WeslStream,
 ): ImportSegment[] | null {
-  const { stream } = context;
   const pos = checkpoint(stream);
 
   // Try "package::"
@@ -143,28 +138,25 @@ export function parseImportRelative(
 // Forward declarations for mutual recursion
 // biome-ignore lint/style/useConst: mutual recursion requires reassignment
 export let parseImportCollection: (
-  context: ParserContext,
+  stream: WeslStream,
 ) => ImportCollection | null;
 // biome-ignore lint/style/useConst: mutual recursion requires reassignment
 export let parseImportPathOrItem: (
-  context: ParserContext,
+  stream: WeslStream,
 ) => ImportStatement | null;
 
 /**
  * Parse an import collection: { item1, item2, ... }
  * FULL VERSION: Supports comma-separated path_or_item elements
  */
-parseImportCollection = (context: ParserContext): ImportCollection | null => {
-  const { stream } = context;
-  const weslStream = stream as WeslStream;
-
+parseImportCollection = (stream: WeslStream): ImportCollection | null => {
   if (!consume(stream, "{")) return null;
 
   // COMMIT POINT: We've consumed "{", so this is definitely a collection
   const statements: ImportStatement[] = [];
 
   // Parse first item (required - empty collections not allowed)
-  const firstItem = parseImportPathOrItem(context);
+  const firstItem = parseImportPathOrItem(stream);
   if (!firstItem) {
     const currentPos = checkpoint(stream);
     throw new ParseError("invalid import collection, expected name", [
@@ -177,14 +169,14 @@ parseImportCollection = (context: ParserContext): ImportCollection | null => {
   // Parse remaining comma-separated items
   while (consume(stream, ",")) {
     // Check for trailing comma (next token is closing brace)
-    const nextToken = weslStream.peek();
+    const nextToken = stream.peek();
 
     if (nextToken && nextToken.text === "}") {
       // Trailing comma before closing brace - this is allowed
       break;
     }
 
-    const item = parseImportPathOrItem(context);
+    const item = parseImportPathOrItem(stream);
     if (!item) {
       const currentPos = checkpoint(stream);
       throw new ParseError(
@@ -210,10 +202,8 @@ parseImportCollection = (context: ParserContext): ImportCollection | null => {
  * Parse an import path or item: foo, foo as bar, foo::bar, foo::{...}, etc.
  * FULL VERSION: Includes collection support with mutual recursion
  */
-parseImportPathOrItem = (context: ParserContext): ImportStatement | null => {
-  const { stream } = context;
-
-  const name = parsePackageWord(context);
+parseImportPathOrItem = (stream: WeslStream): ImportStatement | null => {
+  const name = parsePackageWord(stream);
   if (!name) return null;
 
   // Check what follows the name
@@ -221,14 +211,14 @@ parseImportPathOrItem = (context: ParserContext): ImportStatement | null => {
     // COMMIT POINT: We have "name::", so this must be a path
 
     // Path continues - could be collection or another path_or_item
-    const collection = parseImportCollection(context);
+    const collection = parseImportCollection(stream);
     if (collection) {
       // name::{...}
       return makeStatement([makeSegment(name)], collection);
     }
 
     // Try parsing as path_or_item
-    const pathOrItem = parseImportPathOrItem(context);
+    const pathOrItem = parseImportPathOrItem(stream);
     if (pathOrItem) {
       // name::path_or_item - prepend our segment
       return prependSegments([makeSegment(name)], pathOrItem);
@@ -269,13 +259,10 @@ parseImportPathOrItem = (context: ParserContext): ImportStatement | null => {
  * Returns the statement and the position where "import" was found.
  */
 export function parseImportStatementBase(
-  context: ParserContext,
+  stream: WeslStream,
 ): { statement: ImportStatement; importPos: number } | null {
-  const { stream } = context;
-  const weslStream = stream as WeslStream;
-
   // Peek at import token to get its position
-  const importToken = weslStream.peek();
+  const importToken = stream.peek();
   if (!importToken || importToken.text !== "import") {
     return null;
   }
@@ -285,11 +272,11 @@ export function parseImportStatementBase(
   if (!consume(stream, "import")) return null;
 
   // Parse optional relative prefix
-  const relative = parseImportRelative(context);
+  const relative = parseImportRelative(stream);
 
   // Parse collection or path_or_item
   const collectionOrStatement =
-    parseImportCollection(context) || parseImportPathOrItem(context);
+    parseImportCollection(stream) || parseImportPathOrItem(stream);
   if (!collectionOrStatement) {
     const pos = checkpoint(stream);
     throw new ParseError("invalid import, expected { or name", [pos, pos]);
@@ -333,20 +320,18 @@ export function wrapAttributes(
  * Parse import attributes (@if, @elif, @else)
  * Returns parsed attributes and the start position of the first attribute
  */
-function parseImportAttributes(context: ParserContext): {
+function parseImportAttributes(stream: WeslStream): {
   attributes: (IfAttribute | ElifAttribute | ElseAttribute)[];
   startPos: number | null;
 } {
-  const { stream } = context;
-  const weslStream = stream as WeslStream;
   const attributes: (IfAttribute | ElifAttribute | ElseAttribute)[] = [];
   let actualStartPos: number | null = null;
 
   while (true) {
-    const checkPos = weslStream.checkpoint();
+    const checkPos = stream.checkpoint();
 
     // Peek to see if we have an attribute
-    const peeked = weslStream.peek();
+    const peeked = stream.peek();
     if (peeked && peeked.text === "@") {
       // Capture position of @ token if this is our first attribute
       if (actualStartPos === null) {
@@ -355,28 +340,28 @@ function parseImportAttributes(context: ParserContext): {
     }
 
     // Try @if
-    const ifAttr = parseIfAttribute(context);
+    const ifAttr = parseIfAttribute(stream);
     if (ifAttr) {
       attributes.push(ifAttr);
       continue;
     }
 
     // Try @elif
-    const elifAttr = parseElifAttribute(context);
+    const elifAttr = parseElifAttribute(stream);
     if (elifAttr) {
       attributes.push(elifAttr);
       continue;
     }
 
     // Try @else
-    const elseAttr = parseElseAttribute(context);
+    const elseAttr = parseElseAttribute(stream);
     if (elseAttr) {
       attributes.push(elseAttr);
       continue;
     }
 
     // No more attributes found, reset to check position
-    weslStream.reset(checkPos);
+    stream.reset(checkPos);
     break;
   }
 
@@ -387,18 +372,15 @@ function parseImportAttributes(context: ParserContext): {
  * Parse an import statement with optional attributes
  * Returns an ImportElem which includes the statement and any attributes
  */
-export function parseImportStatement(
-  context: ParserContext,
-): ImportElem | null {
-  const { stream } = context;
+export function parseImportStatement(stream: WeslStream): ImportElem | null {
   const startCheckpoint = checkpoint(stream);
 
   // Parse optional attributes
   const { attributes, startPos: actualStartPos } =
-    parseImportAttributes(context);
+    parseImportAttributes(stream);
 
   // Parse the import statement
-  const parseResult = parseImportStatementBase(context);
+  const parseResult = parseImportStatementBase(stream);
   if (!parseResult) {
     // If we parsed attributes but no import, we need to reset
     // to allow parsing as a different statement type
@@ -436,12 +418,12 @@ export function parseImportStatement(
  * Parse all import statements in a WESL file
  * Returns an array of ImportElem
  */
-export function parseWeslImports(context: ParserContext): ImportElem[] {
+export function parseWeslImports(stream: WeslStream): ImportElem[] {
   const imports: ImportElem[] = [];
 
   // Keep parsing import statements until we can't find any more
   while (true) {
-    const importElem = parseImportStatement(context);
+    const importElem = parseImportStatement(stream);
     if (!importElem) break;
     imports.push(importElem);
   }

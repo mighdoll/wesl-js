@@ -34,7 +34,8 @@ export const importPathOrItemAdapter = createAdapter(
 // Special adapter for importStatementBase which returns { statement, importPos }
 export const importStatementBaseAdapter = new Parser({
   fn: (context: ParserContext) => {
-    const result = parseImportStatementBase(context);
+    const stream = context.stream as any; // Cast to WeslStream
+    const result = parseImportStatementBase(stream);
     return result ? { value: result.statement } : null;
   },
   traceName: "import_statement_base",
