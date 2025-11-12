@@ -12,6 +12,7 @@ import type { ModuleElem } from "../../AbstractElems.ts";
 import type { WeslAST, WeslParseState } from "../../ParseWESL.ts";
 import type { SrcModule } from "../../Scope.ts";
 import { emptyScope } from "../../Scope.ts";
+import { parseConstDecl } from "../ConstParsers.ts";
 import { parseWeslImports } from "../ImportParsers.ts";
 import type { ParseContext } from "../ParseContext.ts";
 import { createParseContext } from "../ParseContext.ts";
@@ -67,7 +68,10 @@ export class WeslParserV2 {
     // Week 1: Imports + Attributes
     this.parseImports();
 
-    // TODO: Week 2-5: Declarations (const, alias, var, override, struct, fn)
+    // Week 2: Global declarations (const)
+    this.parseDeclarations();
+
+    // TODO: Week 3-5: More declarations (alias, var, override, struct, fn)
     // TODO: Week 6: Statements
     // TODO: Week 7-8: Expressions
   }
@@ -85,6 +89,32 @@ export class WeslParserV2 {
 
       // Extract ImportStatements for the stable state
       this.state.stable.imports.push(importElem.imports);
+    }
+  }
+
+  /**
+   * Parse global declarations (const, alias, var, override, struct, fn)
+   * Week 2: Just const for now
+   */
+  private parseDeclarations(): void {
+    const stream = this.ctx.stream;
+
+    // Keep parsing declarations until we can't parse any more
+    while (true) {
+      // Skip whitespace and check if we're at end of input
+      const token = stream.peek();
+      if (!token) break;
+
+      // Try to parse a const declaration
+      // TODO: Add more declaration types (alias, var, override, struct, fn)
+      const constElem = parseConstDecl(stream, this.ctx);
+      if (constElem) {
+        this.state.stable.moduleElem.contents.push(constElem);
+        continue;
+      }
+
+      // No more declarations we can parse
+      break;
     }
   }
 }

@@ -203,3 +203,58 @@ describe("ParserV2 Parity: Stress Tests", () => {
     expect(astV2.imports[0]).toEqual(astV1.imports[0]);
   });
 });
+
+describe("ParserV2 Parity: Const Declarations", () => {
+  test("simple const with numeric literal", () => {
+    const { v1SemanticElems, v2SemanticElems } = testParity("const y = 11u;");
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("const");
+
+    // Compare structure (but not full deep equality since expression parsing differs)
+    const constV1 = v1SemanticElems[0];
+    const constV2 = v2SemanticElems[0];
+
+    if (constV1.kind === "const" && constV2.kind === "const") {
+      expect(constV2.name.kind).toBe("typeDecl");
+      expect(constV2.name.decl.kind).toBe(constV1.name.decl.kind);
+      expect(constV2.name.decl.ident.originalName).toBe("y");
+    }
+  });
+
+  test("const with boolean literal", () => {
+    const { v2SemanticElems } = testParity("const flag = true;");
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("const");
+  });
+
+  test("const with identifier reference", () => {
+    const { v2SemanticElems } = testParity("const x = y;");
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("const");
+  });
+
+  test("multiple const declarations", () => {
+    const { v2SemanticElems } = testParity(`
+      const x = 1u;
+      const y = 2u;
+      const z = 3u;
+    `);
+
+    expect(v2SemanticElems.length).toBe(3);
+    expect(v2SemanticElems.every(e => e.kind === "const")).toBe(true);
+  });
+
+  test("imports and const declarations", () => {
+    const { v2SemanticElems } = testParity(`
+      import pkg::module;
+      const x = 42u;
+    `);
+
+    expect(v2SemanticElems.length).toBe(2);
+    expect(v2SemanticElems[0].kind).toBe("import");
+    expect(v2SemanticElems[1].kind).toBe("const");
+  });
+});
