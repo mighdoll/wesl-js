@@ -48,25 +48,53 @@ export function parseSimpleLiteral(stream: WeslStream): Literal | null {
 }
 
 /**
- * Parse a simple identifier reference
+ * Parse a simple identifier reference, including qualified names with ::
+ * Examples: foo, package::bar, super::baz, mod::sub::name
  */
 export function parseSimpleIdentifier(
   stream: WeslStream,
   ctx: ParseContext,
 ): RefIdentElem | null {
-  const token = consumeKind(stream, "word");
-  if (!token) return null;
+  const startPos = checkpoint(stream);
+
+  // Try to parse first part (word or keyword "package"/"super")
+  let firstToken = consumeKind(stream, "word");
+  if (!firstToken) {
+    // Check for "package" or "super" keywords
+    firstToken = consumeKind(stream, "keyword", "package") ||
+                 consumeKind(stream, "keyword", "super");
+  }
+
+  if (!firstToken) {
+    reset(stream, startPos);
+    return null;
+  }
+
+  // Build the full qualified name by following :: separators
+  let fullName = firstToken.text;
+  const nameStart = firstToken.span[0];
+  let nameEnd = firstToken.span[1];
+
+  // Parse :: word chains
+  while (consume(stream, "::")) {
+    const nextToken = consumeKind(stream, "word");
+    if (!nextToken) {
+      throw new Error(`Expected identifier after '::'`);
+    }
+    fullName += "::" + nextToken.text;
+    nameEnd = nextToken.span[1];
+  }
 
   // Create RefIdent using context
-  const ident = ctx.createRefIdent(token.text, token.span);
+  const ident = ctx.createRefIdent(fullName, [nameStart, nameEnd]);
 
   // Create RefIdentElem
   const refIdentElem: RefIdentElem = {
     kind: "ref",
     ident,
     srcModule: ctx.srcModule,
-    start: token.span[0],
-    end: token.span[1],
+    start: nameStart,
+    end: nameEnd,
   };
 
   // Link back from ident to elem
