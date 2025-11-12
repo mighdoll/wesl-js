@@ -171,9 +171,38 @@ function parseSimpleStatement(
     return stmt;
   }
 
-  // Otherwise, try to parse as expression statement or variable declaration
+  // Try to parse as expression statement
+  // This includes assignments like `i = i + 1;` or function calls like `foo();`
   const expr = parseExpression(stream, ctx);
   if (expr) {
+    // Check for assignment operators after the expression
+    const assignToken = stream.peek();
+    if (assignToken && isAssignmentOperator(assignToken.text)) {
+      stream.nextToken(); // consume assignment operator
+
+      // Parse right-hand side expression
+      const rhs = parseExpression(stream, ctx);
+      if (!rhs) {
+        throw new Error("Expected expression after assignment operator");
+      }
+
+      // Expect semicolon
+      expect(stream, ";", "Expected ';' after assignment");
+
+      const endPos = checkpoint(stream);
+
+      const stmt: StatementElem = {
+        kind: "statement",
+        start: startPos,
+        end: endPos,
+        contents: [],
+      };
+
+      attachAttributes(stmt, attributes);
+      return stmt;
+    }
+
+    // Not an assignment, just an expression statement
     expect(stream, ";", "Expected ';' after expression");
 
     const endPos = checkpoint(stream);
@@ -191,6 +220,17 @@ function parseSimpleStatement(
 
   reset(stream, startPos);
   return null;
+}
+
+/**
+ * Check if a token is an assignment operator
+ */
+function isAssignmentOperator(text: string): boolean {
+  return text === "=" ||
+         text === "+=" || text === "-=" ||
+         text === "*=" || text === "/=" || text === "%=" ||
+         text === "&=" || text === "|=" || text === "^=" ||
+         text === "<<=" || text === ">>=";
 }
 
 /**

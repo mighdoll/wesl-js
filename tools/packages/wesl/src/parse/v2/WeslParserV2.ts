@@ -12,6 +12,7 @@ import type { ModuleElem } from "../../AbstractElems.ts";
 import type { WeslAST, WeslParseState } from "../../ParseWESL.ts";
 import type { SrcModule } from "../../Scope.ts";
 import { emptyScope } from "../../Scope.ts";
+import { parseAttributeList } from "../AttributeParsers.ts";
 import {
   parseAliasDecl,
   parseConstAssert,
@@ -149,13 +150,21 @@ export class WeslParserV2 {
       const token = stream.peek();
       if (!token) break;
 
+      // Try to parse attributes before the declaration
+      const attributes = parseAttributeList(stream);
+
       // Try each parser until one succeeds
       for (const parser of parsers) {
-        const elem = parser(stream, this.ctx);
+        const elem = parser(stream, this.ctx, attributes.length > 0 ? attributes : undefined);
         if (elem) {
           this.state.stable.moduleElem.contents.push(elem);
           continue outer;
         }
+      }
+
+      // If we parsed attributes but no declaration followed, that's an error
+      if (attributes.length > 0) {
+        throw new Error("Expected declaration after attributes");
       }
 
       // No parser succeeded - we're done
