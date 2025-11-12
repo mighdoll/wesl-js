@@ -384,16 +384,6 @@ describe("ParserV2 Parity: Struct Declarations", () => {
     expect(v2SemanticElems.length).toBe(1);
     expect(v2SemanticElems[0].kind).toBe("struct");
   });
-
-  test.skip("empty struct", () => {
-    // Skip: V1 parser limitation - can't parse empty structs
-    const { v2SemanticElems } = testParity(`
-      struct Empty {}
-    `);
-
-    expect(v2SemanticElems.length).toBe(1);
-    expect(v2SemanticElems[0].kind).toBe("struct");
-  });
 });
 
 describe("ParserV2 Parity: Function Declarations", () => {
@@ -648,18 +638,6 @@ describe("ParserV2 Parity: Expressions", () => {
     const { v2SemanticElems } = testParity(`
       fn math() -> i32 {
         return 1 + 2 * 3 - 4 / 2;
-      }
-    `);
-
-    expect(v2SemanticElems.length).toBe(1);
-    expect(v2SemanticElems[0].kind).toBe("fn");
-  });
-
-  test.skip("binary expressions with comparison operators", () => {
-    // Skip: V1 parser limitation - can't parse || operator in this context
-    const { v2SemanticElems } = testParity(`
-      fn compare(a: i32, b: i32) -> bool {
-        return a < b && a != b || a == 0;
       }
     `);
 
