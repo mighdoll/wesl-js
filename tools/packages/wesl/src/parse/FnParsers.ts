@@ -16,6 +16,7 @@ import type {
 import { parseAttributeList } from "./AttributeParsers.ts";
 import type { ParseContext } from "./ParseContext.ts";
 import { checkpoint, consume, consumeKind, expect, reset } from "./ParseUtil.ts";
+import { parseFunctionBody } from "./StatementParsers.ts";
 import { parseSimpleTypeRef } from "./TypeParsers.ts";
 import type { WeslStream } from "./WeslStream.ts";
 
@@ -140,49 +141,9 @@ function parseFnParam(
 }
 
 /**
- * Parse a stub function body by skipping tokens until matching `}`
- * Week 5: Minimal implementation to allow function parsing without full statement support
- * TODO Week 6+: Replace with full statement parser
- */
-function parseStubFnBody(
-  stream: WeslStream,
-  _ctx: ParseContext,
-): StatementElem | null {
-  const startPos = checkpoint(stream);
-
-  // Expect opening brace
-  if (!consume(stream, "{")) {
-    reset(stream, startPos);
-    return null;
-  }
-
-  // Skip tokens until we find the matching closing brace
-  let depth = 1;
-  while (depth > 0) {
-    const token = stream.nextToken();
-    if (!token) {
-      throw new Error("Unclosed function body, expected '}'");
-    }
-    if (token.text === "{") depth++;
-    if (token.text === "}") depth--;
-  }
-
-  const endPos = checkpoint(stream);
-
-  // Create a simple StatementElem stub for the body
-  const bodyElem: StatementElem = {
-    kind: "statement",
-    start: startPos,
-    end: endPos,
-    contents: [],
-  };
-
-  return bodyElem;
-}
-
-/**
  * Parse a function declaration: fn <name>(<params>) [-> <return_type>]? <body>
- * Week 5: Full signature parsing with stub body
+ * Week 5: Full signature parsing
+ * Week 10: Real statement parsing for function bodies
  */
 export function parseFnDecl(
   stream: WeslStream,
@@ -274,7 +235,7 @@ export function parseFnDecl(
   }
 
   // Parse function body
-  const body = parseStubFnBody(stream, ctx);
+  const body = parseFunctionBody(stream, ctx);
   if (!body) {
     throw new Error("Expected function body");
   }
