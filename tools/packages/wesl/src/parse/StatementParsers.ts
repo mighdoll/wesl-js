@@ -1,10 +1,10 @@
 /**
  * Custom parsers for WESL statements
  * Week 10: Basic statement parsing for function bodies
+ * Week 11: Full expression integration
  *
- * Strategy: Parse statement structure (blocks, control flow) while using
- * stub expression parsing. This allows proper AST structure without
- * requiring full expression support yet.
+ * Strategy: Parse statement structure (blocks, control flow) with
+ * full expression support for conditions and assignments.
  */
 
 import type {
@@ -12,6 +12,7 @@ import type {
   StatementElem,
 } from "../AbstractElems.ts";
 import { parseAttributeList } from "./AttributeParsers.ts";
+import { parseExpression } from "./ExpressionParsers.ts";
 import type { ParseContext } from "./ParseContext.ts";
 import { checkpoint, consume, expect, reset } from "./ParseUtil.ts";
 import type { WeslStream } from "./WeslStream.ts";
@@ -29,46 +30,31 @@ function attachAttributes<T extends { attributes?: AttributeElem[] }>(
 }
 
 /**
- * Skip tokens until we find a semicolon (for simple statements)
- * Returns the position after the semicolon
+ * Parse an optional expression followed by semicolon
+ * Used for return, expression statements, etc.
  */
-function skipUntilSemicolon(stream: WeslStream): void {
-  while (true) {
-    const token = stream.peek();
-    if (!token) {
-      throw new Error("Unexpected end of input, expected ';'");
-    }
+function parseOptionalExpressionStatement(
+  stream: WeslStream,
+  ctx: ParseContext,
+): StatementElem {
+  const startPos = checkpoint(stream);
 
-    if (token.text === ";") {
-      stream.nextToken(); // consume the semicolon
-      break;
-    }
+  // Try to parse expression (may be absent for empty return)
+  const expr = parseExpression(stream, ctx);
 
-    stream.nextToken();
-  }
-}
+  // Expect semicolon
+  expect(stream, ";", "Expected ';' after statement");
 
-/**
- * Skip tokens for a condition expression (used in if/while/for)
- * Handles nested parentheses properly
- */
-function skipConditionExpression(stream: WeslStream): void {
-  let depth = 0;
-  while (true) {
-    const token = stream.peek();
-    if (!token) {
-      throw new Error("Unexpected end of input in condition expression");
-    }
+  const endPos = checkpoint(stream);
 
-    if (token.text === "(") depth++;
-    if (token.text === ")") depth--;
-    if (token.text === "{" && depth === 0) {
-      // Reached the body of the statement
-      break;
-    }
+  const stmt: StatementElem = {
+    kind: "statement",
+    start: startPos,
+    end: endPos,
+    contents: [],
+  };
 
-    stream.nextToken();
-  }
+  return stmt;
 }
 
 /**
@@ -127,11 +113,11 @@ function parseCompoundStatement(
 
 /**
  * Parse a simple statement (return, break, continue, discard, or expression)
- * Week 10: Stub implementation - just skip to semicolon
+ * Week 11: Full expression parsing
  */
 function parseSimpleStatement(
   stream: WeslStream,
-  _ctx: ParseContext,
+  ctx: ParseContext,
   attributes?: AttributeElem[],
 ): StatementElem | null {
   const startPos = checkpoint(stream);
@@ -140,13 +126,19 @@ function parseSimpleStatement(
   const token = stream.peek();
   if (!token) return null;
 
-  // Handle simple keyword statements
-  if (token.text === "return" ||
-      token.text === "break" ||
-      token.text === "continue" ||
-      token.text === "discard") {
+  // Handle return statement with optional expression
+  if (token.text === "return") {
+    stream.nextToken(); // consume "return"
+    const stmt = parseOptionalExpressionStatement(stream, ctx);
+    stmt.start = startPos;
+    attachAttributes(stmt, attributes);
+    return stmt;
+  }
+
+  // Handle break, continue, discard (no expression)
+  if (token.text === "break" || token.text === "continue" || token.text === "discard") {
     stream.nextToken(); // consume keyword
-    skipUntilSemicolon(stream);
+    expect(stream, ";", "Expected ';' after statement");
 
     const endPos = checkpoint(stream);
 
@@ -178,26 +170,31 @@ function parseSimpleStatement(
     return stmt;
   }
 
-  // Otherwise, assume it's an expression statement or variable declaration
-  // Just skip to semicolon
-  skipUntilSemicolon(stream);
+  // Otherwise, try to parse as expression statement or variable declaration
+  const expr = parseExpression(stream, ctx);
+  if (expr) {
+    expect(stream, ";", "Expected ';' after expression");
 
-  const endPos = checkpoint(stream);
+    const endPos = checkpoint(stream);
 
-  const stmt: StatementElem = {
-    kind: "statement",
-    start: startPos,
-    end: endPos,
-    contents: [],
-  };
+    const stmt: StatementElem = {
+      kind: "statement",
+      start: startPos,
+      end: endPos,
+      contents: [],
+    };
 
-  attachAttributes(stmt, attributes);
-  return stmt;
+    attachAttributes(stmt, attributes);
+    return stmt;
+  }
+
+  reset(stream, startPos);
+  return null;
 }
 
 /**
  * Parse an if statement: if condition { } [else if condition { }]* [else { }]
- * Week 10: Structure parsing with stub expressions
+ * Week 11: Full expression parsing for conditions
  */
 function parseIfStatement(
   stream: WeslStream,
@@ -212,8 +209,11 @@ function parseIfStatement(
     return null;
   }
 
-  // Skip condition expression
-  skipConditionExpression(stream);
+  // Parse condition expression
+  const condition = parseExpression(stream, ctx);
+  if (!condition) {
+    throw new Error("Expected condition expression after 'if'");
+  }
 
   // Parse then block
   const thenBlock = parseCompoundStatement(stream, ctx);
@@ -238,7 +238,12 @@ function parseIfStatement(
     if (nextToken.text === "if") {
       // else if branch
       stream.nextToken(); // consume "if"
-      skipConditionExpression(stream);
+
+      // Parse else if condition
+      const elseIfCondition = parseExpression(stream, ctx);
+      if (!elseIfCondition) {
+        throw new Error("Expected condition expression after 'else if'");
+      }
 
       const elseIfBlock = parseCompoundStatement(stream, ctx);
       if (!elseIfBlock) {
@@ -327,7 +332,7 @@ function parseForStatement(
 
 /**
  * Parse a while statement: while condition { }
- * Week 10: Structure parsing with stub expressions
+ * Week 11: Full expression parsing for conditions
  */
 function parseWhileStatement(
   stream: WeslStream,
@@ -342,8 +347,11 @@ function parseWhileStatement(
     return null;
   }
 
-  // Skip condition expression
-  skipConditionExpression(stream);
+  // Parse condition expression
+  const condition = parseExpression(stream, ctx);
+  if (!condition) {
+    throw new Error("Expected condition expression after 'while'");
+  }
 
   // Parse body
   const body = parseCompoundStatement(stream, ctx);
