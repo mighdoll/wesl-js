@@ -105,44 +105,31 @@ export class WeslParserV2 {
   private parseDeclarations(): void {
     const stream = this.ctx.stream;
 
+    // Array of declaration parsers to try in order
+    const parsers = [
+      parseConstDecl, // Week 2
+      parseOverrideDecl, // Week 3
+      parseVarDecl, // Week 3
+      parseAliasDecl, // Week 3
+      // TODO: Week 4-5: Add parseStructDecl, parseFnDecl
+    ];
+
     // Keep parsing declarations until we can't parse any more
-    while (true) {
+    outer: while (true) {
       // Skip whitespace and check if we're at end of input
       const token = stream.peek();
       if (!token) break;
 
-      // Try to parse declarations in order
-      // Week 2: const
-      const constElem = parseConstDecl(stream, this.ctx);
-      if (constElem) {
-        this.state.stable.moduleElem.contents.push(constElem);
-        continue;
+      // Try each parser until one succeeds
+      for (const parser of parsers) {
+        const elem = parser(stream, this.ctx);
+        if (elem) {
+          this.state.stable.moduleElem.contents.push(elem);
+          continue outer;
+        }
       }
 
-      // Week 3: override
-      const overrideElem = parseOverrideDecl(stream, this.ctx);
-      if (overrideElem) {
-        this.state.stable.moduleElem.contents.push(overrideElem);
-        continue;
-      }
-
-      // Week 3: var
-      const varElem = parseVarDecl(stream, this.ctx);
-      if (varElem) {
-        this.state.stable.moduleElem.contents.push(varElem);
-        continue;
-      }
-
-      // Week 3: alias
-      const aliasElem = parseAliasDecl(stream, this.ctx);
-      if (aliasElem) {
-        this.state.stable.moduleElem.contents.push(aliasElem);
-        continue;
-      }
-
-      // TODO: Week 4-5: struct, fn
-
-      // No more declarations we can parse
+      // No parser succeeded - we're done
       break;
     }
   }

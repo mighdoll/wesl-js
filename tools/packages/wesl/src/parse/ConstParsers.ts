@@ -8,6 +8,7 @@ import type {
   AliasElem,
   AttributeElem,
   ConstElem,
+  DeclarationElem,
   DeclIdentElem,
   GlobalVarElem,
   OverrideElem,
@@ -18,6 +19,40 @@ import type { ParseContext } from "./ParseContext.ts";
 import { checkpoint, consume, expect, reset } from "./ParseUtil.ts";
 import { parseSimpleTypeRef } from "./TypeParsers.ts";
 import type { WeslStream } from "./WeslStream.ts";
+
+// Helper functions to reduce duplication
+
+/**
+ * Attach attributes to an element if present
+ */
+function attachAttributes<T extends { attributes?: AttributeElem[] }>(
+  elem: T,
+  attributes?: AttributeElem[],
+): void {
+  if (attributes && attributes.length > 0) {
+    elem.attributes = attributes;
+  }
+}
+
+/**
+ * Link a DeclIdent back to its declaration element
+ */
+function linkDeclIdent(
+  typedDecl: TypedDeclElem,
+  declElem: DeclarationElem,
+): void {
+  typedDecl.decl.ident.declElem = declElem;
+}
+
+/**
+ * Link a DeclIdentElem back to its declaration element (for alias)
+ */
+function linkDeclIdentElem(
+  declIdentElem: DeclIdentElem,
+  declElem: DeclarationElem,
+): void {
+  declIdentElem.ident.declElem = declElem;
+}
 
 /**
  * Parse a typed declaration: name [: type]?
@@ -134,14 +169,8 @@ export function parseConstDecl(
     contents: [],
   };
 
-  // Add attributes if present
-  if (attributes && attributes.length > 0) {
-    (constElem as any).attributes = attributes;
-  }
-
-  // Link the DeclIdent back to this ConstElem
-  const declIdent = typedDecl.decl.ident;
-  declIdent.declElem = constElem;
+  attachAttributes(constElem, attributes);
+  linkDeclIdent(typedDecl, constElem);
 
   return constElem;
 }
@@ -191,14 +220,8 @@ export function parseOverrideDecl(
     contents: [],
   };
 
-  // Add attributes if present
-  if (attributes && attributes.length > 0) {
-    (overrideElem as any).attributes = attributes;
-  }
-
-  // Link the DeclIdent back to this OverrideElem
-  const declIdent = typedDecl.decl.ident;
-  declIdent.declElem = overrideElem;
+  attachAttributes(overrideElem, attributes);
+  linkDeclIdent(typedDecl, overrideElem);
 
   return overrideElem;
 }
@@ -262,14 +285,8 @@ export function parseVarDecl(
     contents: [],
   };
 
-  // Add attributes if present
-  if (attributes && attributes.length > 0) {
-    (varElem as any).attributes = attributes;
-  }
-
-  // Link the DeclIdent back to this GlobalVarElem
-  const declIdent = typedDecl.decl.ident;
-  declIdent.declElem = varElem;
+  attachAttributes(varElem, attributes);
+  linkDeclIdent(typedDecl, varElem);
 
   return varElem;
 }
@@ -340,13 +357,8 @@ export function parseAliasDecl(
     contents: [],
   };
 
-  // Add attributes if present
-  if (attributes && attributes.length > 0) {
-    (aliasElem as any).attributes = attributes;
-  }
-
-  // Link the DeclIdent back to this AliasElem
-  declIdent.declElem = aliasElem;
+  attachAttributes(aliasElem, attributes);
+  linkDeclIdentElem(declIdentElem, aliasElem);
 
   return aliasElem;
 }
