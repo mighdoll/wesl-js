@@ -191,13 +191,58 @@ function parsePostfixExpression(
       continue;
     }
 
-    // Function call: (args)
-    if (token.text === "(") {
-      // Function calls require the base to be a RefIdentElem
+    // Function call or type constructor: (args) or <template>(args)
+    if (token.text === "(" || token.text === "<") {
+      // Type constructor or function call requires the base to be a RefIdentElem
       if (current.kind !== "ref") {
-        throw new Error("Function call requires identifier");
+        // Not an identifier, so can't be a function call
+        break;
       }
 
+      // Check for type constructor: identifier<template>(args)
+      if (token.text === "<") {
+        // Try to parse template parameters
+        const checkpointPos = checkpoint(stream);
+
+        // Skip template parameters (simple bracket matching)
+        stream.nextToken(); // consume <
+        let depth = 1;
+        let success = true;
+
+        while (depth > 0) {
+          const t = stream.peek();
+          if (!t) {
+            success = false;
+            break;
+          }
+          stream.nextToken();
+          if (t.text === "<") depth++;
+          if (t.text === ">") depth--;
+        }
+
+        // Check if followed by (
+        const nextToken = stream.peek();
+        if (success && nextToken && nextToken.text === "(") {
+          // It's a type constructor! Parse the arguments
+          const args = parseFunctionCallArgs(stream, ctx);
+
+          // Create FunctionCallExpression (type constructors are function calls in AST)
+          const callExpr: FunctionCallExpression = {
+            kind: "call-expression",
+            function: current,
+            arguments: args,
+          };
+
+          current = callExpr;
+          continue;
+        } else {
+          // Not a type constructor, reset and let binary operator parsing handle it
+          reset(stream, checkpointPos);
+          break;
+        }
+      }
+
+      // Regular function call: identifier(args)
       const args = parseFunctionCallArgs(stream, ctx);
 
       // Create FunctionCallExpression

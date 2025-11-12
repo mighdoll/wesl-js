@@ -217,18 +217,21 @@ export function parseFnDecl(
     }
   }
 
-  // Parse optional return type: -> type
+  // Parse optional return type: -> [attributes]? type
   let returnType: TypeRefElem | undefined = undefined;
   let returnAttributes: AttributeElem[] | undefined = undefined;
 
   if (consume(stream, "->")) {
-    // TODO: Parse optional return attributes before type
-    // For now, we'll skip this and just parse the type
+    // Parse optional return attributes before type
+    const attrs = parseAttributeList(stream);
+    if (attrs.length > 0) {
+      returnAttributes = attrs;
+    }
 
     // Parse return type
     const parsedReturnType = parseSimpleTypeRef(stream, ctx);
     if (!parsedReturnType) {
-      throw new Error("Expected type after '->'");
+      throw new Error("Expected type after '->' and attributes");
     }
 
     returnType = parsedReturnType;
