@@ -29,7 +29,167 @@ From analysis of V1 Parse* tests vs ParserV2Parity:
 
 ---
 
+## End-to-End Integration Tests (PRIORITY 0)
+
+### Critical Discovery: Integration Tests Already Work with V2! 🎉
+
+**Key Finding:** There's a global flag `weslParserConfig.useV2Parser` that switches between parsers.
+
+**Location:** `tools/packages/wesl/src/ParseWESL.ts:43-44`
+```typescript
+export const weslParserConfig: WeslParserConfig = {
+  useV2Parser: false,  // Default to V1, set to true for V2 testing
+};
+```
+
+**How it works:**
+```typescript
+export function parseSrcModule(srcModule: SrcModule): WeslAST {
+  if (weslParserConfig.useV2Parser) {
+    return parseWeslV2(srcModule);  // Use V2
+  }
+  // Use V1 parser (default)
+  // ...
+}
+```
+
+### Existing Integration Test Suites
+
+All these tests work through `parseSrcModule()` → automatically test V2 when flag is set!
+
+#### 1. ImportCases.test.ts (~40 tests)
+**What it tests:** Complex import scenarios from wesl-testsuite
+- Package imports: `import pkg::bar::foo;`
+- Import with as: `import foo as bar`
+- Import collections: `import pkg::{Foo, Bar}`
+- Transitive imports
+- Circular imports
+- Inline package references: `pkg::foo()`
+- Super references: `import super::file1`
+- Struct/const/alias imports
+- Name conflicts and resolution
+
+**How it works:**
+```typescript
+test("import package::bar::foo;", ctx => {
+  // Calls link() → parseSrcModule() → Uses flag to pick parser
+  return testFromCase(ctx.task.name, examplesByName);
+});
+```
+
+**Why it matters:** Tests the FULL stack (parse → link → emit → compare)
+
+#### 2. Linker.test.ts (~20+ tests)
+**What it tests:** Basic linking scenarios
+- Global var, alias, const_assert, struct, function
+- Complex types (ptr, templates)
+- Cross-references between elements
+- Member access chains: `c.p.x`
+- Struct self-references
+
+**How it works:**
+```typescript
+test("link global var", async () => {
+  const src = `var x: i32 = 1;`;
+  const result = await linkTest(src);  // → parseSrcModule()
+  expectTrimmedMatch(result, src);
+});
+```
+
+#### 3. LinkPackage.test.ts (~3 tests)
+**What it tests:** External package imports
+- Import from npm packages (random_wgsl, multi_pkg)
+- Transitive dependencies
+- Tree shaking (unused code not included)
+
+**Why it matters:** Tests real-world library usage
+
+#### 4. BulkTests.test.ts (100+ tests)
+**What it tests:** Large-scale real WESL files using stripWesl
+```typescript
+async function runBulkTest(baseDir: string, filePath: string): Promise<void> {
+  const orig = await fs.readFile(filePath);
+  const result = await link({ weslSrc: { "main.wgsl": orig } });
+  expect(stripWesl(result.dest)).toBe(stripWesl(orig));  // Round-trip
+}
+```
+
+**Why it matters:** Tests on real production WESL code
+
+### Strategy: Progressive Integration Test Enablement
+
+**Phase 0: Baseline (IMMEDIATE)** ⚡
+1. Create `ImportCasesV2.test.ts` that sets the flag:
+   ```typescript
+   import { beforeAll, afterAll } from "vitest";
+   import { weslParserConfig } from "../ParseWESL.ts";
+
+   beforeAll(() => {
+     weslParserConfig.useV2Parser = true;
+   });
+
+   afterAll(() => {
+     weslParserConfig.useV2Parser = false;
+   });
+
+   // Copy all tests from ImportCases.test.ts
+   test("import package::bar::foo;", ctx => caseTest(ctx));
+   // ... etc
+   ```
+
+2. Run and document which tests pass/fail
+3. Use failures to guide V2 feature prioritization
+
+**Benefits:**
+- ✅ End-to-end validation from day 1
+- ✅ Tests full stack (parse → link → emit)
+- ✅ Reveals missing features immediately
+- ✅ Tests real-world scenarios, not just unit tests
+- ✅ Prevents regressions as features are added
+
+**Effort:** 2-4 hours to create V2 versions of test files
+
+---
+
+### Integration Test Files to Create
+
+| Original Test | V2 Version | Tests | Status |
+|---------------|------------|-------|--------|
+| ImportCases.test.ts | ImportCasesV2.test.ts | ~40 | Create immediately |
+| Linker.test.ts | LinkerV2.test.ts | ~20 | Create immediately |
+| LinkPackage.test.ts | LinkPackageV2.test.ts | ~3 | Create when ready |
+| BulkTests.test.ts | BulkTestsV2.test.ts | 100+ | Create when stable |
+
+**Progressive enablement approach:**
+1. **Week 1**: Run ImportCasesV2, expect ~50% to pass (basic features)
+2. **Week 2**: Add missing features based on failures
+3. **Week 3**: Run LinkerV2, fix new failures
+4. **Week 4**: Run BulkTestsV2, validate at scale
+5. **Week 5**: All integration tests pass with V2
+
+---
+
 ## Three-Layer Testing Strategy
+
+### Layer 0: End-to-End Integration Tests (NEW!) ⚡
+**Status:** Infrastructure exists, V2 versions need creation
+
+**What it validates:**
+- Full pipeline: Parse → Link → Emit
+- Real-world WESL code behavior
+- Cross-module imports and dependencies
+- Package system integration
+- Complex feature interactions
+
+**Why it's Layer 0:**
+- **Most important** - Catches bugs that unit tests miss
+- Tests actual user workflows
+- Reveals missing features early
+- Validates the entire system together
+
+**Effort:** 2-4 hours to create V2 test files
+
+---
 
 ### Layer 1: stripWesl Round-Trip Validation ✅
 **Status:** Already implemented in BulkTests.test.ts
@@ -311,6 +471,7 @@ Validate V2 can handle sources that V1 couldn't or handled poorly:
 
 | Layer | Component | Priority | Effort (hours) |
 |-------|-----------|----------|----------------|
+| 0 | **Integration test setup** | **P0** | **2-4** |
 | 1 | stripWesl validation | ✅ Done | 0 |
 | 2.1 | Binding validation | P0 | 8-12 |
 | 2.2 | Scope validation | P0 | 4-6 |
@@ -319,7 +480,9 @@ Validate V2 can handle sources that V1 couldn't or handled poorly:
 | 3.1 | Missing V1 features | P1 | 15-20 |
 | 3.2 | Comment element tests | P1 | 10-15 |
 | 3.3 | Format independence | P2 | 3-5 |
-| **Total** | | | **48-72 hours** |
+| **Total** | | | **50-76 hours** |
+
+**Note:** Integration tests reduce overall effort by guiding priorities - less time on low-value features!
 
 ---
 
@@ -593,6 +756,31 @@ Once comments are extracted:
 
 ## Timeline & Phasing
 
+### Phase 0: Integration Test Baseline (Week 1) ⚡ NEW!
+**Goal:** Get end-to-end tests running with V2 immediately
+
+**Tasks:**
+1. ✅ Create ImportCasesV2.test.ts (1 hour)
+2. ✅ Create LinkerV2.test.ts (1 hour)
+3. ✅ Run tests, document pass/fail results (1 hour)
+4. ✅ Analyze failures, create priority list (1 hour)
+5. ✅ Fix critical blocking issues (variable)
+
+**Exit criteria:**
+- Integration test framework running
+- Clear list of missing features/bugs
+- At least 30% of ImportCases passing
+
+**Effort:** 2-4 hours + fixes
+
+**Why Phase 0:**
+- **Immediate feedback** on real-world code
+- **Guides priorities** - fix what breaks integration tests first
+- **Prevents wasted effort** - no spending time on features that already work
+- **Catches interactions** - unit tests miss cross-feature bugs
+
+---
+
 ### Phase 1: Deep Semantic Validation (Week 1-2)
 **Goal:** Ensure V2 AST is semantically equivalent to V1
 
@@ -602,8 +790,11 @@ Once comments are extracted:
 3. ✅ Implement structural validation (6-10 hours)
 4. ✅ Add to existing ParserV2Parity tests
 5. ✅ Run and fix any issues found
+6. ✅ Monitor ImportCasesV2 pass rate (target: 60%)
 
-**Exit criteria:** All existing parity tests pass with deep validation
+**Exit criteria:**
+- All existing parity tests pass with deep validation
+- ImportCasesV2 pass rate ≥ 60%
 
 ---
 
@@ -617,8 +808,13 @@ Once comments are extracted:
 4. ✅ Add switch statement tests (~2 tests)
 5. ✅ Add template edge case tests (~3 tests)
 6. ✅ Add other edge cases (~5 tests)
+7. ✅ Monitor ImportCasesV2 pass rate (target: 80%)
+8. ✅ Run LinkerV2 tests (target: 70% passing)
 
-**Exit criteria:** V2 parses all V1 test cases correctly
+**Exit criteria:**
+- V2 parses all V1 test cases correctly
+- ImportCasesV2 pass rate ≥ 80%
+- LinkerV2 pass rate ≥ 70%
 
 ---
 
@@ -632,8 +828,13 @@ Once comments are extracted:
 4. ✅ Update ASTtoString (2-3 hours)
 5. ✅ Add V2 comment tests (~28 tests, 10-15 hours)
 6. ✅ Remove TextElem (2-4 hours)
+7. ✅ Monitor ImportCasesV2 pass rate (target: 95%)
+8. ✅ Run LinkPackageV2 tests
 
-**Exit criteria:** Comments are separate elements, all tests pass
+**Exit criteria:**
+- Comments are separate elements, all tests pass
+- ImportCasesV2 pass rate ≥ 95%
+- LinkPackageV2 tests running
 
 ---
 
@@ -643,11 +844,14 @@ Once comments are extracted:
 **Tasks:**
 1. ✅ Add format independence tests (3-5 hours)
 2. ✅ Add position validation (2-4 hours)
-3. ✅ Verify stripWesl passes on all BulkTests
+3. ✅ Run BulkTestsV2 (100+ tests)
 4. ✅ Document V2 AST format
 5. ✅ Prepare V1 removal plan
 
-**Exit criteria:** V2 test suite is comprehensive and independent
+**Exit criteria:**
+- V2 test suite is comprehensive and independent
+- **ALL integration tests pass: ImportCasesV2, LinkerV2, LinkPackageV2, BulkTestsV2**
+- 100% pass rate on integration tests
 
 ---
 
@@ -777,10 +981,17 @@ Once V1 is removed, testing relies on:
 
 ## Summary
 
-**Three-layer testing approach:**
+**Four-layer testing approach (Priority Order):**
+0. **🎯 End-to-End Integration Tests** (HIGHEST PRIORITY) - Real-world workflows (ImportCases, Linker, LinkPackage, BulkTests)
 1. **stripWesl** - Round-trip validation (output correctness)
 2. **Deep semantic** - Binding, scope, structure validation (AST correctness)
 3. **V2-native** - Feature-specific, comment, edge case tests (comprehensive coverage)
+
+**Key Insight: Integration tests already work with V2!**
+- Set `weslParserConfig.useV2Parser = true` in test setup
+- All existing integration tests (160+ tests) can run with V2 immediately
+- Provides immediate feedback on real-world code
+- Guides feature prioritization based on actual breakage
 
 **Comment elements:**
 - Hybrid attachment model (leading/trailing attached, structural in contents)
@@ -788,19 +999,33 @@ Once V1 is removed, testing relies on:
 - ~28 new tests
 
 **Timeline:**
-- Week 1-2: Deep semantic validation
-- Week 2-3: Feature parity tests
-- Week 3-4: Comment elements
-- Week 4-5: V2 independence
-- Week 5-6: V1 removal
+- **Week 1: Phase 0 - Integration test baseline (2-4h)**
+- Week 1-2: Phase 1 - Deep semantic validation (18-28h)
+- Week 2-3: Phase 2 - Feature parity tests (15-20h)
+- Week 3-4: Phase 3 - Comment elements (17-26h)
+- Week 4-5: Phase 4 - V2 independence (5-9h)
+- Week 5-6: Phase 5 - V1 removal
 
-**Total effort:** 64-98 hours spread over 5-6 weeks
+**Total effort:** 57-87 hours spread over 5-6 weeks (reduced from 64-98h due to better prioritization)
 
-**Post-V1:** V2-native test suite (~85 tests) + stripWesl validation + semantic unit tests
+**Post-V1 Testing:**
+- **Integration tests** (~160 tests) - ImportCases, Linker, LinkPackage, BulkTests
+- V2-native test suite (~85 tests) - Features, comments, edge cases
+- stripWesl validation - Round-trip correctness
+- Semantic unit tests - Binding, scope validation
 
 ---
 
-**Next Actions:**
-1. Start Phase 1: Implement binding validation
-2. Create SemanticComparison.ts utility
-3. Enhance ParserV2Parity tests with deep validation
+**Next Actions (Priority Order):**
+1. **START PHASE 0 FIRST**: Create ImportCasesV2.test.ts and LinkerV2.test.ts (2-4 hours)
+2. Run integration tests, document failures, prioritize fixes
+3. Start Phase 1: Implement binding validation
+4. Create SemanticComparison.ts utility
+5. Enhance ParserV2Parity tests with deep validation
+
+**Why integration tests first:**
+- Immediate feedback on what's broken in real code
+- Prevents wasting time on low-priority features
+- Validates the whole system works together
+- Catches bugs that unit tests miss
+- Shows progress with every feature added
