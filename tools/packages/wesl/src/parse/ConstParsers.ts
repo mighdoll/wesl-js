@@ -2,6 +2,7 @@
  * Custom parsers for WESL declarations
  * Week 2: const declarations
  * Week 3: override, var, alias declarations
+ * Week 4: struct declarations
  */
 
 import type {
@@ -11,7 +12,10 @@ import type {
   DeclarationElem,
   DeclIdentElem,
   GlobalVarElem,
+  NameElem,
   OverrideElem,
+  StructElem,
+  StructMemberElem,
   TypedDeclElem,
 } from "../AbstractElems.ts";
 import { parseSimpleExpression } from "./ExpressionParsers.ts";
@@ -361,4 +365,156 @@ export function parseAliasDecl(
   linkDeclIdentElem(declIdentElem, aliasElem);
 
   return aliasElem;
+}
+
+/**
+ * Parse a struct member: <name>: <type>
+ * Week 4: Simple members without attributes
+ * TODO: Add attribute support for struct members
+ */
+function parseStructMember(
+  stream: WeslStream,
+  ctx: ParseContext,
+): StructMemberElem | null {
+  const startPos = checkpoint(stream);
+
+  // Parse member name
+  const nameToken = stream.nextToken();
+  if (!nameToken || nameToken.kind !== "word") {
+    reset(stream, startPos);
+    return null;
+  }
+
+  // Create NameElem for the member
+  const nameElem: NameElem = {
+    kind: "name",
+    name: nameToken.text,
+    start: nameToken.span[0],
+    end: nameToken.span[1],
+  };
+
+  // Expect ":"
+  if (!consume(stream, ":")) {
+    throw new Error("Expected ':' after struct member name");
+  }
+
+  // Parse type reference
+  const typeRef = parseSimpleTypeRef(stream, ctx);
+  if (!typeRef) {
+    throw new Error("Expected type after ':' in struct member");
+  }
+
+  const endPos = checkpoint(stream);
+
+  // Create StructMemberElem
+  const memberElem: StructMemberElem = {
+    kind: "member",
+    name: nameElem,
+    typeRef,
+    start: startPos,
+    end: endPos,
+    contents: [],
+  };
+
+  // TODO: Add attribute support
+  // attachAttributes(memberElem, attributes);
+
+  return memberElem;
+}
+
+/**
+ * Parse a struct declaration: struct <name> { <members> }
+ * Week 4: Basic struct support
+ */
+export function parseStructDecl(
+  stream: WeslStream,
+  ctx: ParseContext,
+  attributes?: AttributeElem[],
+): StructElem | null {
+  const startPos = checkpoint(stream);
+
+  // Expect "struct" keyword
+  if (!consume(stream, "struct")) {
+    reset(stream, startPos);
+    return null;
+  }
+
+  // Parse struct name
+  const nameToken = stream.nextToken();
+  if (!nameToken || nameToken.kind !== "word") {
+    throw new Error("Expected identifier after 'struct'");
+  }
+
+  // Create DeclIdent for this struct
+  const declIdent = ctx.createDeclIdent(
+    nameToken.text,
+    nameToken.span,
+    true, // isGlobal
+  );
+
+  // Create DeclIdentElem
+  const declIdentElem: DeclIdentElem = {
+    kind: "decl",
+    ident: declIdent,
+    srcModule: ctx.srcModule,
+    start: nameToken.span[0],
+    end: nameToken.span[1],
+  };
+
+  // Save the identifier in the current scope
+  ctx.saveIdent(declIdent);
+
+  // Expect "{"
+  expect(stream, "{", "Expected '{' after struct name");
+
+  // Parse members separated by commas
+  const members: StructMemberElem[] = [];
+
+  // Push a new scope for the struct body
+  ctx.pushScope();
+
+  while (true) {
+    // Check for closing brace
+    if (consume(stream, "}")) {
+      break;
+    }
+
+    // Parse a member
+    const member = parseStructMember(stream, ctx);
+    if (!member) {
+      throw new Error("Expected struct member or '}'");
+    }
+
+    members.push(member);
+
+    // Check for comma separator
+    // In WGSL, members can be separated by commas, but the last comma is optional
+    const hasComma = consume(stream, ",");
+
+    // If there's no comma, we should see a closing brace next
+    if (!hasComma) {
+      expect(stream, "}", "Expected ',' or '}' after struct member");
+      break;
+    }
+  }
+
+  // Pop the struct scope
+  ctx.popScope();
+
+  const endPos = checkpoint(stream);
+
+  // Create StructElem
+  const structElem: StructElem = {
+    kind: "struct",
+    name: declIdentElem,
+    members,
+    start: startPos,
+    end: endPos,
+    contents: [],
+  };
+
+  attachAttributes(structElem, attributes);
+  linkDeclIdentElem(declIdentElem, structElem);
+
+  return structElem;
 }

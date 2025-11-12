@@ -16,6 +16,7 @@ import {
   parseAliasDecl,
   parseConstDecl,
   parseOverrideDecl,
+  parseStructDecl,
   parseVarDecl,
 } from "../ConstParsers.ts";
 import { parseWeslImports } from "../ImportParsers.ts";
@@ -111,7 +112,8 @@ export class WeslParserV2 {
       parseOverrideDecl, // Week 3
       parseVarDecl, // Week 3
       parseAliasDecl, // Week 3
-      // TODO: Week 4-5: Add parseStructDecl, parseFnDecl
+      parseStructDecl, // Week 4
+      // TODO: Week 5: Add parseFnDecl
     ];
 
     // Keep parsing declarations until we can't parse any more
