@@ -149,6 +149,12 @@ export function parseSimpleTypeRef(
     end: nameEndPos,
   };
 
+  // Link RefIdent back to RefIdentElem (required for binding)
+  refIdent.refIdentElem = refIdentElem;
+
+  // Save the RefIdent to the current scope so binding can find it
+  ctx.saveIdent(refIdent);
+
   // Add ref to contents
   ctx.addElem(refIdentElem);
 
