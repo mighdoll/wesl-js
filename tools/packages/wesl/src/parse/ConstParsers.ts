@@ -1,17 +1,22 @@
 /**
- * Custom parsers for WESL const declarations
- * Week 2: Basic const declarations with simple expressions
+ * Custom parsers for WESL declarations
+ * Week 2: const declarations
+ * Week 3: override, var, alias declarations
  */
 
 import type {
+  AliasElem,
   AttributeElem,
   ConstElem,
   DeclIdentElem,
+  GlobalVarElem,
+  OverrideElem,
   TypedDeclElem,
 } from "../AbstractElems.ts";
 import { parseSimpleExpression } from "./ExpressionParsers.ts";
 import type { ParseContext } from "./ParseContext.ts";
 import { checkpoint, consume, expect, reset } from "./ParseUtil.ts";
+import { parseSimpleTypeRef } from "./TypeParsers.ts";
 import type { WeslStream } from "./WeslStream.ts";
 
 /**
@@ -51,14 +56,19 @@ export function parseTypedDecl(
   ctx.saveIdent(declIdent);
 
   // Check for optional type annotation `: type`
-  const typeRef: undefined = undefined;
-  const typeScope: undefined = undefined;
+  let typeRef: undefined = undefined;
+  let typeScope: undefined = undefined;
   const colonPos = checkpoint(stream);
   if (consume(stream, ":")) {
-    // TODO: Parse type specifier
-    // For Week 2, we'll skip type parsing and just note its presence
-    // This will be expanded in later weeks
-    reset(stream, colonPos); // For now, don't consume the type
+    // Parse the type reference
+    // Week 3: Use simple type parser for basic type names
+    const parsedTypeRef = parseSimpleTypeRef(stream, ctx);
+    if (!parsedTypeRef) {
+      throw new Error("Expected type after ':'");
+    }
+    // For now, we don't use the parsed type ref in the TypedDeclElem
+    // This maintains compatibility with v1 while consuming the tokens
+    // TODO: Store typeRef when we add full type support
   }
 
   // Create TypedDeclElem
@@ -134,4 +144,209 @@ export function parseConstDecl(
   declIdent.declElem = constElem;
 
   return constElem;
+}
+
+/**
+ * Parse an override declaration: override <name> [: <type>]? [= <expr>]? ;
+ * Week 3: Similar to const but with optional initialization
+ */
+export function parseOverrideDecl(
+  stream: WeslStream,
+  ctx: ParseContext,
+  attributes?: AttributeElem[],
+): OverrideElem | null {
+  const startPos = checkpoint(stream);
+
+  // Expect "override" keyword
+  if (!consume(stream, "override")) {
+    reset(stream, startPos);
+    return null;
+  }
+
+  // Parse the typed declaration (name with optional type)
+  const typedDecl = parseTypedDecl(stream, ctx);
+  if (!typedDecl) {
+    throw new Error("Expected identifier after 'override'");
+  }
+
+  // Optional initialization: "= expr"
+  if (consume(stream, "=")) {
+    const expr = parseSimpleExpression(stream, ctx);
+    if (!expr) {
+      throw new Error("Expected expression after '='");
+    }
+  }
+
+  // Expect ";"
+  expect(stream, ";", "Expected ';' after override declaration");
+
+  const endPos = checkpoint(stream);
+
+  // Create OverrideElem
+  const overrideElem: OverrideElem = {
+    kind: "override",
+    name: typedDecl,
+    start: startPos,
+    end: endPos,
+    contents: [],
+  };
+
+  // Add attributes if present
+  if (attributes && attributes.length > 0) {
+    (overrideElem as any).attributes = attributes;
+  }
+
+  // Link the DeclIdent back to this OverrideElem
+  const declIdent = typedDecl.decl.ident;
+  declIdent.declElem = overrideElem;
+
+  return overrideElem;
+}
+
+/**
+ * Parse a global var declaration: var [<template>]? <name> [: <type>]? [= <expr>]? ;
+ * Week 3: Minimal implementation without template support
+ * TODO: Add support for address space templates like <storage, read_write>
+ */
+export function parseVarDecl(
+  stream: WeslStream,
+  ctx: ParseContext,
+  attributes?: AttributeElem[],
+): GlobalVarElem | null {
+  const startPos = checkpoint(stream);
+
+  // Expect "var" keyword
+  if (!consume(stream, "var")) {
+    reset(stream, startPos);
+    return null;
+  }
+
+  // TODO Week 3: Skip template list for now (e.g., <storage, read_write>)
+  // We'll add this in a future iteration
+  if (consume(stream, "<")) {
+    // Skip until we find the closing >
+    let depth = 1;
+    while (depth > 0) {
+      const token = stream.nextToken();
+      if (!token) throw new Error("Unclosed template in var declaration");
+      if (token.text === "<") depth++;
+      if (token.text === ">") depth--;
+    }
+  }
+
+  // Parse the typed declaration (name with optional type)
+  const typedDecl = parseTypedDecl(stream, ctx);
+  if (!typedDecl) {
+    throw new Error("Expected identifier after 'var'");
+  }
+
+  // Optional initialization: "= expr"
+  if (consume(stream, "=")) {
+    const expr = parseSimpleExpression(stream, ctx);
+    if (!expr) {
+      throw new Error("Expected expression after '='");
+    }
+  }
+
+  // Expect ";"
+  expect(stream, ";", "Expected ';' after var declaration");
+
+  const endPos = checkpoint(stream);
+
+  // Create GlobalVarElem
+  const varElem: GlobalVarElem = {
+    kind: "gvar",
+    name: typedDecl,
+    start: startPos,
+    end: endPos,
+    contents: [],
+  };
+
+  // Add attributes if present
+  if (attributes && attributes.length > 0) {
+    (varElem as any).attributes = attributes;
+  }
+
+  // Link the DeclIdent back to this GlobalVarElem
+  const declIdent = typedDecl.decl.ident;
+  declIdent.declElem = varElem;
+
+  return varElem;
+}
+
+/**
+ * Parse an alias declaration: alias <name> = <type> ;
+ * Week 3: Minimal type support (simple identifiers only)
+ */
+export function parseAliasDecl(
+  stream: WeslStream,
+  ctx: ParseContext,
+  attributes?: AttributeElem[],
+): AliasElem | null {
+  const startPos = checkpoint(stream);
+
+  // Expect "alias" keyword
+  if (!consume(stream, "alias")) {
+    reset(stream, startPos);
+    return null;
+  }
+
+  // Parse the name (just DeclIdentElem, not TypedDeclElem)
+  const nameToken = stream.nextToken();
+  if (!nameToken || nameToken.kind !== "word") {
+    throw new Error("Expected identifier after 'alias'");
+  }
+
+  // Create DeclIdent for this alias
+  const declIdent = ctx.createDeclIdent(
+    nameToken.text,
+    nameToken.span,
+    true, // isGlobal
+  );
+
+  // Create DeclIdentElem
+  const declIdentElem: DeclIdentElem = {
+    kind: "decl",
+    ident: declIdent,
+    srcModule: ctx.srcModule,
+    start: nameToken.span[0],
+    end: nameToken.span[1],
+  };
+
+  // Save the identifier in the current scope
+  ctx.saveIdent(declIdent);
+
+  // Expect "="
+  expect(stream, "=", "Expected '=' after alias name");
+
+  // Parse the type reference
+  const typeRef = parseSimpleTypeRef(stream, ctx);
+  if (!typeRef) {
+    throw new Error("Expected type after '=' in alias declaration");
+  }
+
+  // Expect ";"
+  expect(stream, ";", "Expected ';' after alias declaration");
+
+  const endPos = checkpoint(stream);
+
+  // Create AliasElem
+  const aliasElem: AliasElem = {
+    kind: "alias",
+    name: declIdentElem,
+    typeRef,
+    start: startPos,
+    end: endPos,
+    contents: [],
+  };
+
+  // Add attributes if present
+  if (attributes && attributes.length > 0) {
+    (aliasElem as any).attributes = attributes;
+  }
+
+  // Link the DeclIdent back to this AliasElem
+  declIdent.declElem = aliasElem;
+
+  return aliasElem;
 }

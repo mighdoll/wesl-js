@@ -12,7 +12,12 @@ import type { ModuleElem } from "../../AbstractElems.ts";
 import type { WeslAST, WeslParseState } from "../../ParseWESL.ts";
 import type { SrcModule } from "../../Scope.ts";
 import { emptyScope } from "../../Scope.ts";
-import { parseConstDecl } from "../ConstParsers.ts";
+import {
+  parseAliasDecl,
+  parseConstDecl,
+  parseOverrideDecl,
+  parseVarDecl,
+} from "../ConstParsers.ts";
 import { parseWeslImports } from "../ImportParsers.ts";
 import type { ParseContext } from "../ParseContext.ts";
 import { createParseContext } from "../ParseContext.ts";
@@ -68,10 +73,10 @@ export class WeslParserV2 {
     // Week 1: Imports + Attributes
     this.parseImports();
 
-    // Week 2: Global declarations (const)
+    // Week 2-3: Global declarations (const, override, var, alias)
     this.parseDeclarations();
 
-    // TODO: Week 3-5: More declarations (alias, var, override, struct, fn)
+    // TODO: Week 4-5: More declarations (struct, fn)
     // TODO: Week 6: Statements
     // TODO: Week 7-8: Expressions
   }
@@ -94,7 +99,8 @@ export class WeslParserV2 {
 
   /**
    * Parse global declarations (const, alias, var, override, struct, fn)
-   * Week 2: Just const for now
+   * Week 2: const
+   * Week 3: override, var, alias
    */
   private parseDeclarations(): void {
     const stream = this.ctx.stream;
@@ -105,13 +111,36 @@ export class WeslParserV2 {
       const token = stream.peek();
       if (!token) break;
 
-      // Try to parse a const declaration
-      // TODO: Add more declaration types (alias, var, override, struct, fn)
+      // Try to parse declarations in order
+      // Week 2: const
       const constElem = parseConstDecl(stream, this.ctx);
       if (constElem) {
         this.state.stable.moduleElem.contents.push(constElem);
         continue;
       }
+
+      // Week 3: override
+      const overrideElem = parseOverrideDecl(stream, this.ctx);
+      if (overrideElem) {
+        this.state.stable.moduleElem.contents.push(overrideElem);
+        continue;
+      }
+
+      // Week 3: var
+      const varElem = parseVarDecl(stream, this.ctx);
+      if (varElem) {
+        this.state.stable.moduleElem.contents.push(varElem);
+        continue;
+      }
+
+      // Week 3: alias
+      const aliasElem = parseAliasDecl(stream, this.ctx);
+      if (aliasElem) {
+        this.state.stable.moduleElem.contents.push(aliasElem);
+        continue;
+      }
+
+      // TODO: Week 4-5: struct, fn
 
       // No more declarations we can parse
       break;

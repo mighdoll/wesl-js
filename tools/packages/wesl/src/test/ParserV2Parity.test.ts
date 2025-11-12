@@ -258,3 +258,92 @@ describe("ParserV2 Parity: Const Declarations", () => {
     expect(v2SemanticElems[1].kind).toBe("const");
   });
 });
+
+describe("ParserV2 Parity: Override Declarations", () => {
+  test("simple override without initialization", () => {
+    const { v2SemanticElems } = testParity("override x: f32;");
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("override");
+  });
+
+  test("override with initialization", () => {
+    const { v2SemanticElems } = testParity("override x: f32 = 1.0;");
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("override");
+  });
+
+  test("multiple override declarations", () => {
+    const { v2SemanticElems } = testParity(`
+      override a: i32 = 10;
+      override b: f32;
+      override c: bool = true;
+    `);
+
+    expect(v2SemanticElems.length).toBe(3);
+    expect(v2SemanticElems.every(e => e.kind === "override")).toBe(true);
+  });
+});
+
+describe("ParserV2 Parity: Var Declarations", () => {
+  test("simple var without initialization", () => {
+    const { v2SemanticElems } = testParity("var x: f32;");
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("gvar");
+  });
+
+  test("var with initialization", () => {
+    const { v2SemanticElems } = testParity("var x: f32 = 1.0;");
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("gvar");
+  });
+
+  test("var with address space template", () => {
+    const { v2SemanticElems } = testParity("var<private> x: f32;");
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("gvar");
+  });
+});
+
+describe("ParserV2 Parity: Alias Declarations", () => {
+  test("simple type alias", () => {
+    const { v2SemanticElems } = testParity("alias Num = i32;");
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("alias");
+  });
+
+  test("multiple alias declarations", () => {
+    const { v2SemanticElems } = testParity(`
+      alias Int = i32;
+      alias Float = f32;
+      alias Bool = bool;
+    `);
+
+    expect(v2SemanticElems.length).toBe(3);
+    expect(v2SemanticElems.every(e => e.kind === "alias")).toBe(true);
+  });
+});
+
+describe("ParserV2 Parity: Mixed Declarations", () => {
+  test("mix of all declaration types", () => {
+    const { v2SemanticElems } = testParity(`
+      import pkg::module;
+      const x = 42u;
+      override y: f32 = 1.0;
+      var z: i32;
+      alias MyInt = i32;
+    `);
+
+    expect(v2SemanticElems.length).toBe(5);
+    expect(v2SemanticElems[0].kind).toBe("import");
+    expect(v2SemanticElems[1].kind).toBe("const");
+    expect(v2SemanticElems[2].kind).toBe("override");
+    expect(v2SemanticElems[3].kind).toBe("gvar");
+    expect(v2SemanticElems[4].kind).toBe("alias");
+  });
+});
