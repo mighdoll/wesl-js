@@ -65,17 +65,19 @@ function parseFnParam(
   stream: WeslStream,
   ctx: ParseContext,
 ): FnParamElem | null {
-  const startPos = checkpoint(stream);
-
   // Parse optional attributes
   const attributes = parseAttributeList(stream);
 
-  // Parse parameter name
-  const nameToken = stream.nextToken();
+  // Peek at parameter name to get position
+  const nameToken = stream.peek();
   if (!nameToken || nameToken.kind !== "word") {
-    reset(stream, startPos);
     return null;
   }
+
+  const startPos = nameToken.span[0];
+
+  // Consume the name token
+  stream.nextToken();
 
   // Open param element for content collection
   openElem(ctx, { kind: "param", contents: [] });
@@ -194,6 +196,12 @@ export function parseFnDecl(
   // Save the identifier in the current scope
   ctx.saveIdent(declIdent);
 
+  // Open function element to collect contents with proper text generation
+  openElem(ctx, { kind: "fn", contents: [] });
+
+  // Add the decl to contents
+  ctx.addElem(declIdentElem);
+
   // Expect "("
   expect(stream, "(", "Expected '(' after function name");
 
@@ -217,6 +225,7 @@ export function parseFnDecl(
     }
 
     params.push(param);
+    ctx.addElem(param); // Add param to function contents
 
     // Check for comma separator
     const hasComma = consume(stream, ",");
@@ -246,6 +255,7 @@ export function parseFnDecl(
     }
 
     returnType = parsedReturnType;
+    ctx.addElem(returnType); // Add return type to contents
   }
 
   // Parse function body
@@ -254,14 +264,15 @@ export function parseFnDecl(
     throw new Error("Expected function body");
   }
 
+  ctx.addElem(body); // Add body to contents
+
   // Pop the function parameter scope
   ctx.popScope();
 
   const endPos = checkpoint(stream);
 
-  // Build contents manually to match V1 structure:
-  // V1 only includes decl and statement in contents, not text elements
-  const contents: any[] = [declIdentElem, body];
+  // Close function element and fill with text
+  const contents = closeElem(ctx, startPos, endPos);
 
   // Create FnElem
   const fnElem: FnElem = {

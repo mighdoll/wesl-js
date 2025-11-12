@@ -35,9 +35,8 @@ function attachAttributes<T extends { attributes?: AttributeElem[] }>(
  * Parse an optional expression followed by semicolon
  * Used for return, expression statements, etc.
  *
- * NOTE: We parse expressions but don't add them to contents, since expression
- * elements don't have start/end positions and would break text element generation.
- * This is consistent with V1's approach.
+ * NOTE: Expressions create RefIdent elements which have positions and get added to contents.
+ * We use openElem/closeElem to generate text elements covering all gaps.
  */
 function parseOptionalExpressionStatement(
   stream: WeslStream,
@@ -45,7 +44,10 @@ function parseOptionalExpressionStatement(
 ): StatementElem {
   const startPos = checkpoint(stream);
 
-  // Parse expression for validation (but don't add to contents)
+  // Open statement to collect contents
+  openElem(ctx, { kind: "statement", contents: [] });
+
+  // Parse expression (RefIdent elements will be added to contents via ctx.addElem)
   const expr = parseExpression(stream, ctx);
 
   // Expect semicolon
@@ -53,11 +55,14 @@ function parseOptionalExpressionStatement(
 
   const endPos = checkpoint(stream);
 
+  // Close and fill with text elements
+  const contents = closeElem(ctx, startPos, endPos);
+
   const stmt: StatementElem = {
     kind: "statement",
     start: startPos,
     end: endPos,
-    contents: [],
+    contents,
   };
 
   return stmt;
@@ -147,8 +152,28 @@ function parseSimpleStatement(
   // Handle return statement with optional expression
   if (token.text === "return") {
     stream.nextToken(); // consume "return"
-    const stmt = parseOptionalExpressionStatement(stream, ctx);
-    stmt.start = startPos;
+
+    // Open statement to collect contents including "return" keyword
+    openElem(ctx, { kind: "statement", contents: [] });
+
+    // Parse optional expression (RefIdent elements will be added to contents)
+    const expr = parseExpression(stream, ctx);
+
+    // Expect semicolon
+    expect(stream, ";", "Expected ';' after return statement");
+
+    const endPos = checkpoint(stream);
+
+    // Close and fill with text elements
+    const contents = closeElem(ctx, startPos, endPos);
+
+    const stmt: StatementElem = {
+      kind: "statement",
+      start: startPos,
+      end: endPos,
+      contents,
+    };
+
     attachAttributes(stmt, attributes);
     return stmt;
   }
