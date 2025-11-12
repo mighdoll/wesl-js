@@ -19,6 +19,7 @@ import {
   parseStructDecl,
   parseVarDecl,
 } from "../ConstParsers.ts";
+import { parseDirective } from "../DirectiveParsers.ts";
 import { parseFnDecl } from "../FnParsers.ts";
 import { parseWeslImports } from "../ImportParsers.ts";
 import type { ParseContext } from "../ParseContext.ts";
@@ -69,18 +70,17 @@ export class WeslParserV2 {
 
   /**
    * Parse module-level declarations
-   * Currently: imports, attributes, and other global declarations
+   * Currently: imports, directives, and global declarations
    */
   private parseModule(): void {
     // Week 1: Imports + Attributes
     this.parseImports();
 
-    // Week 2-3: Global declarations (const, override, var, alias)
-    this.parseDeclarations();
+    // Week 8: Global directives (enable, requires, diagnostic)
+    this.parseDirectives();
 
-    // TODO: Week 4-5: More declarations (struct, fn)
-    // TODO: Week 6: Statements
-    // TODO: Week 7-8: Expressions
+    // Week 2-5: Global declarations (const, override, var, alias, struct, fn)
+    this.parseDeclarations();
   }
 
   /**
@@ -96,6 +96,28 @@ export class WeslParserV2 {
 
       // Extract ImportStatements for the stable state
       this.state.stable.imports.push(importElem.imports);
+    }
+  }
+
+  /**
+   * Parse global directives (enable, requires, diagnostic)
+   * Week 8: Directive support
+   */
+  private parseDirectives(): void {
+    const stream = this.ctx.stream;
+
+    // Keep parsing directives until we can't parse any more
+    while (true) {
+      const token = stream.peek();
+      if (!token) break;
+
+      const directiveElem = parseDirective(stream, this.ctx);
+      if (directiveElem) {
+        this.state.stable.moduleElem.contents.push(directiveElem);
+      } else {
+        // No more directives
+        break;
+      }
     }
   }
 
