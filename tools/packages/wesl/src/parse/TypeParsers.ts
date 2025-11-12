@@ -75,6 +75,7 @@ function parseStubTemplateExpression(
  * Parse a type reference with optional template parameters
  * Week 3: Basic type references (identifiers only)
  * Week 6: Template support (array<f32, 10>, vec4<f32>, etc.)
+ * Week 6: Qualified names (pkg::Type, package::MyStruct, etc.)
  */
 export function parseSimpleTypeRef(
   stream: WeslStream,
@@ -82,15 +83,57 @@ export function parseSimpleTypeRef(
 ): TypeRefElem | null {
   const startPos = checkpoint(stream);
 
-  // Parse the type name (identifier)
-  const token = consumeKind(stream, "word");
-  if (!token) {
+  // Parse the type name (may be qualified: pkg::Type)
+  // Qualified names are separated by "::"
+  const nameParts: string[] = [];
+
+  // First part must be a word (or special keywords like "package", "super")
+  const firstToken = stream.peek();
+  if (!firstToken) {
     reset(stream, startPos);
     return null;
   }
 
-  // Create RefIdent for this type reference
-  const refIdent = ctx.createRefIdent(token.text, token.span);
+  // Accept word, or special keywords: "package", "super"
+  if (firstToken.kind === "word" ||
+      firstToken.text === "package" ||
+      firstToken.text === "super") {
+    stream.nextToken();
+    nameParts.push(firstToken.text);
+  } else {
+    reset(stream, startPos);
+    return null;
+  }
+
+  // Parse additional :: separated parts
+  while (true) {
+    const colonColon = stream.peek();
+    if (!colonColon || colonColon.text !== "::") {
+      break;
+    }
+
+    // Consume "::"
+    stream.nextToken();
+
+    // Expect another identifier
+    const nextPart = stream.peek();
+    if (!nextPart || (nextPart.kind !== "word" &&
+                       nextPart.text !== "package" &&
+                       nextPart.text !== "super")) {
+      throw new Error("Expected identifier after '::'");
+    }
+
+    stream.nextToken();
+    nameParts.push(nextPart.text);
+  }
+
+  // Construct the full qualified name
+  const fullName = nameParts.join("::");
+
+  // Create RefIdent with the full qualified name
+  // The span should cover from start to current position
+  const nameEndPos = checkpoint(stream);
+  const refIdent = ctx.createRefIdent(fullName, [startPos, nameEndPos]);
 
   // Check for template parameters: <param1, param2, ...>
   let templateParams: TypeTemplateParameter[] | undefined = undefined;
