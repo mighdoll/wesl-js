@@ -6,6 +6,7 @@
  */
 
 import type {
+  RefIdentElem,
   TypeRefElem,
   TypeTemplateParameter,
   UnknownExpressionElem,
@@ -13,6 +14,7 @@ import type {
 import type { ParseContext } from "./ParseContext.ts";
 import { checkpoint, consumeKind, reset } from "./ParseUtil.ts";
 import type { WeslStream } from "./WeslStream.ts";
+import { openElem, closeElem } from "./v2/ContentsHelpers.ts";
 
 /**
  * Parse a stub expression for template parameters
@@ -135,6 +137,21 @@ export function parseSimpleTypeRef(
   const nameEndPos = checkpoint(stream);
   const refIdent = ctx.createRefIdent(fullName, [startPos, nameEndPos]);
 
+  // Open element to collect contents
+  openElem(ctx, { kind: "type", contents: [] });
+
+  // Create RefIdentElem for the type name
+  const refIdentElem: RefIdentElem = {
+    kind: "ref",
+    ident: refIdent,
+    srcModule: ctx.srcModule,
+    start: startPos,
+    end: nameEndPos,
+  };
+
+  // Add ref to contents
+  ctx.addElem(refIdentElem);
+
   // Check for template parameters: <param1, param2, ...>
   let templateParams: TypeTemplateParameter[] | undefined = undefined;
 
@@ -149,11 +166,13 @@ export function parseSimpleTypeRef(
       const typeParam = parseSimpleTypeRef(stream, ctx);
       if (typeParam) {
         templateParams.push(typeParam);
+        // Note: typeParam will add itself to contents via its own open/close
       } else {
         // If not a type, try to parse as an expression
         const exprParam = parseStubTemplateExpression(stream, ctx);
         if (exprParam) {
           templateParams.push(exprParam);
+          ctx.addElem(exprParam);
         } else {
           throw new Error("Expected type or expression in template parameters");
         }
@@ -181,6 +200,9 @@ export function parseSimpleTypeRef(
 
   const endPos = checkpoint(stream);
 
+  // Close and fill with text
+  const contents = closeElem(ctx, startPos, endPos);
+
   // Create TypeRefElem with optional template parameters
   const typeRef: TypeRefElem = {
     kind: "type",
@@ -188,7 +210,7 @@ export function parseSimpleTypeRef(
     templateParams,
     start: startPos,
     end: endPos,
-    contents: [],
+    contents,
   };
 
   return typeRef;

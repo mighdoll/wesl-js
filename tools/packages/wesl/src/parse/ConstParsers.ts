@@ -27,6 +27,7 @@ import type { ParseContext } from "./ParseContext.ts";
 import { checkpoint, consume, expect, reset } from "./ParseUtil.ts";
 import { parseSimpleTypeRef } from "./TypeParsers.ts";
 import type { WeslStream } from "./WeslStream.ts";
+import { openElem, closeElem } from "./v2/ContentsHelpers.ts";
 
 // Helper functions to reduce duplication
 
@@ -79,6 +80,9 @@ export function parseTypedDecl(
     return null;
   }
 
+  // Open element to collect contents
+  openElem(ctx, { kind: "typeDecl", contents: [] });
+
   // Create DeclIdent for this declaration
   const declIdent = ctx.createDeclIdent(
     nameToken.text,
@@ -95,6 +99,9 @@ export function parseTypedDecl(
     end: nameToken.span[1],
   };
 
+  // Add decl to contents
+  ctx.addElem(declIdentElem);
+
   // Save the identifier in the current scope
   ctx.saveIdent(declIdent);
 
@@ -109,10 +116,17 @@ export function parseTypedDecl(
     if (!parsedTypeRef) {
       throw new Error("Expected type after ':'");
     }
+    // Add type to contents
+    ctx.addElem(parsedTypeRef);
     // For now, we don't use the parsed type ref in the TypedDeclElem
     // This maintains compatibility with v1 while consuming the tokens
     // TODO: Store typeRef when we add full type support
   }
+
+  const endPos = checkpoint(stream);
+
+  // Close and fill with text
+  const contents = closeElem(ctx, startPos, endPos);
 
   // Create TypedDeclElem
   const typedDecl: TypedDeclElem = {
@@ -120,9 +134,9 @@ export function parseTypedDecl(
     decl: declIdentElem,
     typeRef,
     typeScope,
-    start: nameToken.span[0],
-    end: nameToken.span[1],
-    contents: [],
+    start: startPos,
+    end: endPos,
+    contents,
   };
 
   return typedDecl;
@@ -252,6 +266,9 @@ export function parseVarDecl(
     return null;
   }
 
+  // Open element to start collecting contents
+  openElem(ctx, { kind: "gvar", contents: [] });
+
   // TODO Week 3: Skip template list for now (e.g., <storage, read_write>)
   // We'll add this in a future iteration
   if (consume(stream, "<")) {
@@ -271,12 +288,17 @@ export function parseVarDecl(
     throw new Error("Expected identifier after 'var'");
   }
 
+  // Add typedDecl to contents
+  ctx.addElem(typedDecl);
+
   // Optional initialization: "= expr"
   if (consume(stream, "=")) {
     const expr = parseSimpleExpression(stream, ctx);
     if (!expr) {
       throw new Error("Expected expression after '='");
     }
+    // Add expression to contents
+    ctx.addElem(expr);
   }
 
   // Expect ";"
@@ -284,13 +306,16 @@ export function parseVarDecl(
 
   const endPos = checkpoint(stream);
 
+  // Close element and fill gaps with text
+  const contents = closeElem(ctx, startPos, endPos);
+
   // Create GlobalVarElem
   const varElem: GlobalVarElem = {
     kind: "gvar",
     name: typedDecl,
     start: startPos,
     end: endPos,
-    contents: [],
+    contents,
   };
 
   attachAttributes(varElem, attributes);
