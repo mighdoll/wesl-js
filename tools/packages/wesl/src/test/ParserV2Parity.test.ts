@@ -347,3 +347,508 @@ describe("ParserV2 Parity: Mixed Declarations", () => {
     expect(v2SemanticElems[4].kind).toBe("alias");
   });
 });
+
+describe("ParserV2 Parity: Struct Declarations", () => {
+  test("simple struct", () => {
+    const { v2SemanticElems } = testParity(`
+      struct MyStruct {
+        x: f32,
+        y: f32
+      }
+    `);
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("struct");
+  });
+
+  test("struct with trailing comma", () => {
+    const { v2SemanticElems } = testParity(`
+      struct Point {
+        x: f32,
+        y: f32,
+      }
+    `);
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("struct");
+  });
+
+  test("struct with attributes", () => {
+    const { v2SemanticElems } = testParity(`
+      struct Vertex {
+        @location(0) position: vec3<f32>,
+        @location(1) color: vec3<f32>
+      }
+    `);
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("struct");
+  });
+
+  test("empty struct", () => {
+    const { v2SemanticElems } = testParity(`
+      struct Empty {}
+    `);
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("struct");
+  });
+});
+
+describe("ParserV2 Parity: Function Declarations", () => {
+  test("simple function with empty body", () => {
+    const { v2SemanticElems } = testParity(`
+      fn foo() {}
+    `);
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("fn");
+  });
+
+  test("function with return type", () => {
+    const { v2SemanticElems } = testParity(`
+      fn compute() -> f32 {
+        return 1.0;
+      }
+    `);
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("fn");
+  });
+
+  test("function with parameters", () => {
+    const { v2SemanticElems } = testParity(`
+      fn add(a: f32, b: f32) -> f32 {
+        return a + b;
+      }
+    `);
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("fn");
+  });
+
+  test("function with attributes", () => {
+    const { v2SemanticElems } = testParity(`
+      @compute @workgroup_size(8, 8)
+      fn main() {
+        return;
+      }
+    `);
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("fn");
+  });
+
+  test("function with parameter attributes", () => {
+    const { v2SemanticElems } = testParity(`
+      fn vertex_main(
+        @location(0) position: vec3<f32>,
+        @location(1) normal: vec3<f32>
+      ) -> vec4<f32> {
+        return vec4<f32>(position, 1.0);
+      }
+    `);
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("fn");
+  });
+});
+
+describe("ParserV2 Parity: Global Directives", () => {
+  test("enable directive with single extension", () => {
+    const { v2SemanticElems } = testParity(`
+      enable f16;
+    `);
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("directive");
+  });
+
+  test("enable directive with multiple extensions", () => {
+    const { v2SemanticElems } = testParity(`
+      enable f16, dual_source_blending;
+    `);
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("directive");
+  });
+
+  test("requires directive", () => {
+    const { v2SemanticElems } = testParity(`
+      requires readonly_and_readwrite_storage_textures;
+    `);
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("directive");
+  });
+
+  test("diagnostic directive", () => {
+    const { v2SemanticElems } = testParity(`
+      diagnostic(off, derivative_uniformity);
+    `);
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("directive");
+  });
+
+  test("multiple directives", () => {
+    const { v2SemanticElems } = testParity(`
+      enable f16;
+      requires readonly_and_readwrite_storage_textures;
+      diagnostic(warning, derivative_uniformity);
+    `);
+
+    expect(v2SemanticElems.length).toBe(3);
+    expect(v2SemanticElems.every(e => e.kind === "directive")).toBe(true);
+  });
+});
+
+describe("ParserV2 Parity: Const Assert", () => {
+  test("const_assert with simple expression", () => {
+    const { v2SemanticElems } = testParity(`
+      const_assert true;
+    `);
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("assert");
+  });
+
+  test("const_assert with comparison", () => {
+    const { v2SemanticElems } = testParity(`
+      const x = 10;
+      const_assert x > 5;
+    `);
+
+    expect(v2SemanticElems.length).toBe(2);
+    expect(v2SemanticElems[0].kind).toBe("const");
+    expect(v2SemanticElems[1].kind).toBe("assert");
+  });
+});
+
+describe("ParserV2 Parity: Statements", () => {
+  test("function with return statement", () => {
+    const { v2SemanticElems } = testParity(`
+      fn getValue() -> i32 {
+        return 42;
+      }
+    `);
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("fn");
+  });
+
+  test("function with if statement", () => {
+    const { v2SemanticElems } = testParity(`
+      fn check(x: i32) -> bool {
+        if (x > 0) {
+          return true;
+        }
+        return false;
+      }
+    `);
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("fn");
+  });
+
+  test("function with if-else statement", () => {
+    const { v2SemanticElems } = testParity(`
+      fn abs(x: i32) -> i32 {
+        if (x < 0) {
+          return -x;
+        } else {
+          return x;
+        }
+      }
+    `);
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("fn");
+  });
+
+  test("function with for loop", () => {
+    const { v2SemanticElems } = testParity(`
+      fn sum() -> i32 {
+        var total = 0;
+        for (var i = 0; i < 10; i++) {
+          total = total + i;
+        }
+        return total;
+      }
+    `);
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("fn");
+  });
+
+  test("function with while loop", () => {
+    const { v2SemanticElems } = testParity(`
+      fn countdown(n: i32) {
+        var i = n;
+        while (i > 0) {
+          i = i - 1;
+        }
+      }
+    `);
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("fn");
+  });
+
+  test("function with loop and break", () => {
+    const { v2SemanticElems } = testParity(`
+      fn infinite() {
+        var i = 0;
+        loop {
+          if (i > 10) {
+            break;
+          }
+          i = i + 1;
+        }
+      }
+    `);
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("fn");
+  });
+
+  test("function with continue statement", () => {
+    const { v2SemanticElems } = testParity(`
+      fn skip_evens() {
+        for (var i = 0; i < 10; i++) {
+          if (i % 2 == 0) {
+            continue;
+          }
+        }
+      }
+    `);
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("fn");
+  });
+
+  test("function with variable declarations", () => {
+    const { v2SemanticElems } = testParity(`
+      fn compute() -> f32 {
+        var x: f32 = 1.0;
+        let y = 2.0;
+        const z = 3.0;
+        return x + y + z;
+      }
+    `);
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("fn");
+  });
+});
+
+describe("ParserV2 Parity: Expressions", () => {
+  test("binary expressions with arithmetic operators", () => {
+    const { v2SemanticElems } = testParity(`
+      fn math() -> i32 {
+        return 1 + 2 * 3 - 4 / 2;
+      }
+    `);
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("fn");
+  });
+
+  test("binary expressions with comparison operators", () => {
+    const { v2SemanticElems } = testParity(`
+      fn compare(a: i32, b: i32) -> bool {
+        return a < b && a != b || a == 0;
+      }
+    `);
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("fn");
+  });
+
+  test("unary expressions", () => {
+    const { v2SemanticElems } = testParity(`
+      fn negate(x: i32, flag: bool) -> i32 {
+        if (!flag) {
+          return -x;
+        }
+        return x;
+      }
+    `);
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("fn");
+  });
+
+  test("member access expressions", () => {
+    const { v2SemanticElems } = testParity(`
+      fn getX(v: vec3<f32>) -> f32 {
+        return v.x;
+      }
+    `);
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("fn");
+  });
+
+  test("array indexing expressions", () => {
+    const { v2SemanticElems } = testParity(`
+      fn getElement(arr: array<f32, 10>, idx: i32) -> f32 {
+        return arr[idx];
+      }
+    `);
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("fn");
+  });
+
+  test("function call expressions", () => {
+    const { v2SemanticElems } = testParity(`
+      fn helper() -> i32 {
+        return 42;
+      }
+      fn caller() -> i32 {
+        return helper() + helper();
+      }
+    `);
+
+    expect(v2SemanticElems.length).toBe(2);
+    expect(v2SemanticElems[0].kind).toBe("fn");
+    expect(v2SemanticElems[1].kind).toBe("fn");
+  });
+
+  test("parenthesized expressions", () => {
+    const { v2SemanticElems } = testParity(`
+      fn precedence() -> i32 {
+        return (1 + 2) * 3;
+      }
+    `);
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("fn");
+  });
+
+  test("complex nested expressions", () => {
+    const { v2SemanticElems } = testParity(`
+      fn complex(v: vec3<f32>) -> f32 {
+        return (v.x * 2.0 + v.y) / (v.z - 1.0);
+      }
+    `);
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("fn");
+  });
+});
+
+describe("ParserV2 Parity: Type References", () => {
+  test("simple type references", () => {
+    const { v2SemanticElems } = testParity(`
+      var x: f32;
+      var y: i32;
+      var z: bool;
+    `);
+
+    expect(v2SemanticElems.length).toBe(3);
+    expect(v2SemanticElems.every(e => e.kind === "gvar")).toBe(true);
+  });
+
+  test("template type references", () => {
+    const { v2SemanticElems } = testParity(`
+      var v: vec3<f32>;
+      var arr: array<i32, 10>;
+    `);
+
+    expect(v2SemanticElems.length).toBe(2);
+    expect(v2SemanticElems.every(e => e.kind === "gvar")).toBe(true);
+  });
+
+  test("nested template type references", () => {
+    const { v2SemanticElems } = testParity(`
+      var ptr: ptr<storage, array<vec4<f32>>, read_write>;
+    `);
+
+    expect(v2SemanticElems.length).toBe(1);
+    expect(v2SemanticElems[0].kind).toBe("gvar");
+  });
+});
+
+describe("ParserV2 Parity: Complex Real-World Examples", () => {
+  test("compute shader with workgroups", () => {
+    const { v2SemanticElems } = testParity(`
+      @group(0) @binding(0) var<storage, read_write> data: array<f32>;
+
+      @compute @workgroup_size(64)
+      fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+        let index = global_id.x;
+        data[index] = data[index] * 2.0;
+      }
+    `);
+
+    expect(v2SemanticElems.length).toBe(2);
+    expect(v2SemanticElems[0].kind).toBe("gvar");
+    expect(v2SemanticElems[1].kind).toBe("fn");
+  });
+
+  test("vertex and fragment shader pair", () => {
+    const { v2SemanticElems } = testParity(`
+      struct VertexOutput {
+        @builtin(position) position: vec4<f32>,
+        @location(0) color: vec3<f32>
+      }
+
+      @vertex
+      fn vs_main(@location(0) pos: vec3<f32>) -> VertexOutput {
+        var output: VertexOutput;
+        output.position = vec4<f32>(pos, 1.0);
+        output.color = vec3<f32>(1.0, 0.0, 0.0);
+        return output;
+      }
+
+      @fragment
+      fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
+        return vec4<f32>(input.color, 1.0);
+      }
+    `);
+
+    expect(v2SemanticElems.length).toBe(3);
+    expect(v2SemanticElems[0].kind).toBe("struct");
+    expect(v2SemanticElems[1].kind).toBe("fn");
+    expect(v2SemanticElems[2].kind).toBe("fn");
+  });
+
+  test("full program with imports and directives", () => {
+    const { v2SemanticElems } = testParity(`
+      enable f16;
+      diagnostic(off, derivative_uniformity);
+
+      import pkg::module;
+
+      const PI = 3.14159;
+
+      struct Uniforms {
+        time: f32,
+        resolution: vec2<f32>
+      }
+
+      @group(0) @binding(0) var<uniform> uniforms: Uniforms;
+
+      fn helper(x: f32) -> f32 {
+        return x * PI;
+      }
+
+      @fragment
+      fn main() -> @location(0) vec4<f32> {
+        let t = helper(uniforms.time);
+        return vec4<f32>(t, 0.0, 0.0, 1.0);
+      }
+    `);
+
+    expect(v2SemanticElems.length).toBe(7);
+    expect(v2SemanticElems[0].kind).toBe("directive");
+    expect(v2SemanticElems[1].kind).toBe("directive");
+    expect(v2SemanticElems[2].kind).toBe("import");
+    expect(v2SemanticElems[3].kind).toBe("const");
+    expect(v2SemanticElems[4].kind).toBe("struct");
+    expect(v2SemanticElems[5].kind).toBe("gvar");
+    expect(v2SemanticElems[6].kind).toBe("fn");
+  });
+});

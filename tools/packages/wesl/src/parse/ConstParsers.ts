@@ -13,11 +13,13 @@ import type {
   DeclarationElem,
   DeclIdentElem,
   GlobalVarElem,
+  LetElem,
   NameElem,
   OverrideElem,
   StructElem,
   StructMemberElem,
   TypedDeclElem,
+  VarElem,
 } from "../AbstractElems.ts";
 import { parseAttributeList } from "./AttributeParsers.ts";
 import { parseSimpleExpression } from "./ExpressionParsers.ts";
@@ -562,4 +564,105 @@ export function parseConstAssert(
   attachAttributes(assertElem, attributes);
 
   return assertElem;
+}
+
+/**
+ * Parse a local var declaration (inside function body): var <name> [: <type>]? [= <expr>]? ;
+ * Week 10.5: Local variable declarations in function bodies
+ */
+export function parseLocalVarDecl(
+  stream: WeslStream,
+  ctx: ParseContext,
+  attributes?: AttributeElem[],
+): VarElem | null {
+  const startPos = checkpoint(stream);
+
+  // Expect "var" keyword
+  if (!consume(stream, "var")) {
+    reset(stream, startPos);
+    return null;
+  }
+
+  // Parse the typed declaration (name with optional type)
+  const typedDecl = parseTypedDecl(stream, ctx);
+  if (!typedDecl) {
+    throw new Error("Expected identifier after 'var'");
+  }
+
+  // Optional initialization: "= expr"
+  if (consume(stream, "=")) {
+    const expr = parseSimpleExpression(stream, ctx);
+    if (!expr) {
+      throw new Error("Expected expression after '='");
+    }
+  }
+
+  // Expect ";"
+  expect(stream, ";", "Expected ';' after var declaration");
+
+  const endPos = checkpoint(stream);
+
+  // Create VarElem (local var, not global)
+  const varElem: VarElem = {
+    kind: "var",
+    name: typedDecl,
+    start: startPos,
+    end: endPos,
+    contents: [],
+  };
+
+  attachAttributes(varElem, attributes);
+  linkDeclIdent(typedDecl, varElem);
+
+  return varElem;
+}
+
+/**
+ * Parse a let declaration (inside function body): let <name> [: <type>]? = <expr> ;
+ * Week 10.5: Local let declarations in function bodies
+ */
+export function parseLetDecl(
+  stream: WeslStream,
+  ctx: ParseContext,
+  attributes?: AttributeElem[],
+): LetElem | null {
+  const startPos = checkpoint(stream);
+
+  // Expect "let" keyword
+  if (!consume(stream, "let")) {
+    reset(stream, startPos);
+    return null;
+  }
+
+  // Parse the typed declaration (name with optional type)
+  const typedDecl = parseTypedDecl(stream, ctx);
+  if (!typedDecl) {
+    throw new Error("Expected identifier after 'let'");
+  }
+
+  // Expect initialization: "= expr"
+  expect(stream, "=", "Expected '=' after let identifier (let requires initialization)");
+  const expr = parseSimpleExpression(stream, ctx);
+  if (!expr) {
+    throw new Error("Expected expression after '='");
+  }
+
+  // Expect ";"
+  expect(stream, ";", "Expected ';' after let declaration");
+
+  const endPos = checkpoint(stream);
+
+  // Create LetElem
+  const letElem: LetElem = {
+    kind: "let",
+    name: typedDecl,
+    start: startPos,
+    end: endPos,
+    contents: [],
+  };
+
+  attachAttributes(letElem, attributes);
+  linkDeclIdent(typedDecl, letElem);
+
+  return letElem;
 }
