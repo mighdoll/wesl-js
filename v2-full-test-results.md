@@ -44,30 +44,20 @@ However, running V2 on the full test suite reveals gaps that need addressing bef
 
 **245 passed | 335 failed | 96 snapshots failed**
 
-### Critical Issues Identified
+### DESIGN CLARIFICATION ⚠️
 
-#### 1. **Conditional Compilation Not Evaluated** (Major)
-
-**Issue:** V2 parses `@if`, `@elif`, `@else` attributes but doesn't evaluate them.
-
-**Impact:** Tests expecting conditional code filtering fail completely.
-
-**Example:**
-```wgsl
-@if(DEBUG)
-const x = 1;
-@else
-const x = 2;
-```
-
-**V1 Behavior:** Evaluates conditions, outputs correct const based on conditions
-**V2 Behavior:** Parses both branches, doesn't filter
-
-**Fix Required:** Post-parsing conditional evaluation pass, or integrate into parsing
+**Immutable AST with Runtime Conditions:**
+- AST is immutable and potentially computed at build time
+- ALL conditional branches (@if/@elif/@else) are included in parsed AST
+- Conditions are applied at RUNTIME via `filterValidElements()` in LowerAndEmit.ts
+- Both V1 and V2 must produce identical ASTs with all branches present
+- Neither parser should filter during parsing
 
 ---
 
-#### 2. **Template Parameters in Var Declarations** (Major)
+### Critical Issues Identified
+
+#### 1. **Template Parameters in Var Declarations** (Major)
 
 **Error:** `unresolved identifier: storage`
 
@@ -92,30 +82,69 @@ if (consume(stream, "<")) {
 
 ---
 
-#### 3. **AST Structure Differences** (Medium)
+#### 2. **AST Structure Differences** (Major)
 
-**Issue:** V2's AST structure differs subtly from V1 in ways that break downstream tools.
+**Issue:** V2's AST structure differs from V1 in ways that cause test failures.
 
-**Examples:**
+**Potential Differences:**
 - Contents array structure
-- Attribute attachment
+- Attribute attachment points
 - Scope nesting
-- TextElem handling (V2 doesn't create these)
+- TextElem handling (V2 may not create these)
+- Expression node types
+- Statement representation
 
-**Impact:** Snapshot tests fail, tools expecting specific AST shape break
+**Impact:** Snapshot tests fail, semantic analysis breaks
 
-**Fix Required:** Either match V1 structure exactly or update all downstream tools
+**Fix Required:** Investigate concrete differences and make V2 produce identical AST to V1
 
 ---
 
-#### 4. **For Loop Header Parsing** (Minor)
+#### 3. **Missing Contents Array Population** (CRITICAL - ROOT CAUSE)
 
-**Issue:** For loop headers with initializers not fully parsed.
+**Status:** 🔴 This is the fundamental issue causing 300+ test failures
 
-**Current:** Headers skipped as black box
-**Needed:** Parse `for (var i = 0; i < 10; i++)` components
+**Problem:** V2 creates AST nodes with empty `contents: []` arrays and never populates them.
 
-**Fix:** Already supported via local var parsing, just needs integration
+**What V1 Does:**
+```typescript
+// V1 combinator parser automatically collects:
+module
+  gvar %x : i32
+    text 'var '          // ← Text elements for keywords
+    typeDecl %x : i32    // ← Sub-structures
+      decl %x
+      text ': '          // ← Punctuation
+      type i32
+        ref i32
+    text ' = 1;'         // ← Initialization
+```
+
+**What V2 Does:**
+```typescript
+// V2 creates bare nodes:
+{
+  kind: "gvar",
+  name: typedDecl,
+  contents: []  // ← EMPTY!
+}
+```
+
+**Impact:**
+- `astToString()` walks `contents` arrays - V2 nodes appear empty
+- All snapshot tests fail
+- Semantic analysis breaks (no sub-structures to analyze)
+- ~300+ tests fail from this single issue
+
+**Why This Happened:**
+- V1 uses combinator parsers (`seq`, `text`, `collect`) that auto-populate contents
+- V2 uses hand-written recursive descent parser that creates nodes manually
+- V2 needs to manually populate `contents` arrays but doesn't
+
+**Fix Required:**
+1. Add text elements to contents arrays (keywords, punctuation, whitespace)
+2. Add sub-structures to contents (typeDecl, expressions, statements, etc.)
+3. Match V1's exact contents array structure
 
 ---
 
