@@ -17,27 +17,27 @@ pnpm --filter wesl test
 import { weslParserConfig } from "./ParseWESL.ts";
 weslParserConfig.useV2Parser = true;
 
-# Method 2: Use workspace to run BOTH parsers in parallel
-pnpm --filter wesl test --config=vitest.workspace.ts
+# Method 2: Run BOTH parsers in parallel
+DUAL_PARSER=true pnpm --filter wesl test
 ```
 
 ---
 
-## Vitest Workspace: Running Both Parsers in Parallel
+## Dual Parser Mode: Running Both Parsers in Parallel
 
-The workspace configuration (`vitest.workspace.ts`) runs the entire test suite **twice** - once with V1 and once with V2.
+The dual parser mode (via `test.projects` in vitest.config.ts) runs the entire test suite **twice** - once with V1 and once with V2.
 
 ### Usage
 
 ```bash
 # Run all tests with both parsers in parallel
-pnpm --filter wesl test --config=vitest.workspace.ts
+DUAL_PARSER=true pnpm --filter wesl test
 
 # Run specific test file with both parsers
-pnpm --filter wesl test --config=vitest.workspace.ts ParseWESL
+DUAL_PARSER=true pnpm --filter wesl test ParseWESL
 
 # Watch mode with both parsers
-pnpm --filter wesl test --config=vitest.workspace.ts --watch
+DUAL_PARSER=true pnpm --filter wesl test --watch
 ```
 
 ### Output Format
@@ -92,12 +92,12 @@ weslParserConfig.useV2Parser = true;
 pnpm --filter wesl test  # Uses V1
 ```
 
-### Option 2: Workspace (V1 + V2 parallel)
+### Option 2: Dual Parser Mode (V1 + V2 parallel)
 
-**File:** `vitest.workspace.ts`
+**File:** `vitest.config.ts` with `DUAL_PARSER=true`
 
 ```bash
-pnpm --filter wesl test --config=vitest.workspace.ts  # Both parsers
+DUAL_PARSER=true pnpm --filter wesl test  # Both parsers
 ```
 
 ### Option 3: Programmatic
@@ -140,8 +140,8 @@ weslParserConfig.useV2Parser = false;
 ### Side-by-Side Comparison
 
 ```bash
-# Run with workspace and filter output
-pnpm --filter wesl test --config=vitest.workspace.ts --reporter=verbose > results.txt
+# Run with dual parser mode and filter output
+DUAL_PARSER=true pnpm --filter wesl test --reporter=verbose > results.txt
 
 # Count V1 failures
 grep "× \[v1\]" results.txt | wc -l
@@ -162,7 +162,7 @@ done
 
 ```bash
 # Generate JSON report for analysis
-pnpm --filter wesl test --config=vitest.workspace.ts --reporter=json > test-results.json
+DUAL_PARSER=true pnpm --filter wesl test --reporter=json > test-results.json
 
 # Analyze with jq
 cat test-results.json | jq '.testResults[] | select(.name | contains("v2")) | select(.status == "failed") | .name'
@@ -187,11 +187,13 @@ jobs:
       - uses: pnpm/action-setup@v2
       - run: pnpm install
       - name: Test with both parsers
-        run: pnpm --filter wesl test --config=vitest.workspace.ts
+        run: DUAL_PARSER=true pnpm --filter wesl test
+        env:
+          DUAL_PARSER: true
       - name: Compare results
         run: |
           # Fail if V2 pass rate drops below threshold
-          PASS_RATE=$(pnpm --filter wesl test --config=vitest.workspace.ts --reporter=json | jq '...')
+          PASS_RATE=$(DUAL_PARSER=true pnpm --filter wesl test --reporter=json | jq '...')
           if [ $PASS_RATE -lt 40 ]; then
             echo "V2 pass rate too low: $PASS_RATE%"
             exit 1
@@ -207,18 +209,18 @@ jobs:
 Make sure the test setup files are being loaded:
 
 ```typescript
-// vitest.workspace.ts
+// vitest.config.ts with test.projects
 setupFiles: ["./src/test/TestSetupV2.ts"],  // ✅ Correct
 setupFiles: ["./TestSetupV2.ts"],           // ❌ Wrong path
 ```
 
-### Workspace not recognized
+### Dual parser mode not working
 
-Ensure you're using the `--config` flag:
+Ensure you're setting the environment variable correctly:
 
 ```bash
-pnpm test --config=vitest.workspace.ts  # ✅ Correct
-pnpm test --workspace=vitest.workspace.ts  # ❌ Wrong flag
+DUAL_PARSER=true pnpm test  # ✅ Correct
+pnpm test --dual-parser     # ❌ Wrong flag
 ```
 
 ### Both parsers show same results
@@ -234,14 +236,14 @@ console.log("[TestSetup] Using V2 parser");
 
 ## Best Practices
 
-### 1. Use Workspace for Regression Testing
+### 1. Use Dual Parser Mode for Regression Testing
 
 ```bash
 # Before making V2 changes
-pnpm test --config=vitest.workspace.ts > baseline.txt
+DUAL_PARSER=true pnpm test > baseline.txt
 
 # After changes
-pnpm test --config=vitest.workspace.ts > current.txt
+DUAL_PARSER=true pnpm test > current.txt
 
 # Compare
 diff baseline.txt current.txt
@@ -293,9 +295,9 @@ test.skip("complex conditional compilation", () => {
    - Template parameters
    - AST parity
 
-2. **Use workspace for validation**
+2. **Use dual parser mode for validation**
    ```bash
-   pnpm test --config=vitest.workspace.ts
+   DUAL_PARSER=true pnpm test
    ```
 
 3. **Monitor V2 pass rate**
@@ -312,7 +314,7 @@ test.skip("complex conditional compilation", () => {
 
 ## References
 
-- `vitest.workspace.ts` - Workspace configuration
+- `vitest.config.ts` - Main test configuration with dual parser support
 - `TestSetupV1.ts` - V1 parser setup
 - `TestSetupV2.ts` - V2 parser setup
 - `v2-full-test-results.md` - Comprehensive V2 status
@@ -326,11 +328,11 @@ test.skip("complex conditional compilation", () => {
 
 **For V2 Testing:**
 - Single parser: Set `weslParserConfig.useV2Parser = true`
-- Parallel comparison: Use workspace config
+- Parallel comparison: Use dual parser mode
 
 **Command:**
 ```bash
-pnpm --filter wesl test --config=vitest.workspace.ts
+DUAL_PARSER=true pnpm --filter wesl test
 ```
 
-This runs all tests with both parsers, making it easy to spot regressions and track V2 progress toward production readiness.
+This runs all tests with both parsers in parallel, making it easy to spot regressions and track V2 progress toward production readiness.
