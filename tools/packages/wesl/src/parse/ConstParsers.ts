@@ -18,6 +18,7 @@ import type {
   StructMemberElem,
   TypedDeclElem,
 } from "../AbstractElems.ts";
+import { parseAttributeList } from "./AttributeParsers.ts";
 import { parseSimpleExpression } from "./ExpressionParsers.ts";
 import type { ParseContext } from "./ParseContext.ts";
 import { checkpoint, consume, expect, reset } from "./ParseUtil.ts";
@@ -368,15 +369,18 @@ export function parseAliasDecl(
 }
 
 /**
- * Parse a struct member: <name>: <type>
- * Week 4: Simple members without attributes
- * TODO: Add attribute support for struct members
+ * Parse a struct member: [@attrs] <name>: <type>
+ * Week 4: Simple members
+ * Week 7: Attribute support (@location, @builtin, etc.)
  */
 function parseStructMember(
   stream: WeslStream,
   ctx: ParseContext,
 ): StructMemberElem | null {
   const startPos = checkpoint(stream);
+
+  // Parse optional attributes
+  const attributes = parseAttributeList(stream);
 
   // Parse member name
   const nameToken = stream.nextToken();
@@ -416,8 +420,7 @@ function parseStructMember(
     contents: [],
   };
 
-  // TODO: Add attribute support
-  // attachAttributes(memberElem, attributes);
+  attachAttributes(memberElem, attributes.length > 0 ? attributes : undefined);
 
   return memberElem;
 }

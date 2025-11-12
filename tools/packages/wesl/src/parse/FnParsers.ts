@@ -13,6 +13,7 @@ import type {
   TypedDeclElem,
   TypeRefElem,
 } from "../AbstractElems.ts";
+import { parseAttributeList } from "./AttributeParsers.ts";
 import type { ParseContext } from "./ParseContext.ts";
 import { checkpoint, consume, consumeKind, expect, reset } from "./ParseUtil.ts";
 import { parseSimpleTypeRef } from "./TypeParsers.ts";
@@ -54,14 +55,18 @@ function linkDeclIdentElem(
 }
 
 /**
- * Parse a function parameter: [name] [: type]?
+ * Parse a function parameter: [@attrs] [name] [: type]?
  * Week 5: Similar to parseTypedDecl but for function parameters
+ * Week 7: Attribute support
  */
 function parseFnParam(
   stream: WeslStream,
   ctx: ParseContext,
 ): FnParamElem | null {
   const startPos = checkpoint(stream);
+
+  // Parse optional attributes
+  const attributes = parseAttributeList(stream);
 
   // Parse parameter name
   const nameToken = stream.nextToken();
@@ -129,8 +134,7 @@ function parseFnParam(
   // Link the typed decl back to the param elem
   linkDeclIdent(typedDecl, paramElem);
 
-  // TODO: Add attribute support for parameters
-  // attachAttributes(paramElem, attributes);
+  attachAttributes(paramElem, attributes.length > 0 ? attributes : undefined);
 
   return paramElem;
 }
