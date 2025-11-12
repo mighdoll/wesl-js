@@ -8,6 +8,7 @@
 import type {
   AliasElem,
   AttributeElem,
+  ConstAssertElem,
   ConstElem,
   DeclarationElem,
   DeclIdentElem,
@@ -520,4 +521,45 @@ export function parseStructDecl(
   linkDeclIdentElem(declIdentElem, structElem);
 
   return structElem;
+}
+
+/**
+ * Parse a const_assert statement: const_assert <expression>;
+ * Week 9: Global const_assert support
+ */
+export function parseConstAssert(
+  stream: WeslStream,
+  ctx: ParseContext,
+  attributes?: AttributeElem[],
+): ConstAssertElem | null {
+  const startPos = checkpoint(stream);
+
+  // Expect "const_assert" keyword
+  if (!consume(stream, "const_assert")) {
+    reset(stream, startPos);
+    return null;
+  }
+
+  // Parse expression (using stub expression parser)
+  const expression = parseSimpleExpression(stream, ctx);
+  if (!expression) {
+    throw new Error("Expected expression after 'const_assert'");
+  }
+
+  // Expect semicolon
+  expect(stream, ";", "Expected ';' after const_assert expression");
+
+  const endPos = checkpoint(stream);
+
+  // Create ConstAssertElem
+  const assertElem: ConstAssertElem = {
+    kind: "assert",
+    start: startPos,
+    end: endPos,
+    contents: [],
+  };
+
+  attachAttributes(assertElem, attributes);
+
+  return assertElem;
 }

@@ -14,6 +14,7 @@ import type { SrcModule } from "../../Scope.ts";
 import { emptyScope } from "../../Scope.ts";
 import {
   parseAliasDecl,
+  parseConstAssert,
   parseConstDecl,
   parseOverrideDecl,
   parseStructDecl,
@@ -139,6 +140,7 @@ export class WeslParserV2 {
       parseAliasDecl, // Week 3
       parseStructDecl, // Week 4
       parseFnDecl, // Week 5
+      parseConstAssert, // Week 9
     ];
 
     // Keep parsing declarations until we can't parse any more
