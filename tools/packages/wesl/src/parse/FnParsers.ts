@@ -18,6 +18,7 @@ import type { ParseContext } from "./ParseContext.ts";
 import { checkpoint, consume, consumeKind, expect, reset } from "./ParseUtil.ts";
 import { parseFunctionBody } from "./StatementParsers.ts";
 import { parseSimpleTypeRef } from "./TypeParsers.ts";
+import { closeElem, openElem } from "./v2/ContentsHelpers.ts";
 import type { WeslStream } from "./WeslStream.ts";
 
 // Import helper functions from ConstParsers
@@ -76,6 +77,9 @@ function parseFnParam(
     return null;
   }
 
+  // Open param element for content collection
+  openElem(ctx, { kind: "param", contents: [] });
+
   // Create DeclIdent for this parameter
   const declIdent = ctx.createDeclIdent(
     nameToken.text,
@@ -96,7 +100,7 @@ function parseFnParam(
   ctx.saveIdent(declIdent);
 
   // Check for optional type annotation `: type`
-  let typeRef: undefined = undefined;
+  let typeRef: TypeRefElem | undefined = undefined;
   let typeScope: undefined = undefined;
 
   if (consume(stream, ":")) {
@@ -105,23 +109,27 @@ function parseFnParam(
     if (!parsedTypeRef) {
       throw new Error("Expected type after ':' in function parameter");
     }
-    // For now, we don't use the parsed type ref in the TypedDeclElem
-    // This maintains compatibility with v1 while consuming the tokens
-    // TODO: Store typeRef when we add full type support
+    ctx.addElem(parsedTypeRef);
+    typeRef = parsedTypeRef;
   }
 
-  const endPos = checkpoint(stream);
+  const typeDeclEndPos = checkpoint(stream);
 
-  // Create TypedDeclElem for the parameter
+  // Create TypedDeclElem for the parameter (no separate contents, covered by param)
   const typedDecl: TypedDeclElem = {
     kind: "typeDecl",
     decl: declIdentElem,
     typeRef,
     typeScope,
     start: nameToken.span[0],
-    end: endPos,
-    contents: [],
+    end: typeDeclEndPos,
+    contents: [], // TypedDecl inside param doesn't need separate contents
   };
+
+  const endPos = checkpoint(stream);
+
+  // Close param element and fill with text
+  const contents = closeElem(ctx, startPos, endPos);
 
   // Create FnParamElem
   const paramElem: FnParamElem = {
@@ -129,7 +137,7 @@ function parseFnParam(
     name: typedDecl,
     start: startPos,
     end: endPos,
-    contents: [],
+    contents,
   };
 
   // Link the typed decl back to the param elem
@@ -248,6 +256,10 @@ export function parseFnDecl(
 
   const endPos = checkpoint(stream);
 
+  // Build contents manually to match V1 structure:
+  // V1 only includes decl and statement in contents, not text elements
+  const contents: any[] = [declIdentElem, body];
+
   // Create FnElem
   const fnElem: FnElem = {
     kind: "fn",
@@ -258,7 +270,7 @@ export function parseFnDecl(
     returnAttributes,
     start: startPos,
     end: endPos,
-    contents: [],
+    contents,
   };
 
   attachAttributes(fnElem, attributes);

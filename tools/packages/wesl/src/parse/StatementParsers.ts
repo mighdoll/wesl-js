@@ -16,6 +16,7 @@ import { parseConstDecl, parseLetDecl, parseLocalVarDecl } from "./ConstParsers.
 import { parseExpression } from "./ExpressionParsers.ts";
 import type { ParseContext } from "./ParseContext.ts";
 import { checkpoint, consume, expect, reset } from "./ParseUtil.ts";
+import { closeElem, openElem } from "./v2/ContentsHelpers.ts";
 import type { WeslStream } from "./WeslStream.ts";
 
 /**
@@ -67,19 +68,28 @@ function parseCompoundStatement(
   ctx: ParseContext,
   attributes?: AttributeElem[],
 ): StatementElem | null {
-  const startPos = checkpoint(stream);
-
-  // Expect "{"
-  if (!consume(stream, "{")) {
-    reset(stream, startPos);
+  // Peek to get position of '{' token
+  const peeked = stream.peek();
+  if (!peeked || peeked.text !== "{") {
     return null;
   }
+
+  // Capture start position at the '{' token, not before it
+  const startPos = peeked.span[0];
+
+  // Consume "{"
+  const consumed = consume(stream, "{");
+  if (!consumed) {
+    return null;
+  }
+
+  // Open statement element for content collection
+  openElem(ctx, { kind: "statement", contents: [] });
 
   // Push new scope for block
   ctx.pushScope();
 
   // Parse nested statements
-  const contents: StatementElem[] = [];
   while (true) {
     // Check for closing brace
     if (consume(stream, "}")) {
@@ -89,7 +99,7 @@ function parseCompoundStatement(
     // Parse a statement
     const stmt = parseStatement(stream, ctx);
     if (stmt) {
-      contents.push(stmt);
+      ctx.addElem(stmt);
     } else {
       throw new Error("Expected statement or '}'");
     }
@@ -99,6 +109,9 @@ function parseCompoundStatement(
   ctx.popScope();
 
   const endPos = checkpoint(stream);
+
+  // Close statement element and fill with text
+  const contents = closeElem(ctx, startPos, endPos);
 
   const blockStmt: StatementElem = {
     kind: "statement",
