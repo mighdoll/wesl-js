@@ -158,13 +158,16 @@ export function parseFnDecl(
   ctx: ParseContext,
   attributes?: AttributeElem[],
 ): FnElem | null {
-  const startPos = checkpoint(stream);
-
-  // Expect "fn" keyword
-  if (!consume(stream, "fn")) {
-    reset(stream, startPos);
+  // Peek at "fn" keyword to get its position (don't use checkpoint to avoid including leading whitespace)
+  const fnToken = stream.peek();
+  if (!fnToken || fnToken.text !== "fn") {
     return null;
   }
+
+  const startPos = fnToken.span[0];
+
+  // Consume "fn" keyword
+  stream.nextToken();
 
   // Parse function name
   const nameToken = stream.nextToken();

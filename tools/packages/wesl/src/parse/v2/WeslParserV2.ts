@@ -27,6 +27,7 @@ import { parseWeslImports } from "../ImportParsers.ts";
 import type { ParseContext } from "../ParseContext.ts";
 import { createParseContext } from "../ParseContext.ts";
 import { WeslStream } from "../WeslStream.ts";
+import { closeElem, openElem } from "./ContentsHelpers.ts";
 
 /**
  * Main parser class for WESL v2
@@ -66,7 +67,16 @@ export class WeslParserV2 {
    * Parse the entire WESL module
    */
   parse(): WeslAST {
+    // Use openElem to collect module contents properly
+    openElem(this.ctx, { kind: "module", contents: [] });
+
     this.parseModule();
+
+    // Close module and fill with text elements
+    const moduleElem = this.state.stable.moduleElem;
+    const contents = closeElem(this.ctx, 0, moduleElem.end);
+    moduleElem.contents = contents;
+
     return this.state.stable;
   }
 
@@ -92,9 +102,9 @@ export class WeslParserV2 {
     // Use Phase 2 custom import parser
     const importElems = parseWeslImports(this.ctx.stream);
 
-    // Add import elements to the module
+    // Add import elements to the module via context (for proper text element generation)
     for (const importElem of importElems) {
-      this.state.stable.moduleElem.contents.push(importElem);
+      this.ctx.addElem(importElem);
 
       // Extract ImportStatements for the stable state
       this.state.stable.imports.push(importElem.imports);
@@ -115,7 +125,7 @@ export class WeslParserV2 {
 
       const directiveElem = parseDirective(stream, this.ctx);
       if (directiveElem) {
-        this.state.stable.moduleElem.contents.push(directiveElem);
+        this.ctx.addElem(directiveElem);
       } else {
         // No more directives
         break;
@@ -157,7 +167,7 @@ export class WeslParserV2 {
       for (const parser of parsers) {
         const elem = parser(stream, this.ctx, attributes.length > 0 ? attributes : undefined);
         if (elem) {
-          this.state.stable.moduleElem.contents.push(elem);
+          this.ctx.addElem(elem);
           continue outer;
         }
       }

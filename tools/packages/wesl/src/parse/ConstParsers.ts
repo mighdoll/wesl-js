@@ -277,13 +277,16 @@ export function parseVarDecl(
   ctx: ParseContext,
   attributes?: AttributeElem[],
 ): GlobalVarElem | null {
-  const startPos = checkpoint(stream);
-
-  // Expect "var" keyword
-  if (!consume(stream, "var")) {
-    reset(stream, startPos);
+  // Peek at "var" keyword to get its position
+  const varToken = stream.peek();
+  if (!varToken || varToken.text !== "var") {
     return null;
   }
+
+  const startPos = varToken.span[0];
+
+  // Consume "var" keyword
+  stream.nextToken();
 
   // Open element to start collecting contents
   openElem(ctx, { kind: "gvar", contents: [] });
@@ -351,13 +354,16 @@ export function parseAliasDecl(
   ctx: ParseContext,
   attributes?: AttributeElem[],
 ): AliasElem | null {
-  const startPos = checkpoint(stream);
-
-  // Expect "alias" keyword
-  if (!consume(stream, "alias")) {
-    reset(stream, startPos);
+  // Peek at "alias" keyword to get its position (don't use checkpoint to avoid including leading whitespace)
+  const aliasToken = stream.peek();
+  if (!aliasToken || aliasToken.text !== "alias") {
     return null;
   }
+
+  const startPos = aliasToken.span[0];
+
+  // Consume "alias" keyword
+  stream.nextToken();
 
   // Open element to collect contents
   openElem(ctx, { kind: "alias", contents: [] });
@@ -502,13 +508,16 @@ export function parseStructDecl(
   ctx: ParseContext,
   attributes?: AttributeElem[],
 ): StructElem | null {
-  const startPos = checkpoint(stream);
-
-  // Expect "struct" keyword
-  if (!consume(stream, "struct")) {
-    reset(stream, startPos);
+  // Peek at "struct" keyword to get its position
+  const structToken = stream.peek();
+  if (!structToken || structToken.text !== "struct") {
     return null;
   }
+
+  const startPos = structToken.span[0];
+
+  // Consume "struct" keyword
+  stream.nextToken();
 
   // Parse struct name
   const nameToken = stream.nextToken();

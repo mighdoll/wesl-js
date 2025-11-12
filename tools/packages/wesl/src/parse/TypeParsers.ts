@@ -133,9 +133,11 @@ export function parseSimpleTypeRef(
   const fullName = nameParts.join("::");
 
   // Create RefIdent with the full qualified name
-  // The span should cover from start to current position
+  // The span should cover from the first token to current position
   const nameEndPos = checkpoint(stream);
-  const refIdent = ctx.createRefIdent(fullName, [startPos, nameEndPos]);
+  // Use firstToken's start position for accurate span (not startPos which may include leading whitespace)
+  const nameStartPos = firstToken.span[0];
+  const refIdent = ctx.createRefIdent(fullName, [nameStartPos, nameEndPos]);
 
   // Open element to collect contents
   openElem(ctx, { kind: "type", contents: [] });
@@ -145,7 +147,7 @@ export function parseSimpleTypeRef(
     kind: "ref",
     ident: refIdent,
     srcModule: ctx.srcModule,
-    start: startPos,
+    start: nameStartPos, // Use actual token start, not checkpoint before whitespace
     end: nameEndPos,
   };
 

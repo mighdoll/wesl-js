@@ -239,9 +239,7 @@ export function emitSynthetic(e: SyntheticElem, ctx: EmitContext): void {
 }
 
 export function emitContents(elem: ContainerElem, ctx: EmitContext): void {
-  // elem.contents.forEach(e => console.log("orig", astToString(e)));
   const validElements = filterValidElements(elem.contents, ctx.conditions);
-  // validElements.forEach(e => console.log("valid", astToString(e)));
   validElements.forEach(e => {
     lowerAndEmitElem(e, ctx);
   });
