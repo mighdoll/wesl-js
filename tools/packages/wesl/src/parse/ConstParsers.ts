@@ -439,6 +439,9 @@ function parseStructMember(
   // Parse optional attributes
   const attributes = parseAttributeList(stream);
 
+  // Open element to collect contents
+  openElem(ctx, { kind: "member", contents: [] });
+
   // Parse member name
   const nameToken = stream.nextToken();
   if (!nameToken || nameToken.kind !== "word") {
@@ -454,6 +457,9 @@ function parseStructMember(
     end: nameToken.span[1],
   };
 
+  // Add name to contents
+  ctx.addElem(nameElem);
+
   // Expect ":"
   if (!consume(stream, ":")) {
     throw new Error("Expected ':' after struct member name");
@@ -465,7 +471,12 @@ function parseStructMember(
     throw new Error("Expected type after ':' in struct member");
   }
 
+  // typeRef adds itself to contents via its own open/close
+
   const endPos = checkpoint(stream);
+
+  // Close and fill with text
+  const contents = closeElem(ctx, startPos, endPos);
 
   // Create StructMemberElem
   const memberElem: StructMemberElem = {
@@ -474,7 +485,7 @@ function parseStructMember(
     typeRef,
     start: startPos,
     end: endPos,
-    contents: [],
+    contents,
   };
 
   attachAttributes(memberElem, attributes.length > 0 ? attributes : undefined);
@@ -524,6 +535,12 @@ export function parseStructDecl(
   // Save the identifier in the current scope
   ctx.saveIdent(declIdent);
 
+  // Open element to collect contents
+  openElem(ctx, { kind: "struct", contents: [] });
+
+  // Add the decl to contents
+  ctx.addElem(declIdentElem);
+
   // Expect "{"
   expect(stream, "{", "Expected '{' after struct name");
 
@@ -546,6 +563,8 @@ export function parseStructDecl(
     }
 
     members.push(member);
+    // Member adds itself to contents via its own open/close
+    ctx.addElem(member);
 
     // Check for comma separator
     // In WGSL, members can be separated by commas, but the last comma is optional
@@ -563,6 +582,9 @@ export function parseStructDecl(
 
   const endPos = checkpoint(stream);
 
+  // Close and fill with text
+  const contents = closeElem(ctx, startPos, endPos);
+
   // Create StructElem
   const structElem: StructElem = {
     kind: "struct",
@@ -570,7 +592,7 @@ export function parseStructDecl(
     members,
     start: startPos,
     end: endPos,
-    contents: [],
+    contents,
   };
 
   attachAttributes(structElem, attributes);
@@ -596,23 +618,31 @@ export function parseConstAssert(
     return null;
   }
 
+  // Open element to collect contents
+  openElem(ctx, { kind: "assert", contents: [] });
+
   // Parse expression (using stub expression parser)
   const expression = parseSimpleExpression(stream, ctx);
   if (!expression) {
     throw new Error("Expected expression after 'const_assert'");
   }
 
+  // Note: Don't add expression to contents - will be covered by text elements
+
   // Expect semicolon
   expect(stream, ";", "Expected ';' after const_assert expression");
 
   const endPos = checkpoint(stream);
+
+  // Close and fill with text
+  const contents = closeElem(ctx, startPos, endPos);
 
   // Create ConstAssertElem
   const assertElem: ConstAssertElem = {
     kind: "assert",
     start: startPos,
     end: endPos,
-    contents: [],
+    contents,
   };
 
   attachAttributes(assertElem, attributes);

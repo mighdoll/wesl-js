@@ -6,9 +6,13 @@ import { baseViteConfig } from "./base.vite.config.ts";
 const useDualParser = process.env.DUAL_PARSER === "true";
 
 const config = useDualParser
-  ? // Dual parser mode: run tests with both V1 and V2 in parallel
+  ? // Dual parser mode: run tests with both V1 and V2 sequentially
+    // (sequential to avoid race conditions with shared weslParserConfig)
     mergeConfig(baseViteConfig(), {
       test: {
+        sequence: {
+          concurrent: false, // Run projects sequentially to avoid config race
+        },
         projects: [
           {
             test: {
