@@ -158,11 +158,17 @@ export function parseConstDecl(
     return null;
   }
 
+  // Open element to collect contents
+  openElem(ctx, { kind: "const", contents: [] });
+
   // Parse the typed declaration (name with optional type)
   const typedDecl = parseTypedDecl(stream, ctx);
   if (!typedDecl) {
     throw new Error("Expected identifier after 'const'");
   }
+
+  // Add typedDecl to contents
+  ctx.addElem(typedDecl);
 
   // Expect "="
   expect(stream, "=", "Expected '=' after const identifier");
@@ -170,17 +176,21 @@ export function parseConstDecl(
   // Parse the initializer expression
   // For Week 2: Use simple expression parser (literals and identifiers only)
   // TODO Week 7-8: Expand to full expression parsing
-  const _exprStart = checkpoint(stream);
   const expr = parseSimpleExpression(stream, ctx);
   if (!expr) {
     throw new Error("Expected expression after '='");
   }
-  const _exprEnd = checkpoint(stream);
+
+  // Add expression to contents
+  ctx.addElem(expr);
 
   // Expect ";"
   expect(stream, ";", "Expected ';' after const declaration");
 
   const endPos = checkpoint(stream);
+
+  // Close and fill with text
+  const contents = closeElem(ctx, startPos, endPos);
 
   // Create ConstElem
   const constElem: ConstElem = {
@@ -188,7 +198,7 @@ export function parseConstDecl(
     name: typedDecl,
     start: startPos,
     end: endPos,
-    contents: [],
+    contents,
   };
 
   attachAttributes(constElem, attributes);
@@ -214,11 +224,17 @@ export function parseOverrideDecl(
     return null;
   }
 
+  // Open element to collect contents
+  openElem(ctx, { kind: "override", contents: [] });
+
   // Parse the typed declaration (name with optional type)
   const typedDecl = parseTypedDecl(stream, ctx);
   if (!typedDecl) {
     throw new Error("Expected identifier after 'override'");
   }
+
+  // Add typedDecl to contents
+  ctx.addElem(typedDecl);
 
   // Optional initialization: "= expr"
   if (consume(stream, "=")) {
@@ -226,6 +242,8 @@ export function parseOverrideDecl(
     if (!expr) {
       throw new Error("Expected expression after '='");
     }
+    // Add expression to contents
+    ctx.addElem(expr);
   }
 
   // Expect ";"
@@ -233,13 +251,16 @@ export function parseOverrideDecl(
 
   const endPos = checkpoint(stream);
 
+  // Close and fill with text
+  const contents = closeElem(ctx, startPos, endPos);
+
   // Create OverrideElem
   const overrideElem: OverrideElem = {
     kind: "override",
     name: typedDecl,
     start: startPos,
     end: endPos,
-    contents: [],
+    contents,
   };
 
   attachAttributes(overrideElem, attributes);
@@ -341,6 +362,9 @@ export function parseAliasDecl(
     return null;
   }
 
+  // Open element to collect contents
+  openElem(ctx, { kind: "alias", contents: [] });
+
   // Parse the name (just DeclIdentElem, not TypedDeclElem)
   const nameToken = stream.nextToken();
   if (!nameToken || nameToken.kind !== "word") {
@@ -363,6 +387,9 @@ export function parseAliasDecl(
     end: nameToken.span[1],
   };
 
+  // Add declIdentElem to contents
+  ctx.addElem(declIdentElem);
+
   // Save the identifier in the current scope
   ctx.saveIdent(declIdent);
 
@@ -375,10 +402,15 @@ export function parseAliasDecl(
     throw new Error("Expected type after '=' in alias declaration");
   }
 
+  // typeRef will add itself to contents via its own open/close
+
   // Expect ";"
   expect(stream, ";", "Expected ';' after alias declaration");
 
   const endPos = checkpoint(stream);
+
+  // Close and fill with text
+  const contents = closeElem(ctx, startPos, endPos);
 
   // Create AliasElem
   const aliasElem: AliasElem = {
@@ -387,7 +419,7 @@ export function parseAliasDecl(
     typeRef,
     start: startPos,
     end: endPos,
-    contents: [],
+    contents,
   };
 
   attachAttributes(aliasElem, attributes);
@@ -608,11 +640,17 @@ export function parseLocalVarDecl(
     return null;
   }
 
+  // Open element to collect contents
+  openElem(ctx, { kind: "var", contents: [] });
+
   // Parse the typed declaration (name with optional type)
   const typedDecl = parseTypedDecl(stream, ctx);
   if (!typedDecl) {
     throw new Error("Expected identifier after 'var'");
   }
+
+  // Add typedDecl to contents
+  ctx.addElem(typedDecl);
 
   // Optional initialization: "= expr"
   if (consume(stream, "=")) {
@@ -620,6 +658,8 @@ export function parseLocalVarDecl(
     if (!expr) {
       throw new Error("Expected expression after '='");
     }
+    // Add expression to contents
+    ctx.addElem(expr);
   }
 
   // Expect ";"
@@ -627,13 +667,16 @@ export function parseLocalVarDecl(
 
   const endPos = checkpoint(stream);
 
+  // Close and fill with text
+  const contents = closeElem(ctx, startPos, endPos);
+
   // Create VarElem (local var, not global)
   const varElem: VarElem = {
     kind: "var",
     name: typedDecl,
     start: startPos,
     end: endPos,
-    contents: [],
+    contents,
   };
 
   attachAttributes(varElem, attributes);
@@ -659,11 +702,17 @@ export function parseLetDecl(
     return null;
   }
 
+  // Open element to collect contents
+  openElem(ctx, { kind: "let", contents: [] });
+
   // Parse the typed declaration (name with optional type)
   const typedDecl = parseTypedDecl(stream, ctx);
   if (!typedDecl) {
     throw new Error("Expected identifier after 'let'");
   }
+
+  // Add typedDecl to contents
+  ctx.addElem(typedDecl);
 
   // Expect initialization: "= expr"
   expect(stream, "=", "Expected '=' after let identifier (let requires initialization)");
@@ -672,10 +721,16 @@ export function parseLetDecl(
     throw new Error("Expected expression after '='");
   }
 
+  // Add expression to contents
+  ctx.addElem(expr);
+
   // Expect ";"
   expect(stream, ";", "Expected ';' after let declaration");
 
   const endPos = checkpoint(stream);
+
+  // Close and fill with text
+  const contents = closeElem(ctx, startPos, endPos);
 
   // Create LetElem
   const letElem: LetElem = {
@@ -683,7 +738,7 @@ export function parseLetDecl(
     name: typedDecl,
     start: startPos,
     end: endPos,
-    contents: [],
+    contents,
   };
 
   attachAttributes(letElem, attributes);
