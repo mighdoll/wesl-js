@@ -14,6 +14,7 @@ import { throwClickableError } from "./ClickableError.ts";
 import { filterValidElements } from "./Conditions.ts";
 import { type FlatImport, flattenTreeImport } from "./FlattenTreeImport.ts";
 import { weslRoot } from "./parse/WeslGrammar.ts";
+import { parseWeslV2 } from "./parse/v2/WeslParserV2.ts";
 import { WeslStream } from "./parse/WeslStream.ts";
 import {
   type Conditions,
@@ -23,6 +24,25 @@ import {
 } from "./Scope.ts";
 import { errorHighlight, offsetToLineNumber } from "./Util.ts";
 import type { OpenElem } from "./WESLCollect.ts";
+
+/**
+ * Global configuration for WESL parser
+ */
+export interface WeslParserConfig {
+  /**
+   * Use V2 custom parser instead of V1 combinator parser
+   * Default: false (use V1)
+   */
+  useV2Parser?: boolean;
+}
+
+/**
+ * Global parser configuration
+ * Set this to switch between V1 and V2 parsers
+ */
+export const weslParserConfig: WeslParserConfig = {
+  useV2Parser: false,
+};
 
 /** result of a parse for one wesl module (e.g. one .wesl file)
  *
@@ -92,8 +112,17 @@ export class WeslParseError extends Error {
   }
 }
 
-/** Parse a WESL file. Throws on error. */
+/** Parse a WESL file. Throws on error.
+ *
+ * Uses V2 parser if weslParserConfig.useV2Parser is true, otherwise uses V1.
+ */
 export function parseSrcModule(srcModule: SrcModule): WeslAST {
+  // Check if V2 parser is enabled
+  if (weslParserConfig.useV2Parser) {
+    return parseWeslV2(srcModule);
+  }
+
+  // Use V1 parser (default)
   const stream = new WeslStream(srcModule.src);
 
   const appState = blankWeslParseState(srcModule);
