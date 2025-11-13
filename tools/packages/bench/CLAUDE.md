@@ -1,0 +1,1 @@
+../../../../../agent/wesl-js/tools/packages/bench/claude.md

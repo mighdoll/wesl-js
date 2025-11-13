@@ -1,0 +1,1 @@
+../../../../../agent/wesl-js/tools/packages/wesl/claude.md
