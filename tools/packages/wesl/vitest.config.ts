@@ -8,6 +8,19 @@ import { defineConfig } from "vite";
 const useV1Only = process.env.V1_ONLY === "true";
 const useV2Only = process.env.V2_ONLY === "true";
 
+// V2-specific tests that should only run in V2 mode
+const v2OnlyTests = [
+  "**/ParserV2Parity.test.ts",
+  "**/ImportCasesV2.test.ts",
+  "**/LinkerV2.test.ts",
+  "**/ScopeWESLV2.test.ts",
+  "**/CompareV1V2.test.ts",
+  "**/DebugImportBinding.test.ts",
+  "**/ParseContext.test.ts",
+];
+
+const baseExcludes = ["**/node_modules/**", "**/dist/**"];
+
 let config;
 if (useV1Only) {
   // V1 only mode - exclude V2-specific tests
@@ -15,17 +28,7 @@ if (useV1Only) {
     test: {
       setupFiles: "./src/test/TestSetupV1.ts",
       include: ["src/test/**/*.test.ts"],
-      exclude: [
-        "**/node_modules/**",
-        "**/dist/**",
-        "**/ParserV2Parity.test.ts",
-        "**/ImportCasesV2.test.ts",
-        "**/LinkerV2.test.ts",
-        "**/ScopeWESLV2.test.ts",
-        "**/CompareV1V2.test.ts",
-        "**/DebugImportBinding.test.ts",
-        "**/ParseContext.test.ts",
-      ],
+      exclude: [...baseExcludes, ...v2OnlyTests],
     },
   };
 } else if (useV2Only) {
@@ -34,7 +37,7 @@ if (useV1Only) {
     test: {
       setupFiles: "./src/test/TestSetupV2.ts",
       include: ["src/test/**/*.test.ts"],
-      exclude: ["**/node_modules/**", "**/dist/**"],
+      exclude: baseExcludes,
     },
   };
 } else {
@@ -51,17 +54,7 @@ if (useV1Only) {
             name: "v1",
             setupFiles: ["./src/test/TestSetupV1.ts"],
             include: ["src/test/**/*.test.ts"],
-            exclude: [
-              "**/node_modules/**",
-              "**/dist/**",
-              "**/ParserV2Parity.test.ts",
-              "**/ImportCasesV2.test.ts",
-              "**/LinkerV2.test.ts",
-              "**/ScopeWESLV2.test.ts",
-              "**/CompareV1V2.test.ts",
-              "**/DebugImportBinding.test.ts",
-              "**/ParseContext.test.ts",
-            ],
+            exclude: [...baseExcludes, ...v2OnlyTests],
           },
         },
         {
@@ -69,12 +62,7 @@ if (useV1Only) {
             name: "v2",
             setupFiles: ["./src/test/TestSetupV2.ts"],
             include: ["src/test/**/*.test.ts"],
-            // Exclude parity tests since they explicitly test both parsers
-            exclude: [
-              "**/node_modules/**",
-              "**/dist/**",
-              "**/ParserV2Parity.test.ts",
-            ],
+            exclude: baseExcludes,
           },
         },
       ],
