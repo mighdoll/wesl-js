@@ -110,6 +110,9 @@ export function parseTypedDecl(
   let typeScope: undefined = undefined;
   const colonPos = checkpoint(stream);
   if (consume(stream, ":")) {
+    // Push a scope for the type reference (matches V1's scopeCollectNoIf pattern)
+    ctx.pushScope();
+
     // Parse the type reference
     // Week 3: Use simple type parser for basic type names
     const parsedTypeRef = parseSimpleTypeRef(stream, ctx);
@@ -120,6 +123,9 @@ export function parseTypedDecl(
     ctx.addElem(parsedTypeRef);
     // Store the typeRef for astToString summary
     typeRef = parsedTypeRef;
+
+    // Pop the type reference scope
+    ctx.popScope();
   }
 
   const endPos = checkpoint(stream);
@@ -175,6 +181,9 @@ export function parseConstDecl(
   // Expect "="
   expect(stream, "=", "Expected '=' after const identifier");
 
+  // Push a scope for the initializer expression (matches V1's scopeCollectNoIf pattern)
+  ctx.pushScope();
+
   // Parse the initializer expression
   // For Week 2: Use simple expression parser (literals and identifiers only)
   // TODO Week 7-8: Expand to full expression parsing
@@ -185,6 +194,9 @@ export function parseConstDecl(
 
   // Note: Don't add expr to contents - expressions are ExpressionElem, not GrammarElem
   // They'll be covered by text elements automatically
+
+  // Pop the initializer expression scope
+  ctx.popScope();
 
   // Expect ";"
   expect(stream, ";", "Expected ';' after const declaration");
@@ -246,11 +258,17 @@ export function parseOverrideDecl(
 
   // Optional initialization: "= expr"
   if (consume(stream, "=")) {
+    // Push a scope for the initializer expression (matches V1's scopeCollectNoIf pattern)
+    ctx.pushScope();
+
     const expr = parseSimpleExpression(stream, ctx);
     if (!expr) {
       throw new Error("Expected expression after '='");
     }
     // Note: Don't add expr to contents - will be covered by text elements
+
+    // Pop the initializer expression scope
+    ctx.popScope();
   }
 
   // Expect ";"
@@ -330,11 +348,17 @@ export function parseVarDecl(
 
   // Optional initialization: "= expr"
   if (consume(stream, "=")) {
+    // Push a scope for the initializer expression (matches V1's scopeCollectNoIf pattern)
+    ctx.pushScope();
+
     const expr = parseSimpleExpression(stream, ctx);
     if (!expr) {
       throw new Error("Expected expression after '='");
     }
     // Note: Don't add expr to contents - will be covered by text elements
+
+    // Pop the initializer expression scope
+    ctx.popScope();
   }
 
   // Expect ";"
