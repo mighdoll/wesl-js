@@ -270,6 +270,11 @@ export function parseFnDecl(
 
   ctx.addElem(body); // Add body to contents
 
+  // Save the parameter scope as the dependentScope for binding
+  // This allows binding to recursively process references inside the function body
+  const paramScope = ctx.currentScope();
+  declIdent.dependentScope = paramScope;
+
   // Pop the function parameter scope
   ctx.popScope();
 

@@ -206,6 +206,13 @@ export function parseConstDecl(
   // Close and fill with text
   const contents = closeElem(ctx, startPos, endPos);
 
+  // Save the partial scope as the dependentScope for binding
+  // This allows binding to recursively process references in the const
+  if (typedDecl?.ident) {
+    const constScope = ctx.currentScope();
+    typedDecl.ident.dependentScope = constScope;
+  }
+
   // Pop the partial scope for the const declaration
   ctx.popScope();
 
@@ -278,6 +285,13 @@ export function parseOverrideDecl(
 
   // Close and fill with text
   const contents = closeElem(ctx, startPos, endPos);
+
+  // Save the partial scope as the dependentScope for binding
+  // This allows binding to recursively process references in the override
+  if (typedDecl?.ident) {
+    const overrideScope = ctx.currentScope();
+    typedDecl.ident.dependentScope = overrideScope;
+  }
 
   // Pop the partial scope for the override declaration
   ctx.popScope();
@@ -369,6 +383,13 @@ export function parseVarDecl(
   // Close element and fill gaps with text
   const contents = closeElem(ctx, startPos, endPos);
 
+  // Save the partial scope as the dependentScope for binding
+  // This allows binding to recursively process references in the var
+  if (typedDecl?.ident) {
+    const varScope = ctx.currentScope();
+    typedDecl.ident.dependentScope = varScope;
+  }
+
   // Pop the partial scope for the var declaration
   ctx.popScope();
 
@@ -451,6 +472,11 @@ export function parseAliasDecl(
   }
 
   // typeRef will add itself to contents via its own open/close
+
+  // Save the type reference scope as the dependentScope for binding
+  // This allows binding to recursively process references in the alias
+  const aliasScope = ctx.currentScope();
+  declIdent.dependentScope = aliasScope;
 
   // Pop the type reference scope
   ctx.popScope();
@@ -633,6 +659,11 @@ export function parseStructDecl(
       break;
     }
   }
+
+  // Save the struct scope as the dependentScope for binding
+  // This allows binding to recursively process references inside the struct
+  const structScope = ctx.currentScope();
+  declIdent.dependentScope = structScope;
 
   // Pop the struct scope
   ctx.popScope();
