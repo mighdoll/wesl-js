@@ -69,6 +69,70 @@ function parseOptionalExpressionStatement(
 }
 
 /**
+ * Parse a compound statement (block) without creating a new scope.
+ * Used for function bodies where the parameter scope serves as the block scope.
+ */
+export function parseUnscopedCompoundStatement(
+  stream: WeslStream,
+  ctx: ParseContext,
+  attributes?: AttributeElem[],
+): StatementElem | null {
+  // Peek to get position of '{' token
+  const peeked = stream.peek();
+  if (!peeked || peeked.text !== "{") {
+    return null;
+  }
+
+  // Capture start position at the '{' token, not before it
+  const startPos = peeked.span[0];
+
+  // Consume "{"
+  const consumed = consume(stream, "{");
+  if (!consumed) {
+    return null;
+  }
+
+  // Open statement element for content collection
+  openElem(ctx, { kind: "statement", contents: [] });
+
+  // NOTE: No pushScope() here - use existing scope
+
+  // Parse nested statements
+  while (true) {
+    // Check for closing brace
+    if (consume(stream, "}")) {
+      break;
+    }
+
+    // Try to parse a statement
+    const stmt = parseStatement(stream, ctx);
+    if (!stmt) {
+      throw new Error("Expected statement or '}'");
+    }
+
+    ctx.addElem(stmt);
+  }
+
+  // NOTE: No popScope() here
+
+  const endPos = checkpoint(stream);
+
+  // Close and fill with text
+  const contents = closeElem(ctx, startPos, endPos);
+
+  const statementElem: StatementElem = {
+    kind: "statement",
+    start: startPos,
+    end: endPos,
+    contents,
+  };
+
+  attachAttributes(statementElem, attributes);
+
+  return statementElem;
+}
+
+/**
  * Parse a compound statement (block): { statements }
  * Week 10: Recursive statement parsing
  */
@@ -594,5 +658,7 @@ export function parseFunctionBody(
   stream: WeslStream,
   ctx: ParseContext,
 ): StatementElem | null {
-  return parseCompoundStatement(stream, ctx);
+  // Function bodies use unscoped compound statement because the parameter scope
+  // serves as the body scope (matching V1 behavior)
+  return parseUnscopedCompoundStatement(stream, ctx);
 }

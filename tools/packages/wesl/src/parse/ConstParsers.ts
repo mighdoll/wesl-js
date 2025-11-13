@@ -157,6 +157,9 @@ export function parseConstDecl(
     return null;
   }
 
+  // Push a partial scope for the entire const declaration (matches V1 behavior)
+  ctx.pushScope("partial");
+
   // Open element to collect contents
   openElem(ctx, { kind: "const", contents: [] });
 
@@ -191,6 +194,9 @@ export function parseConstDecl(
   // Close and fill with text
   const contents = closeElem(ctx, startPos, endPos);
 
+  // Pop the partial scope for the const declaration
+  ctx.popScope();
+
   // Create ConstElem
   const constElem: ConstElem = {
     kind: "const",
@@ -223,6 +229,9 @@ export function parseOverrideDecl(
     return null;
   }
 
+  // Push a partial scope for the entire override declaration (matches V1 behavior)
+  ctx.pushScope("partial");
+
   // Open element to collect contents
   openElem(ctx, { kind: "override", contents: [] });
 
@@ -251,6 +260,9 @@ export function parseOverrideDecl(
 
   // Close and fill with text
   const contents = closeElem(ctx, startPos, endPos);
+
+  // Pop the partial scope for the override declaration
+  ctx.popScope();
 
   // Create OverrideElem
   const overrideElem: OverrideElem = {
@@ -287,6 +299,9 @@ export function parseVarDecl(
 
   // Consume "var" keyword
   stream.nextToken();
+
+  // Push a partial scope for the entire var declaration (matches V1 behavior)
+  ctx.pushScope("partial");
 
   // Open element to start collecting contents
   openElem(ctx, { kind: "gvar", contents: [] });
@@ -329,6 +344,9 @@ export function parseVarDecl(
 
   // Close element and fill gaps with text
   const contents = closeElem(ctx, startPos, endPos);
+
+  // Pop the partial scope for the var declaration
+  ctx.popScope();
 
   // Create GlobalVarElem
   const varElem: GlobalVarElem = {
@@ -399,6 +417,9 @@ export function parseAliasDecl(
   // Expect "="
   expect(stream, "=", "Expected '=' after alias name");
 
+  // Push a scope for the type reference (matches V1's scopeCollect pattern)
+  ctx.pushScope();
+
   // Parse the type reference
   const typeRef = parseSimpleTypeRef(stream, ctx);
   if (!typeRef) {
@@ -406,6 +427,9 @@ export function parseAliasDecl(
   }
 
   // typeRef will add itself to contents via its own open/close
+
+  // Pop the type reference scope
+  ctx.popScope();
 
   // Expect ";"
   expect(stream, ";", "Expected ';' after alias declaration");
