@@ -4,7 +4,7 @@
 
 **Parser V2** is a ground-up rewrite of the WESL parser using **custom recursive descent parsing** instead of mini-parse combinators. This directory contains the v2 implementation and related documentation.
 
-**Current Status**: Week 1 complete ✅ (Import statements working, parity tests passing)
+**Current Status**: V2 actively in use, 87.5%+ of ImportCasesV2 passing, LinkerV2 and ScopeWESLV2 at 100%
 
 ## Why V2?
 
@@ -21,12 +21,30 @@ The v1 parser uses mini-parse combinators throughout. While elegant, this approa
 3. Full control over parser behavior
 4. Traditional recursive descent approach (easier to understand/maintain)
 
-## Strategy: Parallel Parser with Parity Testing
+## Strategy: Parallel Parser with V1 Test Validation
 
-Rather than replacing the parser all at once, we build v2 **alongside v1**, using the existing 440+ tests as an oracle:
+Rather than replacing the parser all at once, we build v2 **alongside v1**, using the existing 440+ tests as an oracle.
+
+**Primary Validation: V1 Tests with useV2Parser Flag**
+
+The main validation strategy is to run the existing V1 tests using the V2 parser:
 
 ```typescript
-// Both parsers run, ASTs must match
+// In TestSetup.ts or vitest.config.ts
+weslParserConfig.useV2Parser = true;  // Use V2 parser for all tests
+
+// Tests run normally - they validate output, not AST structure
+test("import a transitive struct", () => {
+  const result = link(sources);  // Uses V2 parser internally
+  expect(result.wgsl).toBe(expectedOutput);
+});
+```
+
+**Secondary Validation: Parity Tests for AST Structure**
+
+For specific structural validation, parity tests compare v1 and v2 ASTs:
+
+```typescript
 test("parser parity", () => {
   const astV1 = parseSrcModule(srcModule);  // v1 (mini-parse)
   const astV2 = parseWeslV2(srcModule);     // v2 (custom)
@@ -36,39 +54,44 @@ test("parser parity", () => {
 ```
 
 **Benefits**:
-- ✅ Continuous validation (tests catch divergence immediately)
+- ✅ Continuous validation (existing tests catch regressions immediately)
+- ✅ Real-world validation (tests validate output, not just AST structure)
 - ✅ Incremental progress (can ship at any milestone)
 - ✅ Lower risk (v1 keeps working throughout)
-- ✅ Clear feedback (AST match or doesn't)
+- ✅ Clear feedback (test passes or fails)
 
 ## Progress Tracking
 
 ### Progress Documents (Convention)
 
-We use `Week{N}-Complete.md` files to track major milestones:
+We use `v2-progress-update-N.md` files to track progress updates:
 
-- **Week1-Complete.md** - Foundation + import parsing ✅
-- **Week2-Complete.md** - Const declarations (future)
-- **Week3-Complete.md** - Alias, var, override (future)
-- etc.
+- **v2-progress-update-9.md** - Latest: struct member type ref binding investigation
+- **v2-progress-update-8.md** - ImportCasesV2 at 87.5% (35/40 passing)
+- **v2-progress-update-7.md** - Scope structure matching
+- **v2-progress-update-6.md** - Qualified names and 55% achieved
+- **v2-progress-update-5.md** - LinkerV2 100% achievement!
+- Earlier updates: 2, 3, 4
 
 Each document includes:
-- Summary of work completed
-- Test results and coverage
-- Key insights and challenges
-- Next steps
-- Decision points
+- Session summary and goals
+- Changes made and fixes implemented
+- Test results
+- Investigation findings
+- Remaining issues
+- Next steps and recommendations
 
-### Current Progress: Week 1 Complete ✅
+### Current Status
 
 **What's Working**:
 - ✅ WeslParserV2 class (foundation)
-- ✅ Import statement parsing (reusing Phase 2 custom parsers)
-- ✅ Parity test framework (16 tests passing)
-- ✅ No regressions (all 456 existing tests still pass)
-- ✅ ~20% grammar coverage
+- ✅ Import statement parsing
+- ✅ Declaration parsing (const, var, alias, struct, fn)
+- ✅ LinkerV2: 12/12 tests passing (100%)
+- ✅ ImportCasesV2: 35+/40 tests passing (87.5%+)
+- ✅ ScopeWESLV2: 11/11 tests passing (100%)
 
-**See**: [Week1-Complete.md](./Week1-Complete.md) for full details
+**See**: Latest progress in [v2-progress-update-9.md](../../v2-progress-update-9.md)
 
 ## Architecture
 
@@ -166,20 +189,37 @@ function parseIfAttribute(stream, ctx): IfAttribute | null {
 }
 ```
 
-## Roadmap (9 Weeks Total)
+## Roadmap
+
+### Current Implementation (V2 in Progress)
+
+Based on recent progress updates, V2 is **much further along** than the original 9-week plan suggested:
+
+**Completed**:
+- ✅ Foundation (imports, attributes, directives)
+- ✅ Declaration parsing (const, var, alias, struct, fn)
+- ✅ Scope management
+- ✅ Type references
+- ✅ LinkerV2: 100% passing
+- ✅ ScopeWESLV2: 100% passing
+- ✅ ImportCasesV2: 87.5%+ passing
+
+**Status**: V2 is actively being used and tested. The focus has shifted from "building V2" to "fixing remaining edge cases" in the existing V2 implementation.
+
+**See**: Latest status in [v2-progress-update-9.md](../../v2-progress-update-9.md)
+
+### Original Roadmap (Obsolete - Historical Reference)
+
+The original plan was a 9-week incremental build:
 
 | Week | Work | Coverage | Status |
 |------|------|----------|--------|
-| 1 | Foundation + imports | 20% | ✅ **Complete** |
-| 2 | Const declarations | 30% | ⏳ Next |
-| 3 | Alias, var, override | 40% | ⏳ Pending |
-| 4 | Struct declarations | 50% | ⏳ Pending |
-| 5 | Function declarations | 60% | ⏳ Pending |
-| 6 | Statements | 75% | ⏳ Pending |
-| 7-8 | Expressions | 90% | ⏳ Pending |
-| 9 | Complete, remove v1 | 100% | ⏳ Pending |
+| 1 | Foundation + imports | 20% | ✅ Complete |
+| 2-9 | ... | ... | 🔄 Overtaken by actual progress |
 
-**See**: [Ultrathink-Parser-Strategy.md](../Ultrathink-Parser-Strategy.md) for detailed plan
+**Note**: The actual implementation progressed much faster than planned. See progress updates for real timeline.
+
+**Historical Plan**: [Ultrathink-Parser-Strategy.md](../Ultrathink-Parser-Strategy.md)
 
 ## Historical Context
 
@@ -216,11 +256,68 @@ From [Bundle-Analysis.md](../Bundle-Analysis.md):
 
 **Decision**: 27% is significant, but requires 4-6 months effort. Parallel parser approach (9 weeks) is more realistic.
 
+## Future Work: Text → Comment Element Conversion
+
+There is ongoing discussion about replacing TextElem nodes with CommentElem nodes to reduce bundle size and improve AST semantic clarity.
+
+**Current State (V1 & V2)**:
+- Comments are embedded in TextElem nodes
+- TextElems cover all unparsed source (keywords, punctuation, whitespace, comments)
+- Comments have no semantic meaning in the AST
+
+**Proposed Enhancement**:
+- Extract comments as separate CommentElem nodes
+- TextElems only for keywords/punctuation/whitespace
+- ~35% smaller AST (fewer text elements)
+- Better tooling support (IDE hover, formatting, etc.)
+
+**Comment Positioning Model**:
+1. **Leading** - Block comments before element
+2. **Trailing** - Same-line comments after element
+3. **Inner** - Comments between children (with index)
+4. **Detached** - Module-level comments between declarations
+
+**Status**: Analysis complete, implementation timing TBD
+
+**See**: [COMMENT_POSITIONING_AND_VALIDATION.md](../../COMMENT_POSITIONING_AND_VALIDATION.md) for full discussion and design
+
+**Decision Points**:
+- Should V1 be migrated? (Recommendation: No - too risky for stable code)
+- When to implement in V2? (After V2 core is complete and stable)
+- Validation strategy? (stripWesl comparison + semantic comparison)
+
 ## Testing Strategy
 
-### Parity Tests (Primary Validation)
+### V1 Tests with useV2Parser (Primary Validation)
 
-Compare v1 and v2 ASTs on identical inputs:
+The **primary validation strategy** is to run existing V1 tests using the V2 parser. These tests validate the end-to-end pipeline (parse → bind → emit) and ensure V2 produces correct WGSL output:
+
+```typescript
+// In test setup or config
+weslParserConfig.useV2Parser = true;
+
+// Existing tests run with V2 parser
+test("import a transitive struct", () => {
+  const result = link(sources);  // Internally uses V2 parser
+  expect(result.wgsl).toBe(expectedOutput);  // Validates final output
+});
+```
+
+**Why this is primary**:
+- ✅ Tests real-world usage (parse → bind → emit pipeline)
+- ✅ Validates correctness of output, not just AST structure
+- ✅ Catches integration issues between parser and linker
+- ✅ Tests already known good (440+ tests from V1)
+- ✅ No need to write new test expectations
+
+**Current Results**:
+- LinkerV2: 12/12 passing (100%)
+- ImportCasesV2: 35+/40 passing (87.5%+)
+- ScopeWESLV2: 11/11 passing (100%)
+
+### Parity Tests (Secondary Validation)
+
+For specific AST structure validation, parity tests compare v1 and v2 ASTs:
 
 ```typescript
 // test/ParserV2Parity.test.ts
@@ -281,41 +378,31 @@ ctx.saveIdent(ident)                        // Register in scope
 ctx.addElem(elem)            // Add to open element's contents
 ```
 
-## Next Steps: Week 2 (Const Declarations)
+## Current Focus
 
-**Goal**: Add const declaration parsing, achieve 30% coverage
+V2 development has progressed well beyond initial milestones. Current work focuses on:
 
-**Implementation Plan**:
+1. **Fixing Remaining Edge Cases** (87.5% → 100% on ImportCasesV2)
+   - Struct member type reference binding
+   - Alias declaration emission
+   - Edge cases in complex imports
 
-1. **Create parseConstDecl()**
-   - Parse `const` keyword (commit point)
-   - Parse name + optional type annotation
-   - Parse `=` and initializer expression
-   - Handle scope creation for expression
-   - Wire up bidirectional links
+2. **Maintaining Test Coverage**
+   - LinkerV2: 100% (12/12 passing) ✅
+   - ScopeWESLV2: 100% (11/11 passing) ✅
+   - ImportCasesV2: 87.5%+ (35+/40 passing) 🔄
 
-2. **Add Parity Tests**
-   ```typescript
-   test("const x = 5;", ...)
-   test("const y: i32 = 3;", ...)
-   test("const z = x + y;", ...)
-   ```
-
-3. **Challenges**:
-   - Need expression parsing (may need stub)
-   - Scope lifecycle for const initializer
-   - DeclIdent ↔ ConstElem linking
-
-**See Week1-Complete.md "Next Steps" section for details**
+**See latest progress**: [v2-progress-update-9.md](../../v2-progress-update-9.md)
 
 ## References
 
 ### Project Documentation
 
 - [CLAUDE.md](../CLAUDE.md) - Parser architecture guide (v1 combinator approach)
-- [Ultrathink-Parser-Strategy.md](../Ultrathink-Parser-Strategy.md) - V2 parallel parser plan ⭐
-- [Week1-Complete.md](./Week1-Complete.md) - Current progress report ⭐
+- [Ultrathink-Parser-Strategy.md](../Ultrathink-Parser-Strategy.md) - V2 parallel parser plan (historical)
+- [v2-progress-update-9.md](../../v2-progress-update-9.md) - Latest progress report ⭐
 - [TEXT_ELEMENT_RULES.md](./TEXT_ELEMENT_RULES.md) - TextElem generation rules ⭐
+- [COMMENT_POSITIONING_AND_VALIDATION.md](../../COMMENT_POSITIONING_AND_VALIDATION.md) - Future: text → comment conversion ⭐
 
 ### Historical Documents (Obsolete but Informative)
 
@@ -338,9 +425,9 @@ ctx.addElem(elem)            // Add to open element's contents
 ### Understanding the Codebase
 
 1. **Start with test files** - They show expected behavior
-2. **Read Week1-Complete.md** - Current state and achievements
-3. **Check Ultrathink-Parser-Strategy.md** - Overall plan
-4. **Study TEXT_ELEMENT_RULES.md** - Critical for AST compatibility
+2. **Read v2-progress-update-9.md** - Latest progress and current issues
+3. **Study TEXT_ELEMENT_RULES.md** - Critical for AST compatibility
+4. **Check COMMENT_POSITIONING_AND_VALIDATION.md** - Future enhancement plans
 
 ### Making Changes
 
@@ -366,32 +453,33 @@ ctx.addElem(elem)            // Add to open element's contents
 
 ## Success Metrics
 
-### Week 1 Success Criteria ✅
+### Current Achievement ✅
 
 - [x] V2 parser compiles and runs
-- [x] Import parsing works
-- [x] Parity tests pass (16 tests)
-- [x] No test regressions (456 tests passing)
-- [x] Code committed and pushed
+- [x] All declaration parsing works (const, var, alias, struct, fn)
+- [x] LinkerV2: 100% passing (12/12)
+- [x] ScopeWESLV2: 100% passing (11/11)
+- [x] ImportCasesV2: 87.5%+ passing (35+/40)
+- [x] No regressions in V1 tests
 
-### Overall Project Success (Week 9)
+### Remaining Work (to 100%)
 
-- [ ] All 456+ tests passing with v2
-- [ ] All bulk tests passing (76 Unity shader tests)
-- [ ] Bundle size ~110KB (down from 140KB)
-- [ ] mini-parse dependency removed
-- [ ] Performance 2-3x faster
-- [ ] V1 code removed
+- [ ] Fix remaining 4-5 ImportCasesV2 edge cases
+- [ ] Validate all bulk tests (76 Unity shader tests)
+- [ ] Performance benchmarking (target: 2-3x faster)
+- [ ] Bundle size validation (target: ~110KB, down from 140KB)
+- [ ] Eventually: Remove mini-parse dependency and V1 code
 
 ## Getting Help
 
 If stuck or need context:
 
-1. Read the progress documents (Week{N}-Complete.md)
+1. Read the latest progress update (v2-progress-update-9.md)
 2. Check the parity tests for examples
 3. Study v1 grammar files to understand expected AST
 4. Look at Phase 2 custom parsers for patterns
 5. Consult TEXT_ELEMENT_RULES.md for contents array rules
+6. Review COMMENT_POSITIONING_AND_VALIDATION.md for future enhancements
 
 ## License
 
@@ -399,6 +487,7 @@ Dual-licensed under MIT or Apache-2.0 (see project root)
 
 ---
 
-**Last Updated**: 2025-11-12 (Week 1 Complete)
-**Next Milestone**: Week 2 - Const declarations
-**Status**: ✅ On track, proceeding with confidence
+**Last Updated**: 2025-11-13
+**Current Status**: V2 actively in use, 87.5%+ tests passing
+**Next Focus**: Fix remaining edge cases, reach 100% on ImportCasesV2
+**See**: [v2-progress-update-9.md](../../v2-progress-update-9.md) for latest details
