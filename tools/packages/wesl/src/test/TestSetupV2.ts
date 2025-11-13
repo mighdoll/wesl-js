@@ -1,11 +1,9 @@
-/**
- * Test setup for V2 parser
- * This file is loaded before tests run to configure the parser
- */
-
+import { enableTracing } from "mini-parse";
 import { weslParserConfig } from "../ParseWESL.ts";
 
-// Enable V2 parser
-weslParserConfig.useV2Parser = true;
+// enable parser tracing features
+enableTracing();
 
-console.log("[TestSetup] Using V2 parser");
+// Use V2 parser explicitly
+weslParserConfig.useV2Parser = true;
+console.log("[TestSetupV2] Using V2 parser");

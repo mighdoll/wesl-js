@@ -1,11 +1,9 @@
-/**
- * Test setup for V1 parser
- * This file is loaded before tests run to configure the parser
- */
-
+import { enableTracing } from "mini-parse";
 import { weslParserConfig } from "../ParseWESL.ts";
 
-// Ensure V1 parser is used
-weslParserConfig.useV2Parser = false;
+// enable parser tracing features
+enableTracing();
 
-console.log("[TestSetup] Using V1 parser");
+// Use V1 parser explicitly
+weslParserConfig.useV2Parser = false;
+console.log("[TestSetupV1] Using V1 parser");
