@@ -14,7 +14,10 @@ if (useV1Only) {
   config = {
     test: {
       setupFiles: "./src/test/TestSetupV1.ts",
+      include: ["src/test/**/*.test.ts"],
       exclude: [
+        "**/node_modules/**",
+        "**/dist/**",
         "**/ParserV2Parity.test.ts",
         "**/ImportCasesV2.test.ts",
         "**/LinkerV2.test.ts",
@@ -27,6 +30,8 @@ if (useV1Only) {
   config = {
     test: {
       setupFiles: "./src/test/TestSetupV2.ts",
+      include: ["src/test/**/*.test.ts"],
+      exclude: ["**/node_modules/**", "**/dist/**"],
     },
   };
 } else {
@@ -43,6 +48,7 @@ if (useV1Only) {
             name: "v1",
             setupFiles: ["./src/test/TestSetupV1.ts"],
             include: ["src/test/**/*.test.ts"],
+            exclude: ["**/node_modules/**", "**/dist/**"],
           },
         },
         {
@@ -51,7 +57,11 @@ if (useV1Only) {
             setupFiles: ["./src/test/TestSetupV2.ts"],
             include: ["src/test/**/*.test.ts"],
             // Exclude parity tests since they explicitly test both parsers
-            exclude: ["**/ParserV2Parity.test.ts"],
+            exclude: [
+              "**/node_modules/**",
+              "**/dist/**",
+              "**/ParserV2Parity.test.ts",
+            ],
           },
         },
       ],
