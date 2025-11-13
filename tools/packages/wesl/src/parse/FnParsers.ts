@@ -171,6 +171,10 @@ export function parseFnDecl(
   // Consume "fn" keyword
   stream.nextToken();
 
+  // Push a partial scope for the entire function (matches V1 behavior)
+  // This allows function body to see imports from parent scope
+  ctx.pushScope("partial");
+
   // Parse function name
   const nameToken = stream.nextToken();
   if (!nameToken || nameToken.kind !== "word") {
@@ -267,6 +271,9 @@ export function parseFnDecl(
   ctx.addElem(body); // Add body to contents
 
   // Pop the function parameter scope
+  ctx.popScope();
+
+  // Pop the partial scope for the function
   ctx.popScope();
 
   const endPos = checkpoint(stream);

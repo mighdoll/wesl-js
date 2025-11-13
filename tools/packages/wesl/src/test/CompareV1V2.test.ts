@@ -5,6 +5,7 @@ import { test } from "vitest";
 import { weslParserConfig } from "../ParseWESL.ts";
 import { parseSrcModule } from "../ParseWESL.ts";
 import type { SrcModule } from "../Scope.ts";
+import { scopeToStringLong } from "../debug/ScopeToString.ts";
 
 test("compare V1 vs V2 for import test case", async () => {
   // Use actual test case that fails in V2 but passes in V1
@@ -40,6 +41,12 @@ test("compare V1 vs V2 for import test case", async () => {
   // Parse with V2
   weslParserConfig.useV2Parser = true;
   const astV2 = parseSrcModule(srcModule);
+
+  console.log("\n=== V1 Scope Tree (scopeToStringLong) ===");
+  console.log(scopeToStringLong(astV1.rootScope));
+
+  console.log("\n=== V2 Scope Tree (scopeToStringLong) ===");
+  console.log(scopeToStringLong(astV2.rootScope));
 
   console.log("\n=== V1 Root Scope Contents ===");
   astV1.rootScope.contents.forEach((item, i) => {
@@ -100,4 +107,38 @@ test("compare V1 vs V2 for import test case", async () => {
   console.log("\n=== Summary ===");
   console.log(`V1 Root: ${v1Decls.length} DeclIdents, ${v1Refs.length} RefIdents, ${astV1.imports.length} imports`);
   console.log(`V2 Root: ${v2Decls.length} DeclIdents, ${v2Refs.length} RefIdents, ${astV2.imports.length} imports`);
+
+  // Find and compare the "foo" RefIdents
+  function findRefIdent(scope: any, name: string): any {
+    for (const item of scope.contents) {
+      if ("kind" in item && (item.kind === "scope" || item.kind === "partial")) {
+        const found = findRefIdent(item, name);
+        if (found) return found;
+      } else if ("originalName" in item && item.originalName === name && !("declElem" in item)) {
+        return item;
+      }
+    }
+    return null;
+  }
+
+  const v1Foo = findRefIdent(astV1.rootScope, "foo");
+  const v2Foo = findRefIdent(astV2.rootScope, "foo");
+
+  console.log("\n=== V1 'foo' RefIdent ===");
+  if (v1Foo) {
+    console.log("Keys:", Object.keys(v1Foo));
+    console.log("originalName:", v1Foo.originalName);
+    console.log("isGlobal:", v1Foo.isGlobal);
+    console.log("ast?.srcModule.modulePath:", v1Foo.ast?.srcModule.modulePath);
+    console.log("refIdentElem:", v1Foo.refIdentElem ? "exists" : "null/undefined");
+  }
+
+  console.log("\n=== V2 'foo' RefIdent ===");
+  if (v2Foo) {
+    console.log("Keys:", Object.keys(v2Foo));
+    console.log("originalName:", v2Foo.originalName);
+    console.log("isGlobal:", v2Foo.isGlobal);
+    console.log("ast?.srcModule.modulePath:", v2Foo.ast?.srcModule.modulePath);
+    console.log("refIdentElem:", v2Foo.refIdentElem ? "exists" : "null/undefined");
+  }
 });
