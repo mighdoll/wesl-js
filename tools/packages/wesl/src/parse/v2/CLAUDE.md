@@ -288,6 +288,35 @@ There is ongoing discussion about replacing TextElem nodes with CommentElem node
 
 ## Testing Strategy
 
+### Running Tests
+
+From the `tools/packages/wesl` directory, use these commands:
+
+```bash
+# Run V1 tests only (pristine, excludes all V2-specific tests)
+bb test:v1
+
+# Run V2 tests only (includes all V2-specific tests)
+bb test:v2
+
+# Run both V1 and V2 in parallel (dual parser mode)
+bb test
+```
+
+**Test Counts**:
+- `bb test:v1`: ~411 tests (matches main branch exactly, includes BulkTests)
+- `bb test:v2`: ~551 tests (includes V2-specific tests + BulkTests)
+- `bb test`: ~962 tests total (runs most tests twice, once with each parser)
+
+**V2-Specific Tests** (excluded from V1 mode):
+- ParserV2Parity.test.ts - AST structure comparison
+- ImportCasesV2.test.ts - V2 import validation
+- LinkerV2.test.ts - V2 linker validation
+- ScopeWESLV2.test.ts - V2 scope validation
+- CompareV1V2.test.ts - Debug comparison tool
+- DebugImportBinding.test.ts - Debug investigation tool
+- ParseContext.test.ts - V2 infrastructure tests
+
 ### V1 Tests with useV2Parser (Primary Validation)
 
 The **primary validation strategy** is to run existing V1 tests using the V2 parser. These tests validate the end-to-end pipeline (parse → bind → emit) and ensure V2 produces correct WGSL output:
@@ -431,10 +460,12 @@ V2 development has progressed well beyond initial milestones. Current work focus
 
 ### Making Changes
 
-1. **Always run parity tests** - They catch AST divergence immediately
-2. **Use openElem/closeElem** - Unless it's FnElem (see TEXT_ELEMENT_RULES.md)
-3. **Follow commit point pattern** - Return null before commit, throw after
-4. **Add tests for each construct** - Parity test + position verification + stress test
+1. **Run V2 tests frequently** - Use `bb test:v2` to validate V2 changes
+2. **Always run parity tests** - They catch AST divergence immediately (`bb test ParserV2Parity`)
+3. **Use openElem/closeElem** - Unless it's FnElem (see TEXT_ELEMENT_RULES.md)
+4. **Follow commit point pattern** - Return null before commit, throw after
+5. **Add tests for each construct** - Parity test + position verification + stress test
+6. **Keep V1 pristine** - V1 tests (`bb test:v1`) should always match main branch
 
 ### Debugging Parity Failures
 
@@ -474,12 +505,13 @@ V2 development has progressed well beyond initial milestones. Current work focus
 
 If stuck or need context:
 
-1. Read the latest progress update (v2-progress-update-9.md)
-2. Check the parity tests for examples
-3. Study v1 grammar files to understand expected AST
-4. Look at Phase 2 custom parsers for patterns
-5. Consult TEXT_ELEMENT_RULES.md for contents array rules
-6. Review COMMENT_POSITIONING_AND_VALIDATION.md for future enhancements
+1. **Run tests to understand current state** - `bb test:v2` shows what's working
+2. Read the latest progress update (v2-progress-update-9.md)
+3. Check the parity tests for examples (`bb test ParserV2Parity`)
+4. Study v1 grammar files to understand expected AST
+5. Look at Phase 2 custom parsers for patterns
+6. Consult TEXT_ELEMENT_RULES.md for contents array rules
+7. Review COMMENT_POSITIONING_AND_VALIDATION.md for future enhancements
 
 ## License
 
