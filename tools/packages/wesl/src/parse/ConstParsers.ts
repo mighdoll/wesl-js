@@ -478,7 +478,8 @@ export function parseAliasDecl(
     throw new Error("Expected type after '=' in alias declaration");
   }
 
-  // typeRef will add itself to contents via its own open/close
+  // Add typeRef to contents so coverWithText doesn't duplicate its range
+  ctx.addElem(typeRef);
 
   // Save the type reference scope as the dependentScope for binding
   // This allows binding to recursively process references in the alias
@@ -558,7 +559,8 @@ function parseStructMember(
     throw new Error("Expected type after ':' in struct member");
   }
 
-  // typeRef adds itself to contents via its own open/close
+  // Add typeRef to contents so coverWithText doesn't duplicate its range
+  ctx.addElem(typeRef);
 
   const endPos = checkpoint(stream);
 
