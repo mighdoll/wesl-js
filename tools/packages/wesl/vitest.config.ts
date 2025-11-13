@@ -22,6 +22,9 @@ if (useV1Only) {
         "**/ImportCasesV2.test.ts",
         "**/LinkerV2.test.ts",
         "**/ScopeWESLV2.test.ts",
+        "**/CompareV1V2.test.ts",
+        "**/DebugImportBinding.test.ts",
+        "**/ParseContext.test.ts",
       ],
     },
   };
@@ -48,7 +51,17 @@ if (useV1Only) {
             name: "v1",
             setupFiles: ["./src/test/TestSetupV1.ts"],
             include: ["src/test/**/*.test.ts"],
-            exclude: ["**/node_modules/**", "**/dist/**"],
+            exclude: [
+              "**/node_modules/**",
+              "**/dist/**",
+              "**/ParserV2Parity.test.ts",
+              "**/ImportCasesV2.test.ts",
+              "**/LinkerV2.test.ts",
+              "**/ScopeWESLV2.test.ts",
+              "**/CompareV1V2.test.ts",
+              "**/DebugImportBinding.test.ts",
+              "**/ParseContext.test.ts",
+            ],
           },
         },
         {
