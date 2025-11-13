@@ -469,10 +469,8 @@ export function parseAliasDecl(
   // Expect "="
   expect(stream, "=", "Expected '=' after alias name");
 
-  // Push a scope for the type reference (matches V1's scopeCollect pattern)
-  ctx.pushScope();
-
   // Parse the type reference
+  // parseSimpleTypeRef creates its own scope for the type ref, which matches V1's scopeCollect behavior
   const typeRef = parseSimpleTypeRef(stream, ctx);
   if (!typeRef) {
     throw new Error("Expected type after '=' in alias declaration");
@@ -481,13 +479,14 @@ export function parseAliasDecl(
   // Add typeRef to contents so coverWithText doesn't duplicate its range
   ctx.addElem(typeRef);
 
-  // Save the type reference scope as the dependentScope for binding
-  // This allows binding to recursively process references in the alias
-  const aliasScope = ctx.currentScope();
-  declIdent.dependentScope = aliasScope;
-
-  // Pop the type reference scope
-  ctx.popScope();
+  // The scope created by parseSimpleTypeRef is now in the current scope's contents
+  // Find it and assign as the dependentScope for binding
+  const currentScope = ctx.currentScope();
+  const typeRefScope = currentScope.contents.findLast(c => c.kind === "scope");
+  if (!typeRefScope || typeRefScope.kind !== "scope") {
+    throw new Error("Expected scope for type reference in alias");
+  }
+  declIdent.dependentScope = typeRefScope;
 
   // Expect ";"
   expect(stream, ";", "Expected ';' after alias declaration");

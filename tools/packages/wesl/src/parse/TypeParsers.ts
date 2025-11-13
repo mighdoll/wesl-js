@@ -168,10 +168,8 @@ export function parseSimpleTypeRef(
   const nameStartPos = firstToken.span[0];
   const refIdent = ctx.createRefIdent(fullName, [nameStartPos, nameEndPos]);
 
-  // Mark built-in WGSL types as standard (std) to avoid binding resolution
-  if (isBuiltInType(fullName)) {
-    refIdent.std = true;
-  }
+  // NOTE: Don't mark types as std during parsing - binding will handle it
+  // This allows user-defined aliases to shadow built-in types (e.g., alias f32 = MyStruct;)
 
   // Open element to collect contents
   openElem(ctx, { kind: "type", contents: [] });
