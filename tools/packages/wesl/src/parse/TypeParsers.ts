@@ -176,6 +176,10 @@ export function parseSimpleTypeRef(
   // Open element to collect contents
   openElem(ctx, { kind: "type", contents: [] });
 
+  // Push a scope for the type reference (matching V1 behavior)
+  // This creates a subscope where the RefIdent is saved
+  ctx.pushScope();
+
   // Create RefIdentElem for the type name
   const refIdentElem: RefIdentElem = {
     kind: "ref",
@@ -241,6 +245,9 @@ export function parseSimpleTypeRef(
   }
 
   const endPos = checkpoint(stream);
+
+  // Pop the type reference scope
+  ctx.popScope();
 
   // Close and fill with text
   const contents = closeElem(ctx, startPos, endPos);
