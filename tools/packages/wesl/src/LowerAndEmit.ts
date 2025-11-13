@@ -110,6 +110,7 @@ export function lowerAndEmitElem(e: AbstractElem, ctx: EmitContext): void {
     case "alias":
     case "gvar":
       emitRootElemNl(ctx);
+      emitAttributes(e.attributes, ctx);
       emitContents(e, ctx);
       return;
 
@@ -326,7 +327,8 @@ function emitAttribute(e: AttributeElem, ctx: EmitContext): void {
         params[0].start,
       );
       for (let i = 0; i < params.length; i++) {
-        emitContents(params[i], ctx);
+        // Copy parameter from source (don't use emitContents as V2 params may have empty contents)
+        ctx.srcBuilder.addCopy(params[i].start, params[i].end);
         if (i < params.length - 1) {
           ctx.srcBuilder.add(",", params[i].end, params[i + 1].start);
         }

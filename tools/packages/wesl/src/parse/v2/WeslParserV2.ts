@@ -155,21 +155,34 @@ export class WeslParserV2 {
     ];
 
     // Keep parsing declarations until we can't parse any more
-    outer: while (true) {
+    while (true) {
       // Skip whitespace and check if we're at end of input
       const token = stream.peek();
       if (!token) break;
 
       // Try to parse attributes before the declaration
+      // Save position before attributes so we can pass it to the parser
+      const beforeAttributes = stream.checkpoint();
       const attributes = parseAttributeList(stream);
 
       // Try each parser until one succeeds
+      let parsed = false;
       for (const parser of parsers) {
         const elem = parser(stream, this.ctx, attributes.length > 0 ? attributes : undefined);
         if (elem) {
+          // If we parsed attributes, we need to adjust the element's start position
+          // to include the attributes, so coverWithText doesn't create duplicate TextElems
+          if (attributes.length > 0 && elem.start > beforeAttributes) {
+            elem.start = beforeAttributes;
+          }
           this.ctx.addElem(elem);
-          continue outer;
+          parsed = true;
+          break;
         }
+      }
+
+      if (parsed) {
+        continue;
       }
 
       // If we parsed attributes but no declaration followed, that's an error
