@@ -110,7 +110,12 @@ export function lowerAndEmitElem(e: AbstractElem, ctx: EmitContext): void {
     case "alias":
     case "gvar":
       emitRootElemNl(ctx);
-      emitAttributes(e.attributes, ctx);
+      // V2: attributes not in contents, emit separately
+      // V1: attributes in contents as TextElems, skip separate emission
+      const attrsInContents = e.contents.length > 0 && e.contents[0].kind === "attribute";
+      if (!attrsInContents) {
+        emitAttributes(e.attributes, ctx);
+      }
       emitContents(e, ctx);
       return;
 
@@ -166,6 +171,12 @@ export function emitFn(e: FnElem, ctx: EmitContext): void {
   builder.appendNext("(");
   const validParams = filterValidElements(params, conditions);
   validParams.forEach((p, i) => {
+    // V2: attributes not in contents, emit separately
+    // V1: attributes in contents as TextElems, skip separate emission
+    const attrsInContents = p.contents.length > 0 && p.contents[0].kind === "attribute";
+    if (!attrsInContents) {
+      emitAttributes(p.attributes, ctx);
+    }
     emitContentsNoWs(p as ContainerElem, ctx);
     if (i < validParams.length - 1) {
       builder.appendNext(", ");
@@ -188,8 +199,10 @@ function emitAttributes(
   ctx: EmitContext,
 ): void {
   attributes?.forEach(a => {
-    emitAttribute(a, ctx);
-    ctx.srcBuilder.add(" ", a.start, a.end);
+    const emitted = emitAttribute(a, ctx);
+    if (emitted) {
+      ctx.srcBuilder.add(" ", a.start, a.end);
+    }
   });
 }
 
@@ -312,7 +325,7 @@ function emitExpression(e: ExpressionElem, ctx: EmitContext): void {
   }
 }
 
-function emitAttribute(e: AttributeElem, ctx: EmitContext): void {
+function emitAttribute(e: AttributeElem, ctx: EmitContext): boolean {
   const { kind } = e.attribute;
   // LATER emit more precise source map info by making use of all the spans
   // Like the first case does
@@ -335,12 +348,14 @@ function emitAttribute(e: AttributeElem, ctx: EmitContext): void {
       }
       ctx.srcBuilder.add(")", params[params.length - 1].end, e.end);
     }
+    return true;
   } else if (kind === "@builtin") {
     ctx.srcBuilder.add(
       "@builtin(" + e.attribute.param.name + ")",
       e.start,
       e.end,
     );
+    return true;
   } else if (kind === "@diagnostic") {
     ctx.srcBuilder.add(
       "@diagnostic" +
@@ -348,18 +363,23 @@ function emitAttribute(e: AttributeElem, ctx: EmitContext): void {
       e.start,
       e.end,
     );
+    return true;
   } else if (kind === "@if") {
     // (@if is wesl only, dropped from wgsl)
+    return false;
   } else if (kind === "@interpolate") {
     ctx.srcBuilder.add(
       `@interpolate(${e.attribute.params.map(v => v.name).join(", ")})`,
       e.start,
       e.end,
     );
+    return true;
   } else if (kind === "@elif") {
     // @elif is wesl only, dropped from wgsl
+    return false;
   } else if (kind === "@else") {
     // @else is wesl only, dropped from wgsl
+    return false;
   } else {
     assertUnreachable(kind);
   }

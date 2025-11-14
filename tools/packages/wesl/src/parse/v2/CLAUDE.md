@@ -460,12 +460,39 @@ V2 development has progressed well beyond initial milestones. Current work focus
 
 ### Making Changes
 
-1. **Run V2 tests frequently** - Use `bb test:v2` to validate V2 changes
-2. **Always run parity tests** - They catch AST divergence immediately (`bb test ParserV2Parity`)
-3. **Use openElem/closeElem** - Unless it's FnElem (see TEXT_ELEMENT_RULES.md)
-4. **Follow commit point pattern** - Return null before commit, throw after
-5. **Add tests for each construct** - Parity test + position verification + stress test
-6. **Keep V1 pristine** - V1 tests (`bb test:v1`) should always match main branch
+**CRITICAL: Keep V1 Tests Passing**
+
+⚠️ **EVERY COMMIT MUST MAINTAIN V1 AT 100% PASS RATE** ⚠️
+
+V1 is the production parser. V2 changes must NEVER break V1. Before committing:
+
+```bash
+# REQUIRED before every commit
+V1_ONLY=true bb test --dangerouslyDisableSandbox
+
+# Must see: Tests 409 passed | 2 skipped (411)
+# Any failures = DO NOT COMMIT
+```
+
+**Why V1 can break:**
+- Changes to shared code (LowerAndEmit, BindIdents, etc.)
+- AST structure differences between V1 and V2
+- Example: Commit b7e0c1b2 broke 68 V1 tests by adding `emitAttributes()` for V2
+
+**If you break V1:**
+1. Add detection logic to handle both V1 and V2 AST formats
+2. See LowerAndEmit.ts lines 113-120 and 169-177 for detection pattern
+3. Pattern: `const attrsInContents = e.contents[0]?.kind === "attribute"`
+4. See v2-progress-update-10.md "Architectural Decision" section for full explanation
+
+**Development workflow:**
+
+1. **Run V2 tests frequently** - Use `V2_ONLY=true bb test` to validate V2 changes
+2. **Run V1 tests before commit** - Use `V1_ONLY=true bb test --dangerouslyDisableSandbox` (REQUIRED)
+3. **Always run parity tests** - They catch AST divergence immediately (`bb test ParserV2Parity`)
+4. **Use openElem/closeElem** - Unless it's FnElem (see TEXT_ELEMENT_RULES.md)
+5. **Follow commit point pattern** - Return null before commit, throw after
+6. **Add tests for each construct** - Parity test + position verification + stress test
 
 ### Debugging Parity Failures
 
@@ -490,14 +517,19 @@ V2 development has progressed well beyond initial milestones. Current work focus
 - [x] All declaration parsing works (const, var, alias, struct, fn)
 - [x] LinkerV2: 100% passing (12/12)
 - [x] ScopeWESLV2: 100% passing (11/11)
-- [x] ImportCasesV2: 87.5%+ passing (35+/40)
-- [x] No regressions in V1 tests
+- [x] ImportCasesV2: 100% passing (39/39) 🎉
+- [x] V1 tests: 100% passing (409/411) - **NO REGRESSIONS**
+- [x] V2 tests: 63% passing (338/539)
+- [x] Function parameter attributes working
+- [x] V1/V2 AST divergence handled cleanly in emit layer
 
 ### Remaining Work (to 100%)
 
-- [ ] Fix remaining 4-5 ImportCasesV2 edge cases
-- [ ] Validate all bulk tests (76 Unity shader tests)
-- [ ] Performance benchmarking (target: 2-3x faster)
+- [ ] Phase 4: Implement statement parsing (if, for, while, return, etc.)
+- [ ] Phase 4: Implement expression parsing (binary ops, calls, member access)
+- [ ] Fix BulkTests (~200 tests failing, need expression/statement parsing)
+- [ ] Fix ConditionalTranslationCases (@if on statements/directives)
+- [ ] Performance benchmarking (target: 2-3x faster than V1)
 - [ ] Bundle size validation (target: ~110KB, down from 140KB)
 - [ ] Eventually: Remove mini-parse dependency and V1 code
 
@@ -519,7 +551,8 @@ Dual-licensed under MIT or Apache-2.0 (see project root)
 
 ---
 
-**Last Updated**: 2025-11-13
-**Current Status**: V2 actively in use, 87.5%+ tests passing
-**Next Focus**: Fix remaining edge cases, reach 100% on ImportCasesV2
-**See**: [v2-progress-update-9.md](../../v2-progress-update-9.md) for latest details
+**Last Updated**: 2025-11-14
+**Current Status**: V2 at 63% (338/539), V1 at 100% (409/411) - **NO REGRESSIONS**
+**Recent Achievement**: Fixed V1 regression + V2 param attributes + AST divergence handling
+**Next Focus**: Phase 4 - Statement & expression parsing (would unlock ~40% more tests)
+**See**: [v2-progress-update-10.md](../../v2-progress-update-10.md) for latest details

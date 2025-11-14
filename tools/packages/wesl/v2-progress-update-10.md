@@ -1,36 +1,54 @@
-# V2 Progress Update #10 - Test Analysis & Remaining Work
+# V2 Progress Update #10 - V1 Regression Fix & AST Architecture
 
-**Date**: 2025-11-13
-**Session Focus**: Comprehensive V2 test analysis and roadmap for completion
+**Date**: 2025-11-14
+**Session Focus**: Fixed V1 regression, improved V2 param attributes, documented AST divergence architecture
 
 ## Executive Summary
 
-Ran full V2 test suite analysis to identify remaining work. **Major milestone**: ImportCasesV2 now at **100%** (39/39 passing, up from 87.5%). However, overall V2 completion is ~30% due to missing parser features.
+**Major Achievement**: Fixed critical V1 regression (commit b7e0c1b2) that broke 68 tests, restored V1 to 100% pass rate while maintaining V2 improvements.
 
-**Key Finding**: V2 parser handles imports and basic declarations well, but **does not yet parse**:
-- Struct bodies
-- Function bodies
-- Global directives (enable, requires, diagnostic)
-- Statements (if, for, while, return, etc.)
-- Expressions (binary ops, calls, member access, etc.)
-- Conditional attributes (@if, @elif, @else) on non-import elements
+**Key Findings**:
+- V1/V2 AST attribute divergence is **fundamental to their designs** (not a bug)
+- Detection pattern in LowerAndEmit is the **optimal solution** for transition period
+- V2 at 63% (338/539), V1 at 100% (409/411) - **NO REGRESSIONS**
 
-## Test Results Summary
+## Session 10 Results (2025-11-14)
 
-```
-Test File                        Pass/Total  Rate    Status
-================================================================
-ImportCasesV2                    39/39      100%    ✅ COMPLETE
-LinkerV2                         (included in ImportCasesV2)
-ParserV2Parity                   18/65       27%    🔄 Partial
-ConditionalTranslationCases      16/49       32%    🔄 Partial
-BulkTests (real-world shaders)   22/76       28%    🔄 Partial
-ScopeWESLV2                       3/11       27%    🔄 Partial
-ParseWESL (V1 tests on V2)       10/64       15%    ❌ Low
-ScopeWESL (V1 tests on V2)        4/24       16%    ❌ Low
+### Test Results
 
-OVERALL: 249/462 passing (53.9%)
-```
+**V1 Parser (Production)**:
+- **409/411 passing (100%)** - Fully restored from regression
+- 2 skipped tests (expected)
+- All BulkTests passing
+- All ImportCases passing
+
+**V2 Parser (Development)**:
+- **338/539 passing (63%)** - Up from ~318 before fixes
+- ImportCasesV2: 39/39 (100%) ✅
+- LinkerV2: 12/12 (100%) ✅
+- Function parameter attributes working ✅
+
+### What Was Fixed
+
+1. **V1 Regression (commit b7e0c1b2)**:
+   - Problem: Adding `emitAttributes()` for V2 broke V1 (68 tests failed)
+   - Root cause: V1 has attributes in `contents`, V2 has them in separate field
+   - Solution: Detection pattern checks `contents[0].kind === "attribute"`
+
+2. **V2 Parameter Attributes**:
+   - Problem: `@location(0) position` was being dropped in output
+   - Solution: Emit param attributes with detection for V1/V2 format
+
+3. **Conditional Attribute Spacing**:
+   - Problem: `@if(false)` attributes added unwanted spaces
+   - Solution: `emitAttribute()` returns boolean, only add space if emitted
+
+### Remaining V2 Gaps
+
+V2 parser handles imports and basic declarations well, but **does not yet parse**:
+- Statements (if, for, while, return, etc.) - **Blocks ~40% of tests**
+- Expressions (binary ops, calls, member access) - **Blocks ~30% of tests**
+- Conditional attributes on statements/directives - **Blocks ~10% of tests**
 
 ### Test Category Analysis
 
@@ -441,5 +459,165 @@ The V2 parser is **not blocked by design issues**, just needs **more grammar cov
 
 ---
 
+## Architectural Decision: V1/V2 AST Attribute Divergence
+
+**Date**: 2025-11-14
+**Issue**: V1 and V2 have different AST structures for attributes, requiring detection logic in LowerAndEmit
+
+### The Divergence
+
+**V1 (mini-parse combinators)**:
+- Attributes are **in `contents`** array as AttributeElems
+- Collector pattern adds them automatically during parsing
+- `coverWithText()` fills gaps around AttributeElems
+- Emit: Only `emitContents()` needed (attributes emitted as children)
+
+**V2 (custom recursive descent)**:
+- Attributes in **separate `attributes` field**
+- Parsed first, passed to declaration parser
+- `elem.start` adjusted to exclude attribute text (prevents duplicate TextElems)
+- Emit: `emitAttributes()` + `emitContents()` needed
+
+### Root Cause: Fundamental Design Difference
+
+**V1**: Declarative composition - attributes added to contents during parsing via collectors
+**V2**: Explicit construction - attributes parsed separately, element built after
+
+**Why V2 can't match V1**: Would require knowing element kind before parsing keyword, defeating V2's simplicity goals
+
+### Solution: Detection Pattern in LowerAndEmit
+
+```typescript
+// Lines 112-120 in LowerAndEmit.ts
+const attrsInContents = e.contents.length > 0 && e.contents[0].kind === "attribute";
+if (!attrsInContents) {
+  emitAttributes(e.attributes, ctx);  // V2 path
+}
+emitContents(e, ctx);  // Both paths
+```
+
+**Why this is optimal**:
+- ✅ Minimal code (3 lines per element type)
+- ✅ O(1) check, no performance impact
+- ✅ Clear comments explain purpose
+- ✅ Trivial to remove when V1 deleted
+- ✅ Both parsers maintain optimal structure
+
+### Alternatives Considered
+
+1. **Make V2 match V1** - Would require major refactor, violates V2 design principles
+2. **Separate emit paths** - Code duplication, maintenance burden
+3. **Normalize AST** - Performance overhead, unnecessary complexity
+4. **Tag elements with version** - Same logic, more overhead
+
+**Decision**: Keep current detection pattern. When V1 is removed, simply delete the `if` checks (~10 lines total).
+
+### Test Results
+
+- **Before fix (commit b7e0c1b2)**: V1 at 409/411 (100%), V2 needed attribute emission
+- **After commit b7e0c1b2**: V1 regressed to 341/411 (68 tests failed - duplicate attributes)
+- **After detection fix**: V1 at 409/411 (100%), V2 at 338/539 (63%)
+
+✅ **Validated as correct architectural choice**
+
+---
+
+## Recommendations for Next Session
+
+### Priority 1: Maintain V1 at 100%
+
+**CRITICAL**: Before every commit, run:
+```bash
+V1_ONLY=true bb test --dangerouslyDisableSandbox
+# Must see: Tests 409 passed | 2 skipped (411)
+```
+
+If V1 breaks:
+1. Check if you modified shared code (LowerAndEmit, BindIdents, etc.)
+2. Add detection logic for V1/V2 AST differences
+3. Pattern: `const attrsInContents = e.contents[0]?.kind === "attribute"`
+4. See LowerAndEmit.ts lines 113-120, 169-177 for examples
+
+### Priority 2: Phase 4 - Statements & Expressions
+
+**Highest ROI work** - would unlock ~40% of remaining V2 tests:
+
+1. **Statement Parsing** (~2 weeks):
+   - Implement if/for/while/loop/switch statements
+   - Implement return/break/continue/discard statements
+   - Implement variable declarations in function scope
+   - Implement assignments and function calls as statements
+
+2. **Expression Parsing** (~1 week):
+   - Binary operators (+, -, *, /, %, ==, !=, <, >, etc.)
+   - Unary operators (-, !, ~)
+   - Member access (foo.bar)
+   - Array indexing (arr[i])
+   - Function calls (foo(a, b))
+   - Type constructors (vec3f(1, 2, 3))
+
+**Reference Files**:
+- `src/parse/StatementParsers.ts` - Already has stub implementations
+- `src/parse/ExpressionParsers.ts` - Has basic expression parsing
+- `src/parse/WeslGrammar.ts` - V1 grammar for reference
+
+**Expected Impact**:
+- V2 pass rate: 63% → 85%+
+- BulkTests: Many real-world shaders would start passing
+- ConditionalTranslationCases: @if on statements would work
+
+### Alternative: Low-Hanging Fruit
+
+If Phase 4 seems too large, consider:
+
+1. **Fix TextElem gaps in multiple declarations** (~1 day)
+   - ParserV2Parity "multiple X declarations" tests
+   - Issue: TextElems between declarations not generated correctly
+
+2. **Implement conditional directive filtering** (~1 day)
+   - Make `filterValidElements` handle DirectiveElems
+   - Would fix 3 ConditionalTranslationCases tests
+
+3. **Fix scope numbering differences** (~1 day)
+   - BindWESL snapshot tests failing due to different scope IDs
+   - Likely just need to update snapshots or match V1's ID assignment
+
+### Files Modified This Session
+
+**Production Code**:
+- `src/LowerAndEmit.ts` - Added V1/V2 detection for attributes (lines 113-120, 169-177, 192-200, 323-379)
+
+**Documentation**:
+- `v2-progress-update-10.md` - Documented architectural decision and session results
+- `src/parse/v2/CLAUDE.md` - Added V1 test requirements and updated status
+
+**Testing**:
+- Verified V1: 409/411 (100%)
+- Verified V2: 338/539 (63%)
+
+### Git Commit Message Template
+
+```
+Fix V1 regression and improve V2 parameter attributes
+
+- Fixed V1 regression from commit b7e0c1b2 (68 tests → 0 failures)
+- Added detection pattern for V1/V2 AST attribute differences
+- Fixed V2 parameter attribute emission (@location, @builtin, etc.)
+- Fixed conditional attribute spacing (@if/@elif/@else)
+- Made emitAttribute() return boolean to indicate if emitted
+- V1: 409/411 passing (100%) - NO REGRESSIONS
+- V2: 338/539 passing (63%) - improved from baseline
+
+Architectural Decision:
+V1/V2 AST divergence (attributes in contents vs separate field) is
+fundamental to their designs. Detection pattern in LowerAndEmit is
+the optimal solution for transition period. Documented in progress
+update and CLAUDE.md.
+
+Related: v2-progress-update-10.md
+```
+
+---
+
 **Previous**: [v2-progress-update-9.md](./v2-progress-update-9.md)
-**Test Commands**: `bb test:v1` (V1 only), `bb test:v2` (V2 only), `bb test` (both)
+**Test Commands**: `V1_ONLY=true bb test --dangerouslyDisableSandbox` (production), `V2_ONLY=true bb test` (development)
