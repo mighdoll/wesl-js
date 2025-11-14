@@ -27,3 +27,9 @@ GEMINI.md
 agent-*.md
 .agent
 package-lock.json
+
+# test output files
+test-output*.txt
+
+# package-level lock files (root pnpm-lock.yaml is kept)
+tools/packages/*/pnpm-lock.yaml
