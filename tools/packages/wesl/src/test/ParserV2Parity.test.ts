@@ -41,12 +41,14 @@ function testParity(src: string, _description?: string) {
   resetScopeIds();
   const astV2 = parseWeslV2(srcModule);
 
-  // Filter out TextElem nodes from v1 - these are whitespace/comments
-  // V2 parser doesn't create TextElem nodes (yet), so we compare semantic elements only
+  // Filter out TextElem nodes from both parsers - these are whitespace/comments
+  // Both V1 and V2 create TextElems, so we compare semantic elements only
   const v1SemanticElems = astV1.moduleElem.contents.filter(
     elem => elem.kind !== "text",
   );
-  const v2SemanticElems = astV2.moduleElem.contents;
+  const v2SemanticElems = astV2.moduleElem.contents.filter(
+    elem => elem.kind !== "text",
+  );
 
   // Compare the ASTs
   // Note: We compare semantic elements only (filtering out TextElem from v1)
