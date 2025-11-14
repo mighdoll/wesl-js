@@ -12,7 +12,6 @@ const useV2Only = process.env.V2_ONLY === "true";
 const v2OnlyTests = [
   "**/ParserV2Parity.test.ts",
   "**/ImportCasesV2.test.ts",
-  "**/LinkerV2.test.ts",
   "**/ScopeWESLV2.test.ts",
   "**/CompareV1V2.test.ts",
   "**/DebugImportBinding.test.ts",
