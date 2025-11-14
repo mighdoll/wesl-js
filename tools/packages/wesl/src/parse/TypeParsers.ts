@@ -112,7 +112,7 @@ export function parseSimpleTypeRef(
   stream: WeslStream,
   ctx: ParseContext,
 ): TypeRefElem | null {
-  const startPos = checkpoint(stream);
+  const checkpointPos = checkpoint(stream);
 
   // Parse the type name (may be qualified: pkg::Type)
   // Qualified names are separated by "::"
@@ -121,7 +121,7 @@ export function parseSimpleTypeRef(
   // First part must be a word (or special keywords like "package", "super")
   const firstToken = stream.peek();
   if (!firstToken) {
-    reset(stream, startPos);
+    reset(stream, checkpointPos);
     return null;
   }
 
@@ -132,7 +132,7 @@ export function parseSimpleTypeRef(
     stream.nextToken();
     nameParts.push(firstToken.text);
   } else {
-    reset(stream, startPos);
+    reset(stream, checkpointPos);
     return null;
   }
 
@@ -164,8 +164,9 @@ export function parseSimpleTypeRef(
   // Create RefIdent with the full qualified name
   // The span should cover from the first token to current position
   const nameEndPos = checkpoint(stream);
-  // Use firstToken's start position for accurate span (not startPos which may include leading whitespace)
-  const nameStartPos = firstToken.span[0];
+  // Use firstToken's start position for accurate span (not checkpoint which may include leading whitespace)
+  const startPos = firstToken.span[0];
+  const nameStartPos = startPos;
   const refIdent = ctx.createRefIdent(fullName, [nameStartPos, nameEndPos]);
 
   // NOTE: Don't mark types as std during parsing - binding will handle it

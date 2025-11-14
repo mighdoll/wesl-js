@@ -9,6 +9,7 @@ import type {
   DeclIdentElem,
   FnElem,
   FnParamElem,
+  GrammarElem,
   StatementElem,
   TypedDeclElem,
   TypeRefElem,
@@ -200,11 +201,8 @@ export function parseFnDecl(
   // Save the identifier in the current scope
   ctx.saveIdent(declIdent);
 
-  // Open function element to collect contents with proper text generation
-  openElem(ctx, { kind: "fn", contents: [] });
-
-  // Add the decl to contents
-  ctx.addElem(declIdentElem);
+  // NOTE: FnElem does NOT use openElem/closeElem - build contents manually
+  // See TEXT_ELEMENT_RULES.md: contents = [decl, ...params, returnType?, body]
 
   // Expect "("
   expect(stream, "(", "Expected '(' after function name");
@@ -229,7 +227,6 @@ export function parseFnDecl(
     }
 
     params.push(param);
-    ctx.addElem(param); // Add param to function contents
 
     // Check for comma separator
     const hasComma = consume(stream, ",");
@@ -259,7 +256,6 @@ export function parseFnDecl(
     }
 
     returnType = parsedReturnType;
-    ctx.addElem(returnType); // Add return type to contents
   }
 
   // Parse function body
@@ -267,8 +263,6 @@ export function parseFnDecl(
   if (!body) {
     throw new Error("Expected function body");
   }
-
-  ctx.addElem(body); // Add body to contents
 
   // Save the parameter scope as the dependentScope for binding
   // This allows binding to recursively process references inside the function body
@@ -283,8 +277,10 @@ export function parseFnDecl(
 
   const endPos = checkpoint(stream);
 
-  // Close function element and fill with text
-  const contents = closeElem(ctx, startPos, endPos);
+  // Build contents manually (no text coverage for FnElem)
+  const contents: GrammarElem[] = [declIdentElem, ...params];
+  if (returnType) contents.push(returnType);
+  contents.push(body);
 
   // Create FnElem
   const fnElem: FnElem = {
