@@ -89,19 +89,30 @@ export function lowerAndEmitElem(e: AbstractElem, ctx: EmitContext): void {
 
     // container elements just emit their child elements
     case "param":
-    case "var":
     case "typeDecl":
-    case "let":
     case "module":
     case "member":
     case "memberRef":
     case "expression":
     case "type":
-    case "statement":
     case "stuff":
     case "switch-clause":
       emitContents(e, ctx);
       return;
+
+    // var, let, statement can have @if/@elif/@else attributes
+    // V2: attributes not in contents, emit separately
+    // V1: attributes in contents as TextElems, skip separate emission
+    case "var":
+    case "let":
+    case "statement": {
+      const attrsInContents = e.contents.length > 0 && e.contents[0].kind === "attribute";
+      if (!attrsInContents) {
+        emitAttributes(e.attributes, ctx);
+      }
+      emitContents(e, ctx);
+      return;
+    }
 
     // root level container elements get some extra newlines to make the output prettier
     case "override":
@@ -151,7 +162,24 @@ function emitRootElemNl(ctx: EmitContext): void {
 }
 
 export function emitText(e: TextElem, ctx: EmitContext): void {
-  ctx.srcBuilder.addCopy(e.start, e.end);
+  // V2: Check if this text element contains conditional attributes that should be filtered
+  // This happens when text between parent start and child element contains @if/@elif/@else
+  // but the child element with that attribute was filtered out
+  const text = e.srcModule.src.slice(e.start, e.end);
+  const conditionalMatch = text.match(/@(if|elif|else)\s*\([^)]*\)/);
+
+  if (conditionalMatch) {
+    // Emit text before the conditional
+    const beforeMatch = text.substring(0, conditionalMatch.index!);
+    if (beforeMatch) {
+      ctx.srcBuilder.add(beforeMatch, e.start, e.start + beforeMatch.length);
+    }
+    // Skip the conditional attribute part
+    // Note: text after the conditional is typically whitespace and will be part of next element
+  } else {
+    // No conditional, emit normally
+    ctx.srcBuilder.addCopy(e.start, e.end);
+  }
 }
 
 export function emitName(e: NameElem, ctx: EmitContext): void {
