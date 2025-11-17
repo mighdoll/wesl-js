@@ -1,12 +1,12 @@
-import { parseSrcModule, weslParserConfig } from './src/ParseWESL.ts';
-import { astToString } from './src/debug/ASTtoString.ts';
+import { astToString } from "./src/debug/ASTtoString.ts";
+import { parseSrcModule, weslParserConfig } from "./src/ParseWESL.ts";
 
 weslParserConfig.useV2Parser = false;
 
 // Test various comment positions
 const examples = [
   {
-    name: 'Module-level comments',
+    name: "Module-level comments",
     src: `
 // File header
 // Multi-line comment
@@ -21,10 +21,10 @@ fn foo() {
   // Inside body
   return x;  // After statement
 }  // After closing brace
-`
+`,
   },
   {
-    name: 'Struct comments',
+    name: "Struct comments",
     src: `
 // Before struct
 struct Foo {
@@ -34,38 +34,38 @@ struct Foo {
   y: i32,  // After last member
   // Before closing brace
 }  // After struct
-`
+`,
   },
   {
-    name: 'Expression comments',
+    name: "Expression comments",
     src: `
 const x = 1 + // Mid-expression
           2;  // End of line
-`
+`,
   },
   {
-    name: 'Block comments',
+    name: "Block comments",
     src: `
 /* Block before */
 const x = /* inline block */ 1;
 /* After semicolon */
-`
-  }
+`,
+  },
 ];
 
 for (const ex of examples) {
-  console.log('\n' + '='.repeat(60));
-  console.log('=== ' + ex.name.toUpperCase() + ' ===');
-  console.log('='.repeat(60));
-  console.log('\nSource:');
+  console.log("\n" + "=".repeat(60));
+  console.log("=== " + ex.name.toUpperCase() + " ===");
+  console.log("=".repeat(60));
+  console.log("\nSource:");
   console.log(ex.src);
 
   try {
-    const srcModule = { src: ex.src, modulePath: ['test'], moduleName: 'test' };
+    const srcModule = { src: ex.src, modulePath: ["test"], moduleName: "test" };
     const ast = parseSrcModule(srcModule);
-    console.log('\nAST:');
+    console.log("\nAST:");
     console.log(astToString(ast.moduleElem));
   } catch (e) {
-    console.log('\nParse Error:', e.message);
+    console.log("\nParse Error:", e.message);
   }
 }

@@ -13,8 +13,8 @@ import type {
 import { throwClickableError } from "./ClickableError.ts";
 import { filterValidElements } from "./Conditions.ts";
 import { type FlatImport, flattenTreeImport } from "./FlattenTreeImport.ts";
-import { weslRoot } from "./parse/WeslGrammar.ts";
 import { parseWeslV2 } from "./parse/v2/WeslParserV2.ts";
+import { weslRoot } from "./parse/WeslGrammar.ts";
 import { WeslStream } from "./parse/WeslStream.ts";
 import {
   type Conditions,
@@ -41,7 +41,7 @@ export interface WeslParserConfig {
  * Set this to switch between V1 and V2 parsers
  */
 export const weslParserConfig: WeslParserConfig = {
-  useV2Parser: false,  // Default to V1, set to true for V2 testing
+  useV2Parser: false, // Default to V1, set to true for V2 testing
 };
 
 /** result of a parse for one wesl module (e.g. one .wesl file)

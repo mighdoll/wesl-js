@@ -106,7 +106,8 @@ export function lowerAndEmitElem(e: AbstractElem, ctx: EmitContext): void {
     case "var":
     case "let":
     case "statement": {
-      const attrsInContents = e.contents.length > 0 && e.contents[0].kind === "attribute";
+      const attrsInContents =
+        e.contents.length > 0 && e.contents[0].kind === "attribute";
       if (!attrsInContents) {
         emitAttributes(e.attributes, ctx);
       }
@@ -119,16 +120,18 @@ export function lowerAndEmitElem(e: AbstractElem, ctx: EmitContext): void {
     case "const":
     case "assert":
     case "alias":
-    case "gvar":
+    case "gvar": {
       emitRootElemNl(ctx);
       // V2: attributes not in contents, emit separately
       // V1: attributes in contents as TextElems, skip separate emission
-      const attrsInContents = e.contents.length > 0 && e.contents[0].kind === "attribute";
+      const attrsInContents =
+        e.contents.length > 0 && e.contents[0].kind === "attribute";
       if (!attrsInContents) {
         emitAttributes(e.attributes, ctx);
       }
       emitContents(e, ctx);
       return;
+    }
 
     case "fn":
       emitRootElemNl(ctx);
@@ -201,7 +204,8 @@ export function emitFn(e: FnElem, ctx: EmitContext): void {
   validParams.forEach((p, i) => {
     // V2: attributes not in contents, emit separately
     // V1: attributes in contents as TextElems, skip separate emission
-    const attrsInContents = p.contents.length > 0 && p.contents[0].kind === "attribute";
+    const attrsInContents =
+      p.contents.length > 0 && p.contents[0].kind === "attribute";
     if (!attrsInContents) {
       emitAttributes(p.attributes, ctx);
     }
@@ -326,10 +330,18 @@ function emitExpression(e: ExpressionElem, ctx: EmitContext): void {
     emitRefIdent(e, ctx);
   } else if (kind === "binary-expression") {
     emitExpression(e.left, ctx);
-    ctx.srcBuilder.add(` ${e.operator.value} `, e.operator.span[0], e.operator.span[1]);
+    ctx.srcBuilder.add(
+      ` ${e.operator.value} `,
+      e.operator.span[0],
+      e.operator.span[1],
+    );
     emitExpression(e.right, ctx);
   } else if (kind === "unary-expression") {
-    ctx.srcBuilder.add(e.operator.value, e.operator.span[0], e.operator.span[1]);
+    ctx.srcBuilder.add(
+      e.operator.value,
+      e.operator.span[0],
+      e.operator.span[1],
+    );
     emitExpression(e.expression, ctx);
   } else if (kind === "parenthesized-expression") {
     // For parenthesized expressions, emit the inner expression

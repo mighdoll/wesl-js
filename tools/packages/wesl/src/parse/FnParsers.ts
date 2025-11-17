@@ -10,13 +10,12 @@ import type {
   FnElem,
   FnParamElem,
   GrammarElem,
-  StatementElem,
   TypedDeclElem,
   TypeRefElem,
 } from "../AbstractElems.ts";
 import { parseAttributeList } from "./AttributeParsers.ts";
 import type { ParseContext } from "./ParseContext.ts";
-import { checkpoint, consume, consumeKind, expect, reset } from "./ParseUtil.ts";
+import { checkpoint, consume, expect } from "./ParseUtil.ts";
 import { parseFunctionBody } from "./StatementParsers.ts";
 import { parseSimpleTypeRef } from "./TypeParsers.ts";
 import { closeElem, openElem } from "./v2/ContentsHelpers.ts";
@@ -40,10 +39,7 @@ function attachAttributes<T extends { attributes?: AttributeElem[] }>(
 /**
  * Link a DeclIdent back to its declaration element
  */
-function linkDeclIdent(
-  typedDecl: TypedDeclElem,
-  declElem: FnParamElem,
-): void {
+function linkDeclIdent(typedDecl: TypedDeclElem, declElem: FnParamElem): void {
   typedDecl.decl.ident.declElem = declElem;
 }
 
@@ -103,8 +99,8 @@ function parseFnParam(
   ctx.saveIdent(declIdent);
 
   // Check for optional type annotation `: type`
-  let typeRef: TypeRefElem | undefined = undefined;
-  let typeScope: undefined = undefined;
+  let typeRef: TypeRefElem | undefined;
+  let typeScope: undefined;
 
   if (consume(stream, ":")) {
     // Parse the type reference
@@ -239,8 +235,8 @@ export function parseFnDecl(
   }
 
   // Parse optional return type: -> [attributes]? type
-  let returnType: TypeRefElem | undefined = undefined;
-  let returnAttributes: AttributeElem[] | undefined = undefined;
+  let returnType: TypeRefElem | undefined;
+  let returnAttributes: AttributeElem[] | undefined;
 
   if (consume(stream, "->")) {
     // Parse optional return attributes before type

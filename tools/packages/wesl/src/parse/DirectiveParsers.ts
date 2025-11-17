@@ -13,7 +13,7 @@ import type {
 } from "../AbstractElems.ts";
 import { parseAttributeList } from "./AttributeParsers.ts";
 import type { ParseContext } from "./ParseContext.ts";
-import { checkpoint, consume, consumeKind, expect, reset } from "./ParseUtil.ts";
+import { checkpoint, consume, expect, reset } from "./ParseUtil.ts";
 import type { WeslStream } from "./WeslStream.ts";
 
 /**
@@ -204,7 +204,9 @@ function parseDiagnosticDirective(
   if (consume(stream, ".")) {
     const subruleToken = stream.peek();
     if (!subruleToken || subruleToken.kind !== "word") {
-      throw new Error("Expected subrule name after '.' in diagnostic directive");
+      throw new Error(
+        "Expected subrule name after '.' in diagnostic directive",
+      );
     }
 
     stream.nextToken();
@@ -260,13 +262,25 @@ export function parseDirective(
   const attributes = parseAttributeList(stream);
 
   // Try each directive type
-  const enableDir = parseEnableDirective(stream, ctx, attributes.length > 0 ? attributes : undefined);
+  const enableDir = parseEnableDirective(
+    stream,
+    ctx,
+    attributes.length > 0 ? attributes : undefined,
+  );
   if (enableDir) return enableDir;
 
-  const requiresDir = parseRequiresDirective(stream, ctx, attributes.length > 0 ? attributes : undefined);
+  const requiresDir = parseRequiresDirective(
+    stream,
+    ctx,
+    attributes.length > 0 ? attributes : undefined,
+  );
   if (requiresDir) return requiresDir;
 
-  const diagnosticDir = parseDiagnosticDirective(stream, ctx, attributes.length > 0 ? attributes : undefined);
+  const diagnosticDir = parseDiagnosticDirective(
+    stream,
+    ctx,
+    attributes.length > 0 ? attributes : undefined,
+  );
   if (diagnosticDir) return diagnosticDir;
 
   // No directive found

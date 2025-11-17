@@ -2,15 +2,16 @@
  * Temporary test to compare V1 and V2 AST outputs
  */
 import { test } from "vitest";
-import { weslParserConfig } from "../ParseWESL.ts";
-import { parseSrcModule } from "../ParseWESL.ts";
-import type { SrcModule } from "../Scope.ts";
 import { scopeToStringLong } from "../debug/ScopeToString.ts";
+import { parseSrcModule, weslParserConfig } from "../ParseWESL.ts";
+import type { SrcModule } from "../Scope.ts";
 
 test("compare V1 vs V2 for import test case", async () => {
   // Use actual test case that fails in V2 but passes in V1
   const { importCases } = await import("wesl-testsuite");
-  const testCase = importCases.find(t => t.name === "import twice doesn't get two copies");
+  const testCase = importCases.find(
+    t => t.name === "import twice doesn't get two copies",
+  );
 
   if (!testCase) {
     console.log("Test case not found!");
@@ -51,7 +52,9 @@ test("compare V1 vs V2 for import test case", async () => {
   console.log("\n=== V1 Root Scope Contents ===");
   astV1.rootScope.contents.forEach((item, i) => {
     if ("kind" in item && item.kind === "scope") {
-      console.log(`${i}: [Scope id=${item.id}, contents.length=${item.contents.length}]`);
+      console.log(
+        `${i}: [Scope id=${item.id}, contents.length=${item.contents.length}]`,
+      );
       // Look inside the scope
       item.contents.forEach((subItem, j) => {
         if ("kind" in subItem) {
@@ -64,14 +67,18 @@ test("compare V1 vs V2 for import test case", async () => {
     } else {
       const ident = item;
       const type = "declElem" in ident ? "DeclIdent" : "RefIdent";
-      console.log(`${i}: ${type} "${ident.originalName}", isGlobal=${ident.isGlobal}`);
+      console.log(
+        `${i}: ${type} "${ident.originalName}", isGlobal=${ident.isGlobal}`,
+      );
     }
   });
 
   console.log("\n=== V2 Root Scope Contents ===");
   astV2.rootScope.contents.forEach((item, i) => {
     if ("kind" in item && item.kind === "scope") {
-      console.log(`${i}: [Scope id=${item.id}, contents.length=${item.contents.length}]`);
+      console.log(
+        `${i}: [Scope id=${item.id}, contents.length=${item.contents.length}]`,
+      );
       // Look inside the scope
       item.contents.forEach((subItem, j) => {
         if ("kind" in subItem) {
@@ -84,15 +91,25 @@ test("compare V1 vs V2 for import test case", async () => {
     } else {
       const ident = item;
       const type = "declElem" in ident ? "DeclIdent" : "RefIdent";
-      console.log(`${i}: ${type} "${ident.originalName}", isGlobal=${ident.isGlobal}`);
+      console.log(
+        `${i}: ${type} "${ident.originalName}", isGlobal=${ident.isGlobal}`,
+      );
     }
   });
 
   // Count and compare
-  const v1Decls = astV1.rootScope.contents.filter(i => !("kind" in i) && "declElem" in i);
-  const v2Decls = astV2.rootScope.contents.filter(i => !("kind" in i) && "declElem" in i);
-  const v1Refs = astV1.rootScope.contents.filter(i => !("kind" in i) && !("declElem" in i));
-  const v2Refs = astV2.rootScope.contents.filter(i => !("kind" in i) && !("declElem" in i));
+  const v1Decls = astV1.rootScope.contents.filter(
+    i => !("kind" in i) && "declElem" in i,
+  );
+  const v2Decls = astV2.rootScope.contents.filter(
+    i => !("kind" in i) && "declElem" in i,
+  );
+  const v1Refs = astV1.rootScope.contents.filter(
+    i => !("kind" in i) && !("declElem" in i),
+  );
+  const v2Refs = astV2.rootScope.contents.filter(
+    i => !("kind" in i) && !("declElem" in i),
+  );
 
   console.log("\n=== V1 Imports ===");
   astV1.imports.forEach((imp, i) => {
@@ -105,16 +122,27 @@ test("compare V1 vs V2 for import test case", async () => {
   });
 
   console.log("\n=== Summary ===");
-  console.log(`V1 Root: ${v1Decls.length} DeclIdents, ${v1Refs.length} RefIdents, ${astV1.imports.length} imports`);
-  console.log(`V2 Root: ${v2Decls.length} DeclIdents, ${v2Refs.length} RefIdents, ${astV2.imports.length} imports`);
+  console.log(
+    `V1 Root: ${v1Decls.length} DeclIdents, ${v1Refs.length} RefIdents, ${astV1.imports.length} imports`,
+  );
+  console.log(
+    `V2 Root: ${v2Decls.length} DeclIdents, ${v2Refs.length} RefIdents, ${astV2.imports.length} imports`,
+  );
 
   // Find and compare the "foo" RefIdents
   function findRefIdent(scope: any, name: string): any {
     for (const item of scope.contents) {
-      if ("kind" in item && (item.kind === "scope" || item.kind === "partial")) {
+      if (
+        "kind" in item &&
+        (item.kind === "scope" || item.kind === "partial")
+      ) {
         const found = findRefIdent(item, name);
         if (found) return found;
-      } else if ("originalName" in item && item.originalName === name && !("declElem" in item)) {
+      } else if (
+        "originalName" in item &&
+        item.originalName === name &&
+        !("declElem" in item)
+      ) {
         return item;
       }
     }
@@ -130,7 +158,10 @@ test("compare V1 vs V2 for import test case", async () => {
     console.log("originalName:", v1Foo.originalName);
     console.log("isGlobal:", v1Foo.isGlobal);
     console.log("ast?.srcModule.modulePath:", v1Foo.ast?.srcModule.modulePath);
-    console.log("refIdentElem:", v1Foo.refIdentElem ? "exists" : "null/undefined");
+    console.log(
+      "refIdentElem:",
+      v1Foo.refIdentElem ? "exists" : "null/undefined",
+    );
   }
 
   console.log("\n=== V2 'foo' RefIdent ===");
@@ -139,6 +170,9 @@ test("compare V1 vs V2 for import test case", async () => {
     console.log("originalName:", v2Foo.originalName);
     console.log("isGlobal:", v2Foo.isGlobal);
     console.log("ast?.srcModule.modulePath:", v2Foo.ast?.srcModule.modulePath);
-    console.log("refIdentElem:", v2Foo.refIdentElem ? "exists" : "null/undefined");
+    console.log(
+      "refIdentElem:",
+      v2Foo.refIdentElem ? "exists" : "null/undefined",
+    );
   }
 });

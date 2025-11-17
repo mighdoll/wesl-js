@@ -20,7 +20,13 @@ import type {
   UnaryOperator,
 } from "../AbstractElems.ts";
 import type { ParseContext } from "./ParseContext.ts";
-import { checkpoint, consume, consumeKind, expect, reset } from "./ParseUtil.ts";
+import {
+  checkpoint,
+  consume,
+  consumeKind,
+  expect,
+  reset,
+} from "./ParseUtil.ts";
 import type { WeslStream, WeslToken } from "./WeslStream.ts";
 
 /**
@@ -61,8 +67,9 @@ export function parseSimpleIdentifier(
   let firstToken = consumeKind(stream, "word");
   if (!firstToken) {
     // Check for "package" or "super" keywords
-    firstToken = consumeKind(stream, "keyword", "package") ||
-                 consumeKind(stream, "keyword", "super");
+    firstToken =
+      consumeKind(stream, "keyword", "package") ||
+      consumeKind(stream, "keyword", "super");
   }
 
   if (!firstToken) {
@@ -80,7 +87,10 @@ export function parseSimpleIdentifier(
     // After ::, we can have a word or a keyword used as an identifier
     // Keywords like "else", "if", "for", etc. are valid identifiers after ::
     const nextToken = stream.peek();
-    if (!nextToken || (nextToken.kind !== "word" && nextToken.kind !== "keyword")) {
+    if (
+      !nextToken ||
+      (nextToken.kind !== "word" && nextToken.kind !== "keyword")
+    ) {
       throw new Error(`Expected identifier after '::'`);
     }
     stream.nextToken(); // consume the word/keyword
@@ -319,14 +329,19 @@ function parseUnaryExpression(
   stream: WeslStream,
   ctx: ParseContext,
 ): ExpressionElem | null {
-  const startPos = checkpoint(stream);
+  const _startPos = checkpoint(stream);
   const token = stream.peek();
 
   if (!token) return null;
 
   // Check for unary operators
-  if (token.text === "-" || token.text === "!" ||
-      token.text === "&" || token.text === "*" || token.text === "~") {
+  if (
+    token.text === "-" ||
+    token.text === "!" ||
+    token.text === "&" ||
+    token.text === "*" ||
+    token.text === "~"
+  ) {
     stream.nextToken(); // consume operator
 
     const operator: UnaryOperator = {
@@ -408,11 +423,19 @@ const BINARY_PRECEDENCE: Record<string, number> = {
   "|": 3,
   "^": 4,
   "&": 5,
-  "==": 6, "!=": 6,
-  "<": 7, "<=": 7, ">": 7, ">=": 7,
-  "<<": 8, ">>": 8,
-  "+": 9, "-": 9,
-  "*": 10, "/": 10, "%": 10,
+  "==": 6,
+  "!=": 6,
+  "<": 7,
+  "<=": 7,
+  ">": 7,
+  ">=": 7,
+  "<<": 8,
+  ">>": 8,
+  "+": 9,
+  "-": 9,
+  "*": 10,
+  "/": 10,
+  "%": 10,
 };
 
 /**

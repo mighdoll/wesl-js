@@ -11,7 +11,11 @@
  * - Fill gaps with text via coverWithText() before popping
  */
 
-import type { ContainerElem, GrammarElem, TextElem } from "../../AbstractElems.ts";
+import type {
+  ContainerElem,
+  GrammarElem,
+  TextElem,
+} from "../../AbstractElems.ts";
 import type { WeslAST } from "../../ParseWESL.ts";
 import type { ParseContext } from "../ParseContext.ts";
 

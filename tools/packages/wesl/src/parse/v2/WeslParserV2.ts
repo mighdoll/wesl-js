@@ -168,7 +168,11 @@ export class WeslParserV2 {
       // Try each parser until one succeeds
       let parsed = false;
       for (const parser of parsers) {
-        const elem = parser(stream, this.ctx, attributes.length > 0 ? attributes : undefined);
+        const elem = parser(
+          stream,
+          this.ctx,
+          attributes.length > 0 ? attributes : undefined,
+        );
         if (elem) {
           // If we parsed attributes, we need to adjust the element's start position
           // to include the attributes, so coverWithText doesn't create duplicate TextElems

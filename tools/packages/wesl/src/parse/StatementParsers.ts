@@ -7,12 +7,14 @@
  * full expression support for conditions and assignments.
  */
 
-import type {
-  AttributeElem,
-  StatementElem,
-} from "../AbstractElems.ts";
+import type { AttributeElem, StatementElem } from "../AbstractElems.ts";
 import { parseAttributeList } from "./AttributeParsers.ts";
-import { parseConstAssert, parseConstDecl, parseLetDecl, parseLocalVarDecl } from "./ConstParsers.ts";
+import {
+  parseConstAssert,
+  parseConstDecl,
+  parseLetDecl,
+  parseLocalVarDecl,
+} from "./ConstParsers.ts";
 import { parseExpression } from "./ExpressionParsers.ts";
 import type { ParseContext } from "./ParseContext.ts";
 import { checkpoint, consume, expect, reset } from "./ParseUtil.ts";
@@ -38,7 +40,7 @@ function attachAttributes<T extends { attributes?: AttributeElem[] }>(
  * NOTE: Expressions create RefIdent elements which have positions and get added to contents.
  * We use openElem/closeElem to generate text elements covering all gaps.
  */
-function parseOptionalExpressionStatement(
+function _parseOptionalExpressionStatement(
   stream: WeslStream,
   ctx: ParseContext,
 ): StatementElem {
@@ -48,7 +50,7 @@ function parseOptionalExpressionStatement(
   openElem(ctx, { kind: "statement", contents: [] });
 
   // Parse expression (RefIdent elements will be added to contents via ctx.addElem)
-  const expr = parseExpression(stream, ctx);
+  const _expr = parseExpression(stream, ctx);
 
   // Expect semicolon
   expect(stream, ";", "Expected ';' after statement");
@@ -221,7 +223,7 @@ function parseSimpleStatement(
     openElem(ctx, { kind: "statement", contents: [] });
 
     // Parse optional expression (RefIdent elements will be added to contents)
-    const expr = parseExpression(stream, ctx);
+    const _expr = parseExpression(stream, ctx);
 
     // Expect semicolon
     expect(stream, ";", "Expected ';' after return statement");
@@ -243,7 +245,11 @@ function parseSimpleStatement(
   }
 
   // Handle break, continue, discard (no expression)
-  if (token.text === "break" || token.text === "continue" || token.text === "discard") {
+  if (
+    token.text === "break" ||
+    token.text === "continue" ||
+    token.text === "discard"
+  ) {
     stream.nextToken(); // consume keyword
     expect(stream, ";", "Expected ';' after statement");
 
@@ -384,11 +390,19 @@ function parseSimpleStatement(
  * Check if a token is an assignment operator
  */
 function isAssignmentOperator(text: string): boolean {
-  return text === "=" ||
-         text === "+=" || text === "-=" ||
-         text === "*=" || text === "/=" || text === "%=" ||
-         text === "&=" || text === "|=" || text === "^=" ||
-         text === "<<=" || text === ">>=";
+  return (
+    text === "=" ||
+    text === "+=" ||
+    text === "-=" ||
+    text === "*=" ||
+    text === "/=" ||
+    text === "%=" ||
+    text === "&=" ||
+    text === "|=" ||
+    text === "^=" ||
+    text === "<<=" ||
+    text === ">>="
+  );
 }
 
 /**
@@ -732,7 +746,6 @@ function parseSwitchStatement(
         throw new Error("Expected '{' after case ':'");
       }
       ctx.addElem(caseBody);
-
     } else if (token.text === "default") {
       stream.nextToken(); // consume "default"
 
@@ -745,7 +758,6 @@ function parseSwitchStatement(
         throw new Error("Expected '{' after default ':'");
       }
       ctx.addElem(defaultBody);
-
     } else {
       throw new Error("Expected 'case' or 'default' in switch body");
     }
@@ -789,41 +801,85 @@ export function parseStatement(
   }
 
   // Try local variable declarations (var, let, const)
-  const localVar = parseLocalVarDecl(stream, ctx, attributes.length > 0 ? attributes : undefined);
+  const localVar = parseLocalVarDecl(
+    stream,
+    ctx,
+    attributes.length > 0 ? attributes : undefined,
+  );
   if (localVar) return localVar as unknown as StatementElem;
 
-  const letDecl = parseLetDecl(stream, ctx, attributes.length > 0 ? attributes : undefined);
+  const letDecl = parseLetDecl(
+    stream,
+    ctx,
+    attributes.length > 0 ? attributes : undefined,
+  );
   if (letDecl) return letDecl as unknown as StatementElem;
 
-  const constDecl = parseConstDecl(stream, ctx, attributes.length > 0 ? attributes : undefined);
+  const constDecl = parseConstDecl(
+    stream,
+    ctx,
+    attributes.length > 0 ? attributes : undefined,
+  );
   if (constDecl) return constDecl as unknown as StatementElem;
 
   // Try const_assert statement
-  const constAssert = parseConstAssert(stream, ctx, attributes.length > 0 ? attributes : undefined);
+  const constAssert = parseConstAssert(
+    stream,
+    ctx,
+    attributes.length > 0 ? attributes : undefined,
+  );
   if (constAssert) return constAssert as unknown as StatementElem;
 
   // Try compound statement (block)
-  const compoundStmt = parseCompoundStatement(stream, ctx, attributes.length > 0 ? attributes : undefined);
+  const compoundStmt = parseCompoundStatement(
+    stream,
+    ctx,
+    attributes.length > 0 ? attributes : undefined,
+  );
   if (compoundStmt) return compoundStmt;
 
   // Try control flow statements
-  const ifStmt = parseIfStatement(stream, ctx, attributes.length > 0 ? attributes : undefined);
+  const ifStmt = parseIfStatement(
+    stream,
+    ctx,
+    attributes.length > 0 ? attributes : undefined,
+  );
   if (ifStmt) return ifStmt;
 
-  const switchStmt = parseSwitchStatement(stream, ctx, attributes.length > 0 ? attributes : undefined);
+  const switchStmt = parseSwitchStatement(
+    stream,
+    ctx,
+    attributes.length > 0 ? attributes : undefined,
+  );
   if (switchStmt) return switchStmt;
 
-  const forStmt = parseForStatement(stream, ctx, attributes.length > 0 ? attributes : undefined);
+  const forStmt = parseForStatement(
+    stream,
+    ctx,
+    attributes.length > 0 ? attributes : undefined,
+  );
   if (forStmt) return forStmt;
 
-  const whileStmt = parseWhileStatement(stream, ctx, attributes.length > 0 ? attributes : undefined);
+  const whileStmt = parseWhileStatement(
+    stream,
+    ctx,
+    attributes.length > 0 ? attributes : undefined,
+  );
   if (whileStmt) return whileStmt;
 
-  const loopStmt = parseLoopStatement(stream, ctx, attributes.length > 0 ? attributes : undefined);
+  const loopStmt = parseLoopStatement(
+    stream,
+    ctx,
+    attributes.length > 0 ? attributes : undefined,
+  );
   if (loopStmt) return loopStmt;
 
   // Fall back to simple statement
-  return parseSimpleStatement(stream, ctx, attributes.length > 0 ? attributes : undefined);
+  return parseSimpleStatement(
+    stream,
+    ctx,
+    attributes.length > 0 ? attributes : undefined,
+  );
 }
 
 /**

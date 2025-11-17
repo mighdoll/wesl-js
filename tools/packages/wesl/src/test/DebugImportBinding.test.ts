@@ -2,8 +2,8 @@
  * Debug import binding differences between V1 and V2
  */
 import { test } from "vitest";
-import { weslParserConfig } from "../ParseWESL.ts";
 import { link } from "../Linker.ts";
+import { weslParserConfig } from "../ParseWESL.ts";
 
 test("debug import binding: import twice doesn't get two copies", async () => {
   // Test case from importCases - "import twice doesn't get two copies"

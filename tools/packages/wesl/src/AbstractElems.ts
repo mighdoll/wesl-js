@@ -65,7 +65,11 @@ export type GlobalDeclarationElem =
   | OverrideElem
   | StructElem;
 
-export type DeclarationElem = GlobalDeclarationElem | FnParamElem | VarElem | LetElem;
+export type DeclarationElem =
+  | GlobalDeclarationElem
+  | FnParamElem
+  | VarElem
+  | LetElem;
 
 export type ElemWithAttributes = Extract<AbstractElem, HasAttributes>;
 

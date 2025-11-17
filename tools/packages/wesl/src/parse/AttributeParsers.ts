@@ -106,7 +106,7 @@ function parseAttribute(stream: WeslStream): AttributeElem | null {
   }
 
   // Standard attribute with optional parameters
-  let params: UnknownExpressionElem[] | undefined = undefined;
+  let params: UnknownExpressionElem[] | undefined;
 
   // Check for parameter list: (...)
   if (consume(stream, "(")) {
@@ -300,10 +300,7 @@ function parseDiagnosticAttribute(
   const diagnosticAttr: DiagnosticAttribute = {
     kind: "@diagnostic",
     severity: { kind: "name", name: "error", start: startPos, end: endPos },
-    rule: [
-      { kind: "name", name: "rule", start: startPos, end: endPos },
-      null,
-    ],
+    rule: [{ kind: "name", name: "rule", start: startPos, end: endPos }, null],
   };
 
   return wrapAttribute(diagnosticAttr, startPos, endPos);
