@@ -15,6 +15,7 @@ const v2OnlyTests = [
   "**/LinkerV2.test.ts",
   "**/ScopeWESLV2.test.ts",
   "**/BindWESLV2.test.ts",
+  "**/ParseWeslV2.test.ts",
   "**/CompareV1V2.test.ts",
   "**/DebugImportBinding.test.ts",
   "**/ParseContext.test.ts",
