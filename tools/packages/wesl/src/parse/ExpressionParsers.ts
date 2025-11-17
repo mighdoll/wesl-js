@@ -135,6 +135,11 @@ function parseFunctionCallArgs(
     // Parse argument expression
     const arg = parseExpression(stream, ctx);
     if (!arg) {
+      // Check if we're at a closing paren (trailing comma case)
+      if (stream.peek()?.text === ")") {
+        stream.nextToken();
+        break;
+      }
       throw new Error("Expected expression in function arguments");
     }
 
@@ -146,6 +151,11 @@ function parseFunctionCallArgs(
 
     if (next.text === ",") {
       stream.nextToken();
+      // Check for trailing comma before closing paren
+      if (stream.peek()?.text === ")") {
+        stream.nextToken();
+        break;
+      }
       continue;
     }
 

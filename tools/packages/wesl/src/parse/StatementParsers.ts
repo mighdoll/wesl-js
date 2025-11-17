@@ -451,39 +451,68 @@ function parseForStatement(
     return null;
   }
 
+  // Open statement to collect contents
+  openElem(ctx, { kind: "statement", contents: [] });
+
+  // Create scope for loop variables
+  ctx.pushScope();
+
   // Expect "("
   expect(stream, "(", "Expected '(' after 'for'");
 
-  // Skip init (could be empty, declaration, or expression)
-  let depth = 1;
-  while (depth > 0) {
-    const token = stream.peek();
-    if (!token) {
-      throw new Error("Unexpected end of input in for loop header");
+  // Parse init (optional) - could be var declaration or expression
+  if (!consume(stream, ";")) {
+    // Try variable declaration first
+    const varDecl = parseLocalVarDecl(stream, ctx);
+    if (varDecl) {
+      ctx.addElem(varDecl);
+    } else {
+      // Try expression statement
+      const initExpr = parseExpression(stream, ctx);
+      if (initExpr) {
+        ctx.addElem(initExpr);
+      }
     }
-
-    if (token.text === "(") depth++;
-    if (token.text === ")") depth--;
-
-    stream.nextToken();
+    expect(stream, ";", "Expected ';' after for loop init");
   }
 
-  // Now parse the body
-  ctx.pushScope();
-  const body = parseCompoundStatement(stream, ctx);
-  ctx.popScope();
+  // Parse condition (optional)
+  if (!consume(stream, ";")) {
+    const condition = parseExpression(stream, ctx);
+    if (condition) {
+      ctx.addElem(condition);
+    }
+    expect(stream, ";", "Expected ';' after for loop condition");
+  }
 
+  // Parse update (optional)
+  if (!consume(stream, ")")) {
+    const update = parseExpression(stream, ctx);
+    if (update) {
+      ctx.addElem(update);
+    }
+    expect(stream, ")", "Expected ')' after for loop update");
+  }
+
+  // Parse body
+  const body = parseCompoundStatement(stream, ctx);
   if (!body) {
     throw new Error("Expected '{' after for loop header");
   }
+  ctx.addElem(body);
+
+  ctx.popScope();
 
   const endPos = checkpoint(stream);
+
+  // Close and fill with text
+  const contents = closeElem(ctx, startPos, endPos);
 
   const forStmt: StatementElem = {
     kind: "statement",
     start: startPos,
     end: endPos,
-    contents: [body],
+    contents,
   };
 
   attachAttributes(forStmt, attributes);
