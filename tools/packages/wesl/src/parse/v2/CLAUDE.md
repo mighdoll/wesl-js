@@ -494,6 +494,26 @@ V1_ONLY=true bb test --dangerouslyDisableSandbox
 5. **Follow commit point pattern** - Return null before commit, throw after
 6. **Add tests for each construct** - Parity test + position verification + stress test
 
+**Why `--dangerouslyDisableSandbox` for V1 tests?**
+
+V1 tests must run outside the sandbox because:
+- BulkTests clones git repositories and needs filesystem write access beyond sandbox restrictions
+- The sandbox blocks git operations on `.git/index.lock` files
+- V1 baseline is 409/411 passing with BulkTests included
+- Running in sandbox will show failures due to git permission errors, not code issues
+
+**Test Commands Reference**:
+```bash
+# V2 tests (can run in sandbox)
+V2_ONLY=true bb test
+
+# V1 tests (MUST run outside sandbox)
+V1_ONLY=true bb test --dangerouslyDisableSandbox
+
+# Expected V1 baseline: 409 passed | 2 skipped (411)
+# Expected V2 baseline: See latest v2-progress-update-*.md
+```
+
 ### Debugging Parity Failures
 
 1. **Check TextElems first** - Filter them out, compare semantic only
