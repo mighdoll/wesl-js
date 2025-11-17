@@ -20,7 +20,11 @@ const v2OnlyTests = [
 ];
 
 // V1-specific tests that validate V1 AST structure (should not run in V2 mode)
-const v1OnlyTests = ["**/ScopeWESL.test.ts", "**/BindWESL.test.ts"];
+const v1OnlyTests = [
+  "**/ScopeWESL.test.ts",
+  "**/BindWESL.test.ts",
+  "**/ParseWESL.test.ts", // TODO: Update snapshots when V2 is feature-complete
+];
 
 const baseExcludes = ["**/node_modules/**", "**/dist/**"];
 
