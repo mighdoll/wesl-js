@@ -222,6 +222,23 @@ export function parseSimpleTypeRef(
 
     // Parse comma-separated template parameters
     while (true) {
+      // Peek to see if we have a closing >
+      // Use peek instead of nextTemplateEndToken to avoid consuming the token
+      const next = stream.peek();
+      if (!next) {
+        throw new Error("Unexpected end of input in template parameters");
+      }
+
+      // If next token starts with >, we're at the end
+      // This handles both > and >> (which gets split by nextTemplateEndToken)
+      if (next.text.startsWith(">")) {
+        const templateEnd = stream.nextTemplateEndToken();
+        if (!templateEnd) {
+          throw new Error("Expected '>' to close template parameters");
+        }
+        break;
+      }
+
       // Try to parse as a type first (recursive call for nested templates)
       const typeParam = parseSimpleTypeRef(stream, ctx);
       if (typeParam) {
@@ -239,17 +256,20 @@ export function parseSimpleTypeRef(
       }
 
       // Check for comma (more parameters) or closing >
-      const next = stream.peek();
-      if (!next) {
+      const nextAfter = stream.peek();
+      if (!nextAfter) {
         throw new Error("Unexpected end of input in template parameters");
       }
 
-      if (next.text === ",") {
+      if (nextAfter.text === ",") {
         stream.nextToken(); // consume comma
         continue;
       }
 
       // Should be closing >
+      if (!nextAfter.text.startsWith(">")) {
+        throw new Error("Expected '>' or ',' after template parameter");
+      }
       const templateEnd = stream.nextTemplateEndToken();
       if (!templateEnd) {
         throw new Error("Expected '>' to close template parameters");

@@ -758,29 +758,30 @@ test("parse switch statement", () => {
       fn main(x: i32)
         decl %main
         param
-          decl %x
-          typeDecl %x : i32
-            text ': '
-            type i32
-              ref i32
+          text 'x: '
+          type i32
+            ref i32
         statement
-          text '{
+          text '{'
+          statement
+            text '
           switch ('
-          ref x
-          text ') {
-            '
-          switch-clause
-            text 'case 1: '
+            ref x
+            text ') {
+            case 1: '
             statement
-              text '{ break; }'
-          text '
-            '
-          switch-clause
-            text 'default: '
+              text '{'
+              statement
+              text ' }'
+            text '
+            default: '
             statement
-              text '{ break; }'
+              text '{'
+              statement
+              text ' }'
+            text '
+          }'
           text '
-          }
         }'
       text '
       '"
@@ -807,32 +808,32 @@ test("parse switch statement-2", () => {
       fn main(x: u32)
         decl %main
         param
-          decl %x
-          typeDecl %x : u32
-            text ': '
-            type u32
-              ref u32
+          text 'x: '
+          type u32
+            ref u32
         statement
-          text '{
+          text '{'
+          statement
+            text '
           switch ( '
-          ref code
-          text ' ) {
-            '
-          switch-clause
-            text 'case 5u: '
+            ref code
+            text ' ) {
+            case 5u: '
             statement
-              text '{ if 1 > 0 '
+              text '{'
               statement
-                text '{ }'
+                statement
+                  text '{ }'
               text ' }'
-          text '
-            '
-          switch-clause
-            text 'default: '
+            text '
+            default: '
             statement
-              text '{ break; }'
+              text '{'
+              statement
+              text ' }'
+            text '
+          }'
           text '
-          }
         }'
       text '
       '"
@@ -931,7 +932,10 @@ test("fn f() { _ = 1; }", ctx => {
       fn f()
         decl %f
         statement
-          text '{ _ = 1; }'"
+          text '{'
+          statement
+            text ' _ = 1;'
+          text ' }'"
   `);
 });
 
@@ -1503,10 +1507,13 @@ test("parse foo::else()", () => {
       fn main()
         decl %main
         statement
-          text '{
+          text '{'
+          statement
+            text '
           '
-          ref foo::else
-          text '();
+            ref foo::else
+            text '();'
+          text '
         }'
       text '
       '"

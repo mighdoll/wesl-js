@@ -277,6 +277,45 @@ function parseSimpleStatement(
     return stmt;
   }
 
+  // Handle underscore assignment: _ = expr;
+  if (token.text === "_") {
+    stream.nextToken(); // consume "_"
+
+    // Expect assignment operator
+    const assignOp = stream.peek();
+    if (!assignOp || !isAssignmentOperator(assignOp.text)) {
+      throw new Error("Expected assignment operator after '_'");
+    }
+    stream.nextToken(); // consume assignment operator
+
+    // Open statement to collect contents
+    openElem(ctx, { kind: "statement", contents: [] });
+
+    // Parse right-hand side expression
+    const rhs = parseExpression(stream, ctx);
+    if (!rhs) {
+      throw new Error("Expected expression after assignment operator");
+    }
+
+    // Expect semicolon
+    expect(stream, ";", "Expected ';' after assignment");
+
+    const endPos = checkpoint(stream);
+
+    // Close and fill with text
+    const contents = closeElem(ctx, startPos, endPos);
+
+    const stmt: StatementElem = {
+      kind: "statement",
+      start: startPos,
+      end: endPos,
+      contents,
+    };
+
+    attachAttributes(stmt, attributes);
+    return stmt;
+  }
+
   // Try to parse as expression statement
   // This includes assignments like `i = i + 1;` or function calls like `foo();`
 
@@ -461,38 +500,44 @@ function parseForStatement(
   expect(stream, "(", "Expected '(' after 'for'");
 
   // Parse init (optional) - could be var declaration or expression
-  if (!consume(stream, ";")) {
-    // Try variable declaration first
+  const nextToken = stream.peek();
+  if (nextToken && nextToken.text !== ";") {
+    // Try variable declaration first (parseLocalVarDecl consumes the semicolon)
     const varDecl = parseLocalVarDecl(stream, ctx);
     if (varDecl) {
       ctx.addElem(varDecl);
     } else {
-      // Try expression statement
+      // Try expression statement (doesn't consume semicolon)
       const initExpr = parseExpression(stream, ctx);
       if (initExpr) {
         ctx.addElem(initExpr);
       }
+      expect(stream, ";", "Expected ';' after for loop init");
     }
+  } else {
+    // Empty init, consume the semicolon
     expect(stream, ";", "Expected ';' after for loop init");
   }
 
   // Parse condition (optional)
-  if (!consume(stream, ";")) {
+  const condToken = stream.peek();
+  if (condToken && condToken.text !== ";") {
     const condition = parseExpression(stream, ctx);
     if (condition) {
       ctx.addElem(condition);
     }
-    expect(stream, ";", "Expected ';' after for loop condition");
   }
+  expect(stream, ";", "Expected ';' after for loop condition");
 
   // Parse update (optional)
-  if (!consume(stream, ")")) {
+  const updateToken = stream.peek();
+  if (updateToken && updateToken.text !== ")") {
     const update = parseExpression(stream, ctx);
     if (update) {
       ctx.addElem(update);
     }
-    expect(stream, ")", "Expected ')' after for loop update");
   }
+  expect(stream, ")", "Expected ')' after for loop header");
 
   // Parse body
   const body = parseCompoundStatement(stream, ctx);
@@ -628,6 +673,101 @@ function parseLoopStatement(
 }
 
 /**
+ * Parse a switch statement: switch expr { case expr: block, default: block }
+ */
+function parseSwitchStatement(
+  stream: WeslStream,
+  ctx: ParseContext,
+  attributes?: AttributeElem[],
+): StatementElem | null {
+  const startPos = checkpoint(stream);
+
+  // Expect "switch"
+  if (!consume(stream, "switch")) {
+    reset(stream, startPos);
+    return null;
+  }
+
+  // Open statement to collect contents
+  openElem(ctx, { kind: "statement", contents: [] });
+
+  // Parse switch expression
+  const expr = parseExpression(stream, ctx);
+  if (!expr) {
+    throw new Error("Expected expression after 'switch'");
+  }
+
+  // Expect opening brace
+  expect(stream, "{", "Expected '{' after switch expression");
+
+  // Parse case clauses
+  while (true) {
+    const token = stream.peek();
+    if (!token) {
+      throw new Error("Unexpected end of input in switch statement");
+    }
+
+    // Check for closing brace
+    if (token.text === "}") {
+      stream.nextToken();
+      break;
+    }
+
+    // Parse case or default
+    if (token.text === "case") {
+      stream.nextToken(); // consume "case"
+
+      // Parse case value expression
+      const caseExpr = parseExpression(stream, ctx);
+      if (!caseExpr) {
+        throw new Error("Expected expression after 'case'");
+      }
+
+      // Expect colon
+      expect(stream, ":", "Expected ':' after case value");
+
+      // Parse case body (compound statement)
+      const caseBody = parseCompoundStatement(stream, ctx);
+      if (!caseBody) {
+        throw new Error("Expected '{' after case ':'");
+      }
+      ctx.addElem(caseBody);
+
+    } else if (token.text === "default") {
+      stream.nextToken(); // consume "default"
+
+      // Expect colon
+      expect(stream, ":", "Expected ':' after 'default'");
+
+      // Parse default body (compound statement)
+      const defaultBody = parseCompoundStatement(stream, ctx);
+      if (!defaultBody) {
+        throw new Error("Expected '{' after default ':'");
+      }
+      ctx.addElem(defaultBody);
+
+    } else {
+      throw new Error("Expected 'case' or 'default' in switch body");
+    }
+  }
+
+  const endPos = checkpoint(stream);
+
+  // Close and fill with text
+  const contents = closeElem(ctx, startPos, endPos);
+
+  const switchStmt: StatementElem = {
+    kind: "statement",
+    start: startPos,
+    end: endPos,
+    contents,
+  };
+
+  attachAttributes(switchStmt, attributes);
+  return switchStmt;
+}
+
+/**
  * Parse a single statement
  * Week 10: Handles all statement types with structural parsing
  * Week 10.5: Added local var/let/const declarations
@@ -669,6 +809,9 @@ export function parseStatement(
   // Try control flow statements
   const ifStmt = parseIfStatement(stream, ctx, attributes.length > 0 ? attributes : undefined);
   if (ifStmt) return ifStmt;
+
+  const switchStmt = parseSwitchStatement(stream, ctx, attributes.length > 0 ? attributes : undefined);
+  if (switchStmt) return switchStmt;
 
   const forStmt = parseForStatement(stream, ctx, attributes.length > 0 ? attributes : undefined);
   if (forStmt) return forStmt;

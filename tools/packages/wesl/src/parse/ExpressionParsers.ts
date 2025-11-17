@@ -77,10 +77,13 @@ export function parseSimpleIdentifier(
 
   // Parse :: word chains
   while (consume(stream, "::")) {
-    const nextToken = consumeKind(stream, "word");
-    if (!nextToken) {
+    // After ::, we can have a word or a keyword used as an identifier
+    // Keywords like "else", "if", "for", etc. are valid identifiers after ::
+    const nextToken = stream.peek();
+    if (!nextToken || (nextToken.kind !== "word" && nextToken.kind !== "keyword")) {
       throw new Error(`Expected identifier after '::'`);
     }
+    stream.nextToken(); // consume the word/keyword
     fullName += "::" + nextToken.text;
     nameEnd = nextToken.span[1];
   }
