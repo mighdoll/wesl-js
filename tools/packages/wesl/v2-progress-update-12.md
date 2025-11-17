@@ -159,7 +159,7 @@ const contents = closeElem(ctx, startPos, endPos);  // No gap
 - V1: `text 'var '` (keyword + space together)
 - V2: `text 'var'` + `text ' '` (separated)
 - These are likely cosmetic - output WGSL is identical
-- **Recommendation**: Update snapshots to accept V2's granularity
+- **Recommendation**: Consider how to keep V1 and V2 tested at the same time. Separate tests for V2?
 
 **ScopeWESL.test.ts** (23 failing):
 - Scope structure differences
@@ -167,6 +167,7 @@ const contents = closeElem(ctx, startPos, endPos);  // No gap
 - Attempted fix but had net negative impact (-5 tests overall)
 - **Reverted** - needs deeper investigation
 - See "Scope Investigation" section below
+- **NOTE** seems wrong direction here, the ScopeWESLV2 tests should be the only ones that matter for v2..
 
 **BulkTests.test.ts** (34 failing):
 - Need expression/statement parsing (Phase 4)
