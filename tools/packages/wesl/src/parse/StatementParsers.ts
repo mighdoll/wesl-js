@@ -12,7 +12,7 @@ import type {
   StatementElem,
 } from "../AbstractElems.ts";
 import { parseAttributeList } from "./AttributeParsers.ts";
-import { parseConstDecl, parseLetDecl, parseLocalVarDecl } from "./ConstParsers.ts";
+import { parseConstAssert, parseConstDecl, parseLetDecl, parseLocalVarDecl } from "./ConstParsers.ts";
 import { parseExpression } from "./ExpressionParsers.ts";
 import type { ParseContext } from "./ParseContext.ts";
 import { checkpoint, consume, expect, reset } from "./ParseUtil.ts";
@@ -628,6 +628,10 @@ export function parseStatement(
 
   const constDecl = parseConstDecl(stream, ctx, attributes.length > 0 ? attributes : undefined);
   if (constDecl) return constDecl as unknown as StatementElem;
+
+  // Try const_assert statement
+  const constAssert = parseConstAssert(stream, ctx, attributes.length > 0 ? attributes : undefined);
+  if (constAssert) return constAssert as unknown as StatementElem;
 
   // Try compound statement (block)
   const compoundStmt = parseCompoundStatement(stream, ctx, attributes.length > 0 ? attributes : undefined);
