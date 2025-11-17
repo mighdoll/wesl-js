@@ -12,16 +12,17 @@ import type {
   UnknownExpressionElem,
 } from "../AbstractElems.ts";
 import type { ParseContext } from "./ParseContext.ts";
-import { checkpoint, consumeKind, reset } from "./ParseUtil.ts";
+import { checkpoint, reset } from "./ParseUtil.ts";
+import { closeElem, openElem } from "./v2/ContentsHelpers.ts";
 import type { WeslStream } from "./WeslStream.ts";
-import { openElem, closeElem } from "./v2/ContentsHelpers.ts";
 
 /**
  * Check if a type name is a built-in WGSL type
+ * NOTE: Currently unused - binding handles built-in detection
  */
-function isBuiltInType(name: string): boolean {
+function _isBuiltInType(name: string): boolean {
   // Scalar types
-  if (['bool', 'i32', 'u32', 'f32', 'f16'].includes(name)) return true;
+  if (["bool", "i32", "u32", "f32", "f16"].includes(name)) return true;
 
   // Vector types (shorthand)
   if (/^vec[234][iuf]$/.test(name)) return true; // vec2i, vec3f, vec4u, etc.
@@ -30,17 +31,30 @@ function isBuiltInType(name: string): boolean {
   if (/^mat[234]x[234][fh]$/.test(name)) return true; // mat2x2f, mat3x3f, etc.
 
   // Common generic types that can appear without template params in some contexts
-  if (['vec2', 'vec3', 'vec4'].includes(name)) return true;
-  if (['mat2x2', 'mat2x3', 'mat2x4', 'mat3x2', 'mat3x3', 'mat3x4', 'mat4x2', 'mat4x3', 'mat4x4'].includes(name)) return true;
+  if (["vec2", "vec3", "vec4"].includes(name)) return true;
+  if (
+    [
+      "mat2x2",
+      "mat2x3",
+      "mat2x4",
+      "mat3x2",
+      "mat3x3",
+      "mat3x4",
+      "mat4x2",
+      "mat4x3",
+      "mat4x4",
+    ].includes(name)
+  )
+    return true;
 
   // Atomic, array, ptr
-  if (['atomic', 'array', 'ptr'].includes(name)) return true;
+  if (["atomic", "array", "ptr"].includes(name)) return true;
 
   // Sampler types
-  if (['sampler', 'sampler_comparison'].includes(name)) return true;
+  if (["sampler", "sampler_comparison"].includes(name)) return true;
 
   // Texture types
-  if (name.startsWith('texture_')) return true; // texture_1d, texture_2d, texture_3d, etc.
+  if (name.startsWith("texture_")) return true; // texture_1d, texture_2d, texture_3d, etc.
 
   return false;
 }
@@ -126,9 +140,11 @@ export function parseSimpleTypeRef(
   }
 
   // Accept word, or special keywords: "package", "super"
-  if (firstToken.kind === "word" ||
-      firstToken.text === "package" ||
-      firstToken.text === "super") {
+  if (
+    firstToken.kind === "word" ||
+    firstToken.text === "package" ||
+    firstToken.text === "super"
+  ) {
     stream.nextToken();
     nameParts.push(firstToken.text);
   } else {
@@ -148,9 +164,12 @@ export function parseSimpleTypeRef(
 
     // Expect another identifier
     const nextPart = stream.peek();
-    if (!nextPart || (nextPart.kind !== "word" &&
-                       nextPart.text !== "package" &&
-                       nextPart.text !== "super")) {
+    if (
+      !nextPart ||
+      (nextPart.kind !== "word" &&
+        nextPart.text !== "package" &&
+        nextPart.text !== "super")
+    ) {
       throw new Error("Expected identifier after '::'");
     }
 
@@ -175,10 +194,6 @@ export function parseSimpleTypeRef(
   // Open element to collect contents
   openElem(ctx, { kind: "type", contents: [] });
 
-  // Push a scope for the type reference (matching V1 behavior)
-  // This creates a subscope where the RefIdent is saved
-  ctx.pushScope();
-
   // Create RefIdentElem for the type name
   const refIdentElem: RefIdentElem = {
     kind: "ref",
@@ -198,7 +213,7 @@ export function parseSimpleTypeRef(
   ctx.addElem(refIdentElem);
 
   // Check for template parameters: <param1, param2, ...>
-  let templateParams: TypeTemplateParameter[] | undefined = undefined;
+  let templateParams: TypeTemplateParameter[] | undefined;
 
   // Use the special template opening token handler
   const templateStart = stream.nextTemplateStartToken();
@@ -244,9 +259,6 @@ export function parseSimpleTypeRef(
   }
 
   const endPos = checkpoint(stream);
-
-  // Pop the type reference scope
-  ctx.popScope();
 
   // Close and fill with text
   const contents = closeElem(ctx, startPos, endPos);

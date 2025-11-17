@@ -19,6 +19,7 @@ import type {
   StructElem,
   StructMemberElem,
   TypedDeclElem,
+  TypeRefElem,
   VarElem,
 } from "../AbstractElems.ts";
 import type { Scope } from "../Scope.ts";
@@ -27,8 +28,8 @@ import { parseSimpleExpression } from "./ExpressionParsers.ts";
 import type { ParseContext } from "./ParseContext.ts";
 import { checkpoint, consume, expect, reset } from "./ParseUtil.ts";
 import { parseSimpleTypeRef } from "./TypeParsers.ts";
+import { closeElem, openElem } from "./v2/ContentsHelpers.ts";
 import type { WeslStream } from "./WeslStream.ts";
-import { openElem, closeElem } from "./v2/ContentsHelpers.ts";
 
 // Helper functions to reduce duplication
 
@@ -107,9 +108,8 @@ export function parseTypedDecl(
   ctx.saveIdent(declIdent);
 
   // Check for optional type annotation `: type`
-  let typeRef: TypeRefElem | undefined = undefined;
-  let typeScope: Scope | undefined = undefined;
-  const colonPos = checkpoint(stream);
+  let typeRef: TypeRefElem | undefined;
+  let typeScope: Scope | undefined;
   if (consume(stream, ":")) {
     // Push a scope for the type reference (matches V1's scopeCollectNoIf pattern)
     ctx.pushScope();
@@ -469,8 +469,10 @@ export function parseAliasDecl(
   // Expect "="
   expect(stream, "=", "Expected '=' after alias name");
 
+  // Push a scope for the type reference (matches V1's scopeCollectNoIf pattern)
+  ctx.pushScope();
+
   // Parse the type reference
-  // parseSimpleTypeRef creates its own scope for the type ref, which matches V1's scopeCollect behavior
   const typeRef = parseSimpleTypeRef(stream, ctx);
   if (!typeRef) {
     throw new Error("Expected type after '=' in alias declaration");
@@ -479,14 +481,12 @@ export function parseAliasDecl(
   // Add typeRef to contents so coverWithText doesn't duplicate its range
   ctx.addElem(typeRef);
 
-  // The scope created by parseSimpleTypeRef is now in the current scope's contents
-  // Find it and assign as the dependentScope for binding
-  const currentScope = ctx.currentScope();
-  const typeRefScope = currentScope.contents.findLast(c => c.kind === "scope");
-  if (!typeRefScope || typeRefScope.kind !== "scope") {
-    throw new Error("Expected scope for type reference in alias");
-  }
+  // Capture the type scope before popping (needed for binding)
+  const typeRefScope = ctx.currentScope();
   declIdent.dependentScope = typeRefScope;
+
+  // Pop the type reference scope
+  ctx.popScope();
 
   // Expect ";"
   expect(stream, ";", "Expected ';' after alias declaration");
@@ -837,7 +837,11 @@ export function parseLetDecl(
   ctx.addElem(typedDecl);
 
   // Expect initialization: "= expr"
-  expect(stream, "=", "Expected '=' after let identifier (let requires initialization)");
+  expect(
+    stream,
+    "=",
+    "Expected '=' after let identifier (let requires initialization)",
+  );
   const expr = parseSimpleExpression(stream, ctx);
   if (!expr) {
     throw new Error("Expected expression after '='");
