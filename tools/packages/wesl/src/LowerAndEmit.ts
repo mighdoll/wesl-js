@@ -150,7 +150,13 @@ export function lowerAndEmitElem(e: AbstractElem, ctx: EmitContext): void {
       if (!attrsInContents) {
         emitAttributes(e.attributes, ctx);
       }
-      emitContents(e, ctx);
+      // V2: trim leading/trailing whitespace from text elements
+      // V1: emit text elements as-is
+      if (weslParserConfig.useV2Parser) {
+        emitContentsWithTrimming(e, ctx);
+      } else {
+        emitContents(e, ctx);
+      }
       return;
     }
 
@@ -177,9 +183,12 @@ export function lowerAndEmitElem(e: AbstractElem, ctx: EmitContext): void {
   }
 }
 
-/** emit root elems with a blank line inbetween */
+/** emit root elems with a blank line inbetween
+ * V2: When extracting=false, we still need newlines between root declarations
+ * because V2's text elements don't include the source newlines (they're in gaps)
+ */
 function emitRootElemNl(ctx: EmitContext): void {
-  if (ctx.extracting) {
+  if (ctx.extracting || weslParserConfig.useV2Parser) {
     ctx.srcBuilder.addNl();
     ctx.srcBuilder.addNl();
   }
@@ -286,7 +295,12 @@ export function emitStruct(e: StructElem, ctx: EmitContext): void {
 
   if (validLength === 1) {
     srcBuilder.appendNext(" { ");
-    emitContentsNoWs(validMembers[0] as ContainerElem, ctx);
+    // V2: trim leading whitespace from struct member
+    if (weslParserConfig.useV2Parser) {
+      emitContentsWithTrimming(validMembers[0] as ContainerElem, ctx);
+    } else {
+      emitContentsNoWs(validMembers[0] as ContainerElem, ctx);
+    }
     srcBuilder.appendNext(" }");
     srcBuilder.addNl();
   } else {
@@ -321,6 +335,52 @@ export function emitContents(elem: ContainerElem, ctx: EmitContext): void {
   const validElements = filterValidElements(elem.contents, ctx.conditions);
   validElements.forEach(e => {
     lowerAndEmitElem(e, ctx);
+  });
+}
+
+/** emit contents with leading/trailing whitespace trimming (V2 parser)
+ *
+ * V2 parser creates text elements via closeElem() which fills gaps.
+ * This means text elements often have leading/trailing whitespace that
+ * needs to be trimmed for proper formatting.
+ *
+ * Example: "@if(true) const c1 = 10;" creates text element " const"
+ * After emitRootElemNl() adds "\n\n", we'd get "\n\n const" instead of "\n\nconst"
+ */
+function emitContentsWithTrimming(elem: ContainerElem, ctx: EmitContext): void {
+  const validElements = filterValidElements(elem.contents, ctx.conditions);
+
+  validElements.forEach((e, i) => {
+    if (e.kind === "text") {
+      // Use emitText for proper conditional attribute filtering
+      // but manually handle leading/trailing whitespace trimming
+      const text = e.srcModule.src.slice(e.start, e.end);
+
+      // Check for conditional attributes (must filter these out)
+      const conditionalMatch = text.match(/@(if|elif)\s*\([^)]*\)|@else\b/);
+
+      if (conditionalMatch) {
+        // Let emitText handle this (it filters out conditionals)
+        emitText(e, ctx);
+      } else {
+        // No conditional - handle trimming ourselves
+        let trimmed = text;
+        // Trim leading whitespace (space, tab, newline) from first text element
+        if (i === 0) {
+          trimmed = trimmed.trimStart();
+        }
+        // Trim trailing whitespace from last text element
+        if (i === validElements.length - 1) {
+          trimmed = trimmed.trimEnd();
+        }
+
+        if (trimmed) {
+          ctx.srcBuilder.add(trimmed, e.start, e.end);
+        }
+      }
+    } else {
+      lowerAndEmitElem(e, ctx);
+    }
   });
 }
 
