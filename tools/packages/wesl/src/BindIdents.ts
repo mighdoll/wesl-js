@@ -204,6 +204,13 @@ export function publicDecl(
 
 /** @return true if this decl is at the root scope level of a module */
 export function isGlobal(declIdent: DeclIdent): boolean {
+  // V2 parser sets declIdent.isGlobal explicitly during parsing
+  // V1 parser doesn't set it, so we fall back to checking declElem.kind
+  if (declIdent.isGlobal !== undefined) {
+    return declIdent.isGlobal;
+  }
+
+  // V1 fallback: infer from element kind
   const { declElem } = declIdent;
   if (!declElem) return false;
 

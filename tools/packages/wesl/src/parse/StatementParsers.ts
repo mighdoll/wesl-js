@@ -172,8 +172,16 @@ function parseCompoundStatement(
   const nextToken = stream.peek();
   const isEmpty = nextToken && nextToken.text === "}";
 
-  // Only push scope if block is non-empty
-  if (!isEmpty) {
+  // Only push scope if block is non-empty AND no conditional attributes
+  // (if conditional attributes exist, the partial scope is already pushed by parseStatement)
+  const hasConditional = attributes && attributes.length > 0 &&
+    attributes.some(attr =>
+      attr.kind === "attribute" &&
+      (attr.attribute.kind === "@if" || attr.attribute.kind === "@elif" || attr.attribute.kind === "@else")
+    );
+
+  const shouldPushScope = !isEmpty && !hasConditional;
+  if (shouldPushScope) {
     ctx.pushScope();
   }
 
@@ -194,7 +202,7 @@ function parseCompoundStatement(
   }
 
   // Pop scope only if we pushed one
-  if (!isEmpty) {
+  if (shouldPushScope) {
     ctx.popScope();
   }
 
@@ -267,6 +275,44 @@ function parseSimpleStatement(
     token.text === "discard"
   ) {
     stream.nextToken(); // consume keyword
+
+    // Check for "break if" statement
+    if (token.text === "break") {
+      const nextToken = stream.peek();
+      if (nextToken && nextToken.text === "if") {
+        stream.nextToken(); // consume "if"
+
+        // Open statement to collect contents including "break if" keywords
+        const initialContents: AttributeElem[] = attributes ? [...attributes] : [];
+        openElem(ctx, { kind: "statement", contents: initialContents });
+
+        // Parse condition expression
+        const _expr = parseExpression(stream, ctx);
+        if (!_expr) {
+          throw new Error("Expected condition expression after 'break if'");
+        }
+
+        // Expect semicolon
+        expect(stream, ";", "Expected ';' after break if statement");
+
+        const endPos = checkpoint(stream);
+
+        // Close and fill with text elements
+        const contents = closeElem(ctx, startPos, endPos);
+
+        const stmt: StatementElem = {
+          kind: "statement",
+          start: startPos,
+          end: endPos,
+          contents,
+        };
+
+        attachAttributes(stmt, attributes);
+        return stmt;
+      }
+    }
+
+    // Regular break/continue/discard
     expect(stream, ";", "Expected ';' after statement");
 
     const endPos = checkpoint(stream);
@@ -756,6 +802,9 @@ function parseSwitchStatement(
 
   // Parse case clauses
   while (true) {
+    // Parse optional attributes for the case/default clause
+    const clauseAttrs = parseAttributeList(stream);
+
     const token = stream.peek();
     if (!token) {
       throw new Error("Unexpected end of input in switch statement");
@@ -777,25 +826,31 @@ function parseSwitchStatement(
         throw new Error("Expected expression after 'case'");
       }
 
-      // Expect colon
-      expect(stream, ":", "Expected ':' after case value");
+      // Check for optional colon (WGSL allows both `case 0:` and `case 0 { }`)
+      const colonToken = stream.peek();
+      if (colonToken && colonToken.text === ":") {
+        stream.nextToken(); // consume ":"
+      }
 
       // Parse case body (compound statement)
-      const caseBody = parseCompoundStatement(stream, ctx);
+      const caseBody = parseCompoundStatement(stream, ctx, clauseAttrs.length > 0 ? clauseAttrs : undefined);
       if (!caseBody) {
-        throw new Error("Expected '{' after case ':'");
+        throw new Error("Expected '{' after case value");
       }
       ctx.addElem(caseBody);
     } else if (token.text === "default") {
       stream.nextToken(); // consume "default"
 
-      // Expect colon
-      expect(stream, ":", "Expected ':' after 'default'");
+      // Check for optional colon (WGSL allows both `default:` and `default { }`)
+      const colonToken = stream.peek();
+      if (colonToken && colonToken.text === ":") {
+        stream.nextToken(); // consume ":"
+      }
 
       // Parse default body (compound statement)
-      const defaultBody = parseCompoundStatement(stream, ctx);
+      const defaultBody = parseCompoundStatement(stream, ctx, clauseAttrs.length > 0 ? clauseAttrs : undefined);
       if (!defaultBody) {
-        throw new Error("Expected '{' after default ':'");
+        throw new Error("Expected '{' after 'default'");
       }
       ctx.addElem(defaultBody);
     } else {

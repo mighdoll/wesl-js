@@ -78,6 +78,7 @@ function linkDeclIdentElem(
 export function parseTypedDecl(
   stream: WeslStream,
   ctx: ParseContext,
+  isGlobal = true,
 ): TypedDeclElem | null {
   const startPos = checkpoint(stream);
 
@@ -95,7 +96,7 @@ export function parseTypedDecl(
   const declIdent = ctx.createDeclIdent(
     nameToken.text,
     nameToken.span,
-    true, // isGlobal for const declarations
+    isGlobal,
   );
 
   // Create DeclIdentElem
@@ -173,6 +174,16 @@ export function parseConstDecl(
     return null;
   }
 
+  // Determine if this is a global const by checking if we're at module level
+  // A global const is one whose containing scope is the module root scope
+  // The module root scope has parent === null
+  // Walk up through any partial scopes to find the actual containing scope
+  let containingScope = ctx.currentScope();
+  while (containingScope.kind === "partial" && containingScope.parent) {
+    containingScope = containingScope.parent;
+  }
+  const isGlobal = containingScope.parent === null;
+
   // Push a partial scope for the entire const declaration (matches V1 behavior)
   ctx.pushScope("partial");
 
@@ -180,7 +191,7 @@ export function parseConstDecl(
   openElem(ctx, { kind: "const", contents: [] });
 
   // Parse the typed declaration (name with optional type)
-  const typedDecl = parseTypedDecl(stream, ctx);
+  const typedDecl = parseTypedDecl(stream, ctx, isGlobal);
   if (!typedDecl) {
     throwParseError(stream, "Expected identifier after 'const'");
   }
@@ -772,8 +783,9 @@ export function parseLocalVarDecl(
   // Open element to collect contents
   openElem(ctx, { kind: "var", contents: [] });
 
+  // Local var declarations are never global
   // Parse the typed declaration (name with optional type)
-  const typedDecl = parseTypedDecl(stream, ctx);
+  const typedDecl = parseTypedDecl(stream, ctx, false);
   if (!typedDecl) {
     throwParseError(stream, "Expected identifier after 'var'");
   }
@@ -833,8 +845,9 @@ export function parseLetDecl(
   // Open element to collect contents
   openElem(ctx, { kind: "let", contents: [] });
 
+  // Let declarations are always local (inside functions)
   // Parse the typed declaration (name with optional type)
-  const typedDecl = parseTypedDecl(stream, ctx);
+  const typedDecl = parseTypedDecl(stream, ctx, false);
   if (!typedDecl) {
     throwParseError(stream, "Expected identifier after 'let'");
   }
