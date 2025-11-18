@@ -84,12 +84,14 @@ function parseStubTemplateExpression(
     }
 
     // Check if we've reached the end of this template parameter
-    if (depth === 0 && (token.text === "," || token.text === ">")) {
+    // Note: token.text could be ">", ">>", or ">=" at the end of a template
+    if (depth === 0 && (token.text === "," || token.text.startsWith(">"))) {
       // We're done with this expression
       break;
     }
 
     // Track nesting depth for angle brackets
+    // Only count single < or > tokens, not operators like << or >>
     if (token.text === "<") depth++;
     if (token.text === ">") depth--;
 

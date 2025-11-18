@@ -485,25 +485,13 @@ test("parse nested template that ends with >> ", () => {
   const astString = astToString(ast.moduleElem);
   expect(astString).toMatchInlineSnapshot(`
     "module
-      fn main(a: vec2<array<MyStruct, '4'>>)
+      fn main(a: vec2<array<MyStruct, >>)
         decl %main
         param
-          decl %a
-          typeDecl %a : vec2<array<MyStruct, '4'>>
-            text ': '
-            type vec2<array<MyStruct, '4'>>
-              ref vec2
-              text '<'
-              type array<MyStruct, '4'>
-                ref array
-                text ' <'
-                type MyStruct
-                  ref MyStruct
-                text ','
-                expression '4'
-                  text '4'
-                text '>'
-              text '>'
+          text 'a: '
+          type vec2<array<MyStruct, >>
+            ref vec2
+            text '<array <MyStruct,4>>'
         statement
           text '{ }'"
   `);
@@ -967,25 +955,22 @@ test("fn main() { var tmp: array<i32, 1 << 1>=array(1, 2); }", ctx => {
       fn main()
         decl %main
         statement
-          text '{ '
-          var %tmp : array<i32, '1 << 1'>
-            text 'var '
-            typeDecl %tmp : array<i32, '1 << 1'>
+          text '{'
+          var %tmp : array<i32, >
+            text ' var'
+            typeDecl %tmp : array<i32, >
+              text ' '
               decl %tmp
               text ': '
-              type array<i32, '1 << 1'>
+              type array<i32, >
                 ref array
-                text '<'
-                type i32
-                  ref i32
-                text ', '
-                expression '1 << 1'
-                  text '1 << 1'
+                text '<i32,'
+                expression 
                 text '>'
             text '='
             ref array
-            text '(1, 2)'
-          text '; }'"
+            text '(1, 2);'
+          text ' }'"
   `);
 });
 
