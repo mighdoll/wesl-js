@@ -8,8 +8,10 @@
  * Each grammar construct is validated against existing parser's AST output.
  */
 
+import { ParseError } from "mini-parse";
 import type { ModuleElem } from "../../AbstractElems.ts";
 import type { WeslAST, WeslParseState } from "../../ParseWESL.ts";
+import { WeslParseError } from "../../ParseWESL.ts";
 import type { SrcModule } from "../../Scope.ts";
 import { emptyScope } from "../../Scope.ts";
 import { parseAttributeList } from "../AttributeParsers.ts";
@@ -240,5 +242,19 @@ export class WeslParserV2 {
  */
 export function parseWeslV2(srcModule: SrcModule): WeslAST {
   const parser = new WeslParserV2(srcModule);
-  return parser.parse();
+  try {
+    return parser.parse();
+  } catch (e) {
+    // Re-throw ParseError with proper formatting
+    if (e instanceof ParseError) {
+      throw new WeslParseError({ cause: e, src: srcModule });
+    }
+    // Convert plain Error to ParseError with current position
+    const pos = parser.ctx.stream.checkpoint();
+    const parseError = new ParseError(
+      e instanceof Error ? e.message : String(e),
+      [pos, pos],
+    );
+    throw new WeslParseError({ cause: parseError, src: srcModule });
+  }
 }

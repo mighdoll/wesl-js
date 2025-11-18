@@ -4,7 +4,11 @@ import { parseTest } from "./TestUtil.ts";
 
 test("parse fn foo() { invalid }", () => {
   const src = "fn foo() { let }";
-  expect(() => parseTest(src)).toThrowErrorMatchingInlineSnapshot(`[Error: Expected identifier after 'let']`);
+  expect(() => parseTest(src)).toThrowErrorMatchingInlineSnapshot(`
+    [Error: ./test.wesl:1:15 error: Expected identifier after 'let'
+    fn foo() { let }
+                  ^]
+  `);
 });
 
 test("parse invalid if", () => {
@@ -12,12 +16,21 @@ test("parse invalid if", () => {
   let a = 3;
   if(1<1) { 🐈‍⬛ } else {  }
   }`;
-  expect(() => parseTest(src)).toThrowErrorMatchingInlineSnapshot(`[Error: Invalid token 🐈]`);
+  expect(() => parseTest(src)).toThrowErrorMatchingInlineSnapshot(`
+    [Error: ./test.wesl:3:13 error: Invalid token 🐈
+
+      if(1<1) { 🐈‍⬛ } else {  }
+                 ^^]
+  `);
 });
 
 test("parse invalid name", () => {
   const src = "var package = 3;";
-  expect(() => parseTest(src)).toThrowErrorMatchingInlineSnapshot(`[Error: Expected identifier after 'var']`);
+  expect(() => parseTest(src)).toThrowErrorMatchingInlineSnapshot(`
+    [Error: ./test.wesl:1:4 error: Expected identifier after 'var'
+    var package = 3;
+       ^]
+  `);
 });
 
 test("error highlight", () => {
