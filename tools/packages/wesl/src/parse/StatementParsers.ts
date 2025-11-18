@@ -312,13 +312,16 @@ function parseSimpleStatement(
       }
     }
 
-    // Regular break/continue/discard
+    // Regular break/continue/discard - use openElem/closeElem for text coverage
+    const initialContents: AttributeElem[] = attributes ? [...attributes] : [];
+    openElem(ctx, { kind: "statement", contents: initialContents });
+
     expect(stream, ";", "Expected ';' after statement");
 
     const endPos = checkpoint(stream);
 
-    // Initialize contents with attributes (if present)
-    const contents: AttributeElem[] = attributes ? [...attributes] : [];
+    // Close and fill with text elements
+    const contents = closeElem(ctx, startPos, endPos);
 
     const stmt: StatementElem = {
       kind: "statement",
@@ -729,40 +732,12 @@ function parseLoopStatement(
   const initialContents: AttributeElem[] = attributes ? [...attributes] : [];
   openElem(ctx, { kind: "statement", contents: initialContents });
 
-  // Parse loop body (manually to handle continuing block)
-  expect(stream, "{", "Expected '{' after 'loop'");
-
-  ctx.pushScope();
-
-  while (true) {
-    const token = stream.peek();
-    if (!token) {
-      throw new Error("Unexpected end of input in loop body");
-    }
-
-    if (token.text === "}") {
-      stream.nextToken();
-      break;
-    }
-
-    // Check for continuing block
-    if (token.text === "continuing") {
-      stream.nextToken();
-      const continuingBlock = parseCompoundStatement(stream, ctx);
-      if (continuingBlock) {
-        ctx.addElem(continuingBlock);
-      }
-      continue;
-    }
-
-    // Regular statement
-    const stmt = parseStatement(stream, ctx);
-    if (stmt) {
-      ctx.addElem(stmt);
-    }
+  // Parse loop body (continuing blocks are now parsed as regular statements)
+  const body = parseCompoundStatement(stream, ctx);
+  if (!body) {
+    throw new Error("Expected '{' after 'loop'");
   }
-
-  ctx.popScope();
+  ctx.addElem(body);
 
   const endPos = checkpoint(stream);
 
@@ -778,6 +753,50 @@ function parseLoopStatement(
 
   attachAttributes(loopStmt, attributes);
   return loopStmt;
+}
+
+/**
+ * Parse a continuing statement: continuing { }
+ * Used inside loop statements
+ */
+function parseContinuingStatement(
+  stream: WeslStream,
+  ctx: ParseContext,
+  attributes?: AttributeElem[],
+): StatementElem | null {
+  const startPos = checkpoint(stream);
+
+  // Expect "continuing"
+  if (!consume(stream, "continuing")) {
+    reset(stream, startPos);
+    return null;
+  }
+
+  // Open statement to collect contents including "continuing" keyword
+  const initialContents: AttributeElem[] = attributes ? [...attributes] : [];
+  openElem(ctx, { kind: "statement", contents: initialContents });
+
+  // Parse body
+  const body = parseCompoundStatement(stream, ctx);
+  if (!body) {
+    throw new Error("Expected '{' after 'continuing'");
+  }
+  ctx.addElem(body);
+
+  const endPos = checkpoint(stream);
+
+  // Close and fill with text
+  const contents = closeElem(ctx, startPos, endPos);
+
+  const continuingStmt: StatementElem = {
+    kind: "statement",
+    start: startPos,
+    end: endPos,
+    contents,
+  };
+
+  attachAttributes(continuingStmt, attributes);
+  return continuingStmt;
 }
 
 /**
@@ -1025,6 +1044,15 @@ export function parseStatement(
   }
 
   stmt = parseLoopStatement(stream, ctx, attrsOrUndef);
+  if (stmt) {
+    if (hasConditional) {
+      const partialScope = ctx.popScope();
+      partialScope.condAttribute = getConditionalAttribute(attributes);
+    }
+    return stmt;
+  }
+
+  stmt = parseContinuingStatement(stream, ctx, attrsOrUndef);
   if (stmt) {
     if (hasConditional) {
       const partialScope = ctx.popScope();
