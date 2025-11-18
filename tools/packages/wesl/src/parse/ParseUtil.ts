@@ -91,10 +91,7 @@ export function expectKind<T extends Token>(
  * Throw a ParseError with the span of the current/next token
  * Use this when you encounter an unexpected token or missing token
  */
-export function throwParseError(
-  stream: Stream<Token>,
-  message: string,
-): never {
+export function throwParseError(stream: Stream<Token>, message: string): never {
   const weslStream = stream as WeslStream;
   const token = weslStream.peek();
   if (token) {

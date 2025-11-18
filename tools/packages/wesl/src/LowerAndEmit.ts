@@ -250,7 +250,7 @@ function emitAttributes(
 
 /** emit structs explicitly so we can control commas between conditional members */
 export function emitStruct(e: StructElem, ctx: EmitContext): void {
-  const { name, members, start, end } = e;
+  const { name, members, start } = e;
   const { srcBuilder, conditions } = ctx;
 
   const validMembers = filterValidElements(members, conditions);

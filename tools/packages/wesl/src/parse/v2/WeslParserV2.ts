@@ -169,7 +169,7 @@ export class WeslParserV2 {
 
       // Check if attributes contain @if/@elif/@else
       const hasConditional = attributes.some(
-        (attr) =>
+        attr =>
           attr.kind === "attribute" &&
           (attr.attribute.kind === "@if" ||
             attr.attribute.kind === "@elif" ||
@@ -213,13 +213,22 @@ export class WeslParserV2 {
       if (hasConditional && parsed) {
         const partialScope = this.ctx.popScope();
         const condAttr = attributes.find(
-          (attr) =>
+          attr =>
             attr.kind === "attribute" &&
             (attr.attribute.kind === "@if" ||
               attr.attribute.kind === "@elif" ||
               attr.attribute.kind === "@else"),
         );
-        partialScope.condAttribute = condAttr?.attribute;
+        if (condAttr && condAttr.kind === "attribute") {
+          const attr = condAttr.attribute;
+          if (
+            attr.kind === "@if" ||
+            attr.kind === "@elif" ||
+            attr.kind === "@else"
+          ) {
+            partialScope.condAttribute = attr;
+          }
+        }
       }
 
       if (parsed) {
@@ -249,11 +258,10 @@ export function parseWeslV2(srcModule: SrcModule): WeslAST {
     if (e instanceof ParseError) {
       throw new WeslParseError({ cause: e, src: srcModule });
     }
-    // Convert plain Error to ParseError with current position
-    const pos = parser.ctx.stream.checkpoint();
+    // Convert plain Error to ParseError with position 0
     const parseError = new ParseError(
       e instanceof Error ? e.message : String(e),
-      [pos, pos],
+      [0, 0],
     );
     throw new WeslParseError({ cause: parseError, src: srcModule });
   }

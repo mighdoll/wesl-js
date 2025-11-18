@@ -9,8 +9,8 @@
 
 import type {
   AttributeElem,
-  ElseAttribute,
   ElifAttribute,
+  ElseAttribute,
   IfAttribute,
   StatementElem,
 } from "../AbstractElems.ts";
@@ -174,10 +174,15 @@ function parseCompoundStatement(
 
   // Only push scope if block is non-empty AND no conditional attributes
   // (if conditional attributes exist, the partial scope is already pushed by parseStatement)
-  const hasConditional = attributes && attributes.length > 0 &&
-    attributes.some(attr =>
-      attr.kind === "attribute" &&
-      (attr.attribute.kind === "@if" || attr.attribute.kind === "@elif" || attr.attribute.kind === "@else")
+  const hasConditional =
+    attributes &&
+    attributes.length > 0 &&
+    attributes.some(
+      attr =>
+        attr.kind === "attribute" &&
+        (attr.attribute.kind === "@if" ||
+          attr.attribute.kind === "@elif" ||
+          attr.attribute.kind === "@else"),
     );
 
   const shouldPushScope = !isEmpty && !hasConditional;
@@ -283,7 +288,9 @@ function parseSimpleStatement(
         stream.nextToken(); // consume "if"
 
         // Open statement to collect contents including "break if" keywords
-        const initialContents: AttributeElem[] = attributes ? [...attributes] : [];
+        const initialContents: AttributeElem[] = attributes
+          ? [...attributes]
+          : [];
         openElem(ctx, { kind: "statement", contents: initialContents });
 
         // Parse condition expression
@@ -621,7 +628,10 @@ function parseForStatement(
     // Check for postfix ++ or -- (e.g., i++, count--)
     // These are consumed as text, not as part of the expression AST
     const postfixToken = stream.peek();
-    if (postfixToken && (postfixToken.text === "++" || postfixToken.text === "--")) {
+    if (
+      postfixToken &&
+      (postfixToken.text === "++" || postfixToken.text === "--")
+    ) {
       stream.nextToken(); // consume the postfix operator (will be covered by text)
     }
   }
@@ -852,7 +862,11 @@ function parseSwitchStatement(
       }
 
       // Parse case body (compound statement)
-      const caseBody = parseCompoundStatement(stream, ctx, clauseAttrs.length > 0 ? clauseAttrs : undefined);
+      const caseBody = parseCompoundStatement(
+        stream,
+        ctx,
+        clauseAttrs.length > 0 ? clauseAttrs : undefined,
+      );
       if (!caseBody) {
         throw new Error("Expected '{' after case value");
       }
@@ -867,7 +881,11 @@ function parseSwitchStatement(
       }
 
       // Parse default body (compound statement)
-      const defaultBody = parseCompoundStatement(stream, ctx, clauseAttrs.length > 0 ? clauseAttrs : undefined);
+      const defaultBody = parseCompoundStatement(
+        stream,
+        ctx,
+        clauseAttrs.length > 0 ? clauseAttrs : undefined,
+      );
       if (!defaultBody) {
         throw new Error("Expected '{' after 'default'");
       }
@@ -896,7 +914,7 @@ function parseSwitchStatement(
 /** Check if attributes contain @if/@elif/@else */
 function hasConditionalAttribute(attributes: AttributeElem[]): boolean {
   return attributes.some(
-    (attr) =>
+    attr =>
       attr.kind === "attribute" &&
       (attr.attribute.kind === "@if" ||
         attr.attribute.kind === "@elif" ||
@@ -909,13 +927,17 @@ function getConditionalAttribute(
   attributes: AttributeElem[],
 ): IfAttribute | ElifAttribute | ElseAttribute | undefined {
   const elem = attributes.find(
-    (attr) =>
+    attr =>
       attr.kind === "attribute" &&
       (attr.attribute.kind === "@if" ||
         attr.attribute.kind === "@elif" ||
         attr.attribute.kind === "@else"),
   );
-  return elem?.attribute as IfAttribute | ElifAttribute | ElseAttribute | undefined;
+  return elem?.attribute as
+    | IfAttribute
+    | ElifAttribute
+    | ElseAttribute
+    | undefined;
 }
 
 /**
@@ -940,7 +962,8 @@ export function parseStatement(
   }
 
   // If we have conditional attributes, create a partial scope
-  const hasConditional = attributes.length > 0 && hasConditionalAttribute(attributes);
+  const hasConditional =
+    attributes.length > 0 && hasConditionalAttribute(attributes);
   if (hasConditional) {
     ctx.pushScope("partial");
   }
