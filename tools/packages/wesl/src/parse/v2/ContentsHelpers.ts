@@ -50,7 +50,7 @@ export function closeElem(
   }
 
   // Fill gaps with text elements
-  return coverWithText(ctx, openElem.contents, start, end);
+  return coverWithText(ctx, openElem.contents as GrammarElem[], start, end);
 }
 
 /**

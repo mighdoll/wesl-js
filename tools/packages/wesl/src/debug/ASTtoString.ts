@@ -126,6 +126,8 @@ function addElemFields(elem: AbstractElem, str: LineWrapper): void {
     // Nothing to do for now
   } else if (kind === "literal") {
     str.add(` literal(${elem.value})`);
+  } else if (kind === "translate-time-feature") {
+    str.add(` ttfeature(${elem.name})`);
   } else if (kind === "binary-expression") {
     str.add(` binop(${elem.operator.value})`);
   } else if (kind === "unary-expression") {

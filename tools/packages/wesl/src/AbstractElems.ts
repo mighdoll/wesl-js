@@ -11,7 +11,7 @@ import type { DeclIdent, RefIdent, Scope, SrcModule } from "./Scope.ts";
  * as 'TextElem' nodes, which are generally just copied to the output WGSL
  * along with their containing element.
  */
-export type AbstractElem = GrammarElem | SyntheticElem;
+export type AbstractElem = GrammarElem | SyntheticElem | ExpressionElem;
 
 export type GrammarElem = ContainerElem | TerminalElem;
 
@@ -269,48 +269,46 @@ export interface TranslateTimeExpressionElem {
 }
 
 /** A literal value in WESL source. A boolean or a number. */
-export interface Literal {
+export interface Literal extends AbstractElemBase {
   kind: "literal";
   value: string;
-  span: Span;
 }
 
 /** `words`s inside `@if` */
-export interface TranslateTimeFeature {
+export interface TranslateTimeFeature extends AbstractElemBase {
   kind: "translate-time-feature";
   name: string;
-  span: Span;
 }
 
 /** (expr) */
-export interface ParenthesizedExpression {
+export interface ParenthesizedExpression extends AbstractElemBase {
   kind: "parenthesized-expression";
   expression: ExpressionElem;
 }
 
 /** `foo[expr]` */
-export interface ComponentExpression {
+export interface ComponentExpression extends AbstractElemBase {
   kind: "component-expression";
   base: ExpressionElem;
   access: ExpressionElem;
 }
 
 /** `foo.member` */
-export interface ComponentMemberExpression {
+export interface ComponentMemberExpression extends AbstractElemBase {
   kind: "component-member-expression";
   base: ExpressionElem;
   access: NameElem;
 }
 
 /** `+foo` */
-export interface UnaryExpression {
+export interface UnaryExpression extends AbstractElemBase {
   kind: "unary-expression";
   operator: UnaryOperator;
   expression: ExpressionElem;
 }
 
 /** `foo + bar` */
-export interface BinaryExpression {
+export interface BinaryExpression extends AbstractElemBase {
   kind: "binary-expression";
   operator: BinaryOperator;
   left: ExpressionElem;
@@ -318,7 +316,7 @@ export interface BinaryExpression {
 }
 
 /** `foo(arg, arg)` */
-export interface FunctionCallExpression {
+export interface FunctionCallExpression extends AbstractElemBase {
   kind: "call-expression";
   function: RefIdentElem;
   arguments: ExpressionElem[];

@@ -136,11 +136,9 @@ export function parseImportRelative(
 // ============================================================================
 
 // Forward declarations for mutual recursion
-// biome-ignore lint/style/useConst: mutual recursion requires reassignment
 export let parseImportCollection: (
   stream: WeslStream,
 ) => ImportCollection | null;
-// biome-ignore lint/style/useConst: mutual recursion requires reassignment
 export let parseImportPathOrItem: (
   stream: WeslStream,
 ) => ImportStatement | null;

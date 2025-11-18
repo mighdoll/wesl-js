@@ -500,20 +500,24 @@ export function parseElifAttribute(stream: WeslStream): ElifAttribute | null {
 
 // Helper functions to create AST nodes
 function makeLiteral(token: WeslToken<"keyword" | "number">): Literal {
+  const [start, end] = token.span;
   return {
     kind: "literal",
     value: token.text,
-    span: token.span,
+    start,
+    end,
   };
 }
 
 function makeTranslateTimeFeature(
   token: WeslToken<"word">,
 ): TranslateTimeFeature {
+  const [start, end] = token.span;
   return {
     kind: "translate-time-feature",
     name: token.text,
-    span: token.span,
+    start,
+    end,
   };
 }
 
@@ -546,6 +550,8 @@ function makeParenthesizedExpression(
   return {
     kind: "parenthesized-expression",
     expression,
+    start: expression.start,
+    end: expression.end,
   };
 }
 
@@ -564,7 +570,14 @@ function makeUnaryExpression(
   operator: UnaryOperator,
   expression: ExpressionElem,
 ): UnaryExpression {
-  return { kind: "unary-expression", operator, expression };
+  const [opStart] = operator.span;
+  return {
+    kind: "unary-expression",
+    operator,
+    expression,
+    start: opStart,
+    end: expression.end,
+  };
 }
 
 function makeRepeatingBinaryExpression(
@@ -578,6 +591,8 @@ function makeRepeatingBinaryExpression(
       operator: op,
       left: result,
       right,
+      start: result.start,
+      end: right.end,
     };
     result = binaryExpression;
   }

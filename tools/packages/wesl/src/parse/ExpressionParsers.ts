@@ -125,31 +125,36 @@ export function parseSimpleIdentifier(
 
 /**
  * Parse function call arguments: (expr1, expr2, ...)
- * Returns full parsed ExpressionElem for each argument
+ * Returns full parsed ExpressionElem for each argument and end position
  */
 function parseFunctionCallArgs(
   stream: WeslStream,
   ctx: ParseContext,
-): ExpressionElem[] {
+): { args: ExpressionElem[]; end: number } {
   const args: ExpressionElem[] = [];
 
   // Expect opening paren
-  if (!consume(stream, "(")) {
-    return args;
+  const openParen = consume(stream, "(");
+  if (!openParen) {
+    return { args, end: stream.peek()?.span[0] ?? 0 };
   }
 
   // Check for empty argument list
-  if (consume(stream, ")")) {
-    return args;
+  const closeParen1 = consume(stream, ")");
+  if (closeParen1) {
+    return { args, end: closeParen1.span[1] };
   }
 
   // Parse comma-separated arguments
+  let endPos = 0;
   while (true) {
     // Parse argument expression
     const arg = parseExpression(stream, ctx);
     if (!arg) {
       // Check if we're at a closing paren (trailing comma case)
-      if (stream.peek()?.text === ")") {
+      const closeParen = stream.peek();
+      if (closeParen?.text === ")") {
+        endPos = closeParen.span[1];
         stream.nextToken();
         break;
       }
@@ -165,7 +170,9 @@ function parseFunctionCallArgs(
     if (next.text === ",") {
       stream.nextToken();
       // Check for trailing comma before closing paren
-      if (stream.peek()?.text === ")") {
+      const closeParen = stream.peek();
+      if (closeParen?.text === ")") {
+        endPos = closeParen.span[1];
         stream.nextToken();
         break;
       }
@@ -173,6 +180,7 @@ function parseFunctionCallArgs(
     }
 
     if (next.text === ")") {
+      endPos = next.span[1];
       stream.nextToken();
       break;
     }
@@ -180,7 +188,7 @@ function parseFunctionCallArgs(
     throw new Error("Expected ',' or ')' in function arguments");
   }
 
-  return args;
+  return { args, end: endPos };
 }
 
 /**
@@ -220,6 +228,8 @@ function parsePostfixExpression(
         kind: "component-member-expression",
         base: current,
         access: memberName,
+        start: current.start,
+        end: memberName.end,
       };
 
       current = memberExpr;
@@ -236,13 +246,19 @@ function parsePostfixExpression(
         throw new Error("Expected expression in array index");
       }
 
-      expect(stream, "]", "Expected ']' after array index");
+      const closeBracket = expect(
+        stream,
+        "]",
+        "Expected ']' after array index",
+      );
 
       // Create ComponentExpression
       const arrayExpr: ComponentExpression = {
         kind: "component-expression",
         base: current,
         access: indexExpr,
+        start: current.start,
+        end: closeBracket.span[1],
       };
 
       current = arrayExpr;
@@ -282,13 +298,15 @@ function parsePostfixExpression(
         const nextToken = stream.peek();
         if (success && nextToken && nextToken.text === "(") {
           // It's a type constructor! Parse the arguments
-          const args = parseFunctionCallArgs(stream, ctx);
+          const { args, end } = parseFunctionCallArgs(stream, ctx);
 
           // Create FunctionCallExpression (type constructors are function calls in AST)
           const callExpr: FunctionCallExpression = {
             kind: "call-expression",
             function: current,
             arguments: args,
+            start: current.start,
+            end,
           };
 
           current = callExpr;
@@ -301,13 +319,15 @@ function parsePostfixExpression(
       }
 
       // Regular function call: identifier(args)
-      const args = parseFunctionCallArgs(stream, ctx);
+      const { args, end } = parseFunctionCallArgs(stream, ctx);
 
       // Create FunctionCallExpression
       const callExpr: FunctionCallExpression = {
         kind: "call-expression",
         function: current,
         arguments: args,
+        start: current.start,
+        end,
       };
 
       current = callExpr;
@@ -360,6 +380,8 @@ function parseUnaryExpression(
       kind: "unary-expression",
       operator,
       expression: operand,
+      start: operator.span[0],
+      end: operand.end,
     };
 
     return unaryExpr;
@@ -380,18 +402,21 @@ function parsePrimaryExpression(
   const startPos = checkpoint(stream);
 
   // Try parenthesized expression
-  if (consume(stream, "(")) {
+  const openParen = consume(stream, "(");
+  if (openParen) {
     const expr = parseExpression(stream, ctx);
     if (!expr) {
       throw new Error("Expected expression after '('");
     }
 
-    expect(stream, ")", "Expected ')' after expression");
+    const closeParen = expect(stream, ")", "Expected ')' after expression");
 
     // Create ParenthesizedExpression
     const parenExpr: ParenthesizedExpression = {
       kind: "parenthesized-expression",
       expression: expr,
+      start: openParen.span[0],
+      end: closeParen.span[1],
     };
 
     // Check for postfix operations
@@ -462,6 +487,7 @@ function parseBinaryExpression(
   minPrecedence: number,
   left: ExpressionElem,
 ): ExpressionElem {
+  let current = left;
   while (true) {
     const token = stream.peek();
     if (!token) break;
@@ -502,14 +528,16 @@ function parseBinaryExpression(
     const binaryExpr: BinaryExpression = {
       kind: "binary-expression",
       operator,
-      left,
+      left: current,
       right,
+      start: current.start,
+      end: right.end,
     };
 
-    left = binaryExpr;
+    current = binaryExpr;
   }
 
-  return left;
+  return current;
 }
 
 /**
@@ -541,9 +569,11 @@ export function parseSimpleExpression(
 // Helper functions
 
 function makeLiteral(token: WeslToken<"keyword" | "number">): Literal {
+  const [start, end] = token.span;
   return {
     kind: "literal",
     value: token.text,
-    span: token.span,
+    start,
+    end,
   };
 }

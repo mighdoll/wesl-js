@@ -78,6 +78,7 @@ export function lowerAndEmitElem(e: AbstractElem, ctx: EmitContext): void {
 
     // expression elements (V2 parser creates these)
     case "literal":
+    case "translate-time-feature":
     case "binary-expression":
     case "unary-expression":
     case "call-expression":
@@ -325,7 +326,9 @@ function emitExpression(e: ExpressionElem, ctx: EmitContext): void {
   const { kind } = e;
 
   if (kind === "literal") {
-    ctx.srcBuilder.add(e.value, e.span[0], e.span[1]);
+    ctx.srcBuilder.add(e.value, e.start, e.end);
+  } else if (kind === "translate-time-feature") {
+    ctx.srcBuilder.add(e.name, e.start, e.end);
   } else if (kind === "ref") {
     emitRefIdent(e, ctx);
   } else if (kind === "binary-expression") {
@@ -350,7 +353,9 @@ function emitExpression(e: ExpressionElem, ctx: EmitContext): void {
   } else if (kind === "call-expression") {
     emitExpression(e.function, ctx);
     // Arguments should be in text elements with parentheses
-    e.arguments.forEach(arg => emitExpression(arg, ctx));
+    e.arguments.forEach(arg => {
+      emitExpression(arg, ctx);
+    });
   } else if (kind === "component-expression") {
     emitExpression(e.base, ctx);
     emitExpression(e.access, ctx);
