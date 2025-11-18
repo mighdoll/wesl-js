@@ -19,6 +19,9 @@ const v2OnlyTests = [
   "**/CompareV1V2.test.ts",
   "**/DebugImportBinding.test.ts",
   "**/ParseContext.test.ts",
+  "**/ParseConditionsV2.test.ts", // V2 AST structure snapshots
+  "**/ParseElifV2.test.ts", // V2 AST structure snapshots
+  "**/ParseErrorV2.test.ts", // V2 error message snapshots
 ];
 
 // V1-specific tests that validate V1 AST structure (should not run in V2 mode)
