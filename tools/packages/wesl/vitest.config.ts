@@ -26,6 +26,11 @@ const v1OnlyTests = [
   "**/ScopeWESL.test.ts",
   "**/BindWESL.test.ts",
   "**/ParseWESL.test.ts", // TODO: Update snapshots when V2 is feature-complete
+  "**/ParseConditions.test.ts", // V1 AST structure snapshots
+  "**/ParseElif.test.ts", // V1 AST structure snapshots
+  "**/ParseError.test.ts", // V1 AST structure snapshots
+  "**/Reflection.test.ts", // V1 AST structure snapshots
+  "**/TransformBindingStructs.test.ts", // V1 AST structure snapshots
 ];
 
 const baseExcludes = ["**/node_modules/**", "**/dist/**"];
