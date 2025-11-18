@@ -336,7 +336,10 @@ test("parse array alias", () => {
         text ' = '
         type array<Point, >
           ref array
-          text '<Point,'
+          text '<'
+          type Point
+            ref Point
+          text ','
           expression 
           text '>'
         text ';'
@@ -431,7 +434,10 @@ test("parse type in <template> in fn args", () => {
           text 'a: '
           type vec2<MyStruct>
             ref vec2
-            text '<MyStruct>'
+            text '<'
+            type MyStruct
+              ref MyStruct
+            text '>'
         statement
           text '{ }'
       text ';'"
@@ -451,7 +457,10 @@ test("parse simple templated type", () => {
           text 'a: '
           type array<MyStruct, >
             ref array
-            text '<MyStruct,'
+            text '<'
+            type MyStruct
+              ref MyStruct
+            text ','
             expression 
             text '>'
         statement
@@ -471,7 +480,10 @@ test("parse with space before template", () => {
           text 'a: '
           type array<MyStruct, >
             ref array
-            text ' <MyStruct,'
+            text ' <'
+            type MyStruct
+              ref MyStruct
+            text ','
             expression 
             text '>'
         statement
@@ -491,7 +503,16 @@ test("parse nested template that ends with >> ", () => {
           text 'a: '
           type vec2<array<MyStruct, >>
             ref vec2
-            text '<array <MyStruct,4>>'
+            text '<'
+            type array<MyStruct, >
+              ref array
+              text ' <'
+              type MyStruct
+                ref MyStruct
+              text ','
+              expression 
+              text '>'
+            text '>'
         statement
           text '{ }'"
   `);
@@ -512,7 +533,10 @@ test("parse type in <template> in global var", () => {
           text ':'
           type array<MyStruct, >
             ref array
-            text '<MyStruct,'
+            text '<'
+            type MyStruct
+              ref MyStruct
+            text ','
             expression 
             text '>'
         text ';'"
@@ -598,7 +622,10 @@ test("parse fn with attributes and suffix comma", () => {
           text 'grid: '
           type vec3<u32>
             ref vec3
-            text '<u32>'
+            text '<'
+            type u32
+              ref u32
+            text '>'
         param
           text 'localIndex: '
           type u32
@@ -910,7 +937,10 @@ test("var<workgroup> work: array<u32, 128>;", ctx => {
           text ': '
           type array<u32, >
             ref array
-            text '<u32,'
+            text '<'
+            type u32
+              ref u32
+            text ','
             expression 
             text '>'
         text ';'"
@@ -945,7 +975,10 @@ test("var foo: vec2<f32 >= vec2( 0.5, -0.5);", ctx => {
           text ': '
           type vec2<f32>
             ref vec2
-            text '<f32 >'
+            text '<'
+            type f32
+              ref f32
+            text ' >'
         text '= '
         ref vec2
         text '( 0.5, -0.5);'"
@@ -969,7 +1002,10 @@ test("fn main() { var tmp: array<i32, 1 << 1>=array(1, 2); }", ctx => {
               text ': '
               type array<i32, >
                 ref array
-                text '<i32,'
+                text '<'
+                type i32
+                  ref i32
+                text ','
                 expression 
                 text '>'
             text '='
@@ -1053,7 +1089,16 @@ test(`parse ptr`, () => {
           text ': '
           type ptr<storage, f32, read_write>
             ref ptr
-            text '<storage, f32, read_write>'
+            text '<'
+            type storage
+              ref storage
+            text ', '
+            type f32
+              ref f32
+            text ', '
+            type read_write
+              ref read_write
+            text '>'
         text ';'
       text '
       '"
@@ -1078,7 +1123,20 @@ test(`parse ptr with internal array`, () => {
           text ': '
           type ptr<storage, array<f32>, read_write>
             ref ptr
-            text '<storage, array<f32>, read_write>'
+            text '<'
+            type storage
+              ref storage
+            text ', '
+            type array<f32>
+              ref array
+              text '<'
+              type f32
+                ref f32
+              text '>'
+            text ', '
+            type read_write
+              ref read_write
+            text '>'
         text ';'
       text '
       '"
@@ -1108,7 +1166,20 @@ test(`parse binding struct`, () => {
           text ': '
           type ptr<storage, array<f32>, read_write>
             ref ptr
-            text '<storage, array<f32>, read_write>'
+            text '<'
+            type storage
+              ref storage
+            text ', '
+            type array<f32>
+              ref array
+              text '<'
+              type f32
+                ref f32
+              text '>'
+            text ', '
+            type read_write
+              ref read_write
+            text '>'
         text ', 
         }'
       text '
@@ -1327,7 +1398,20 @@ test("binding struct", () => {
           text ': '
           type ptr<storage, array<f32>, read_write>
             ref ptr
-            text '<storage, array<f32>, read_write>'
+            text '<'
+            type storage
+              ref storage
+            text ', '
+            type array<f32>
+              ref array
+              text '<'
+              type f32
+                ref f32
+              text '>'
+            text ', '
+            type read_write
+              ref read_write
+            text '>'
         text ','
         member @group @binding uniforms: ptr<uniform, Uniforms>
           text ' 
@@ -1336,7 +1420,13 @@ test("binding struct", () => {
           text ': '
           type ptr<uniform, Uniforms>
             ref ptr
-            text '<uniform, Uniforms>'
+            text '<'
+            type uniform
+              ref uniform
+            text ', '
+            type Uniforms
+              ref Uniforms
+            text '>'
         text ','
         member @group @binding tex: texture_2d<rgba8unorm>
           text ' 
@@ -1345,7 +1435,10 @@ test("binding struct", () => {
           text ': '
           type texture_2d<rgba8unorm>
             ref texture_2d
-            text '<rgba8unorm>'
+            text '<'
+            type rgba8unorm
+              ref rgba8unorm
+            text '>'
         text ','
         member @group @binding samp: sampler
           text '

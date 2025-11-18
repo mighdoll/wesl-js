@@ -245,7 +245,7 @@ export function parseSimpleTypeRef(
       const typeParam = parseSimpleTypeRef(stream, ctx);
       if (typeParam) {
         templateParams.push(typeParam);
-        // Note: typeParam will add itself to contents via its own open/close
+        ctx.addElem(typeParam); // Add to contents so it appears in AST
       } else {
         // If not a type, try to parse as an expression
         const exprParam = parseStubTemplateExpression(stream, ctx);
