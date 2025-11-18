@@ -176,7 +176,6 @@ function parseCompoundStatement(
   // (if conditional attributes exist, the partial scope is already pushed by parseStatement)
   const hasConditional =
     attributes &&
-    attributes.length > 0 &&
     attributes.some(
       attr =>
         attr.kind === "attribute" &&

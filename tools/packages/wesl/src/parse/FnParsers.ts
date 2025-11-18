@@ -100,7 +100,6 @@ function parseFnParam(
 
   // Check for optional type annotation `: type`
   let typeRef: TypeRefElem | undefined;
-  let typeScope: undefined;
 
   if (consume(stream, ":")) {
     // Parse the type reference
