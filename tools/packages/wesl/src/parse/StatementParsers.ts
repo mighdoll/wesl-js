@@ -487,7 +487,11 @@ function parseIfStatement(
     return null;
   }
 
-  // Parse condition expression
+  // Open statement to collect contents including "if" keyword and condition
+  const initialContents: AttributeElem[] = attributes ? [...attributes] : [];
+  openElem(ctx, { kind: "statement", contents: initialContents });
+
+  // Parse condition expression (will be added to contents)
   const condition = parseExpression(stream, ctx);
   if (!condition) {
     throw new Error("Expected condition expression after 'if'");
@@ -498,11 +502,7 @@ function parseIfStatement(
   if (!thenBlock) {
     throw new Error("Expected '{' after if condition");
   }
-
-  // Initialize contents with attributes (if present) followed by then block
-  const contents: (AttributeElem | StatementElem)[] = attributes
-    ? [...attributes, thenBlock]
-    : [thenBlock];
+  ctx.addElem(thenBlock);
 
   // Parse else if / else chains
   while (true) {
@@ -530,19 +530,22 @@ function parseIfStatement(
       if (!elseIfBlock) {
         throw new Error("Expected '{' after else if condition");
       }
-      contents.push(elseIfBlock);
+      ctx.addElem(elseIfBlock);
     } else {
       // Final else branch
       const elseBlock = parseCompoundStatement(stream, ctx);
       if (!elseBlock) {
         throw new Error("Expected '{' after else");
       }
-      contents.push(elseBlock);
+      ctx.addElem(elseBlock);
       break;
     }
   }
 
   const endPos = checkpoint(stream);
+
+  // Close and fill with text
+  const contents = closeElem(ctx, startPos, endPos);
 
   const ifStmt: StatementElem = {
     kind: "statement",
@@ -672,7 +675,11 @@ function parseWhileStatement(
     return null;
   }
 
-  // Parse condition expression
+  // Open statement to collect contents including "while" keyword and condition
+  const initialContents: AttributeElem[] = attributes ? [...attributes] : [];
+  openElem(ctx, { kind: "statement", contents: initialContents });
+
+  // Parse condition expression (will be added to contents)
   const condition = parseExpression(stream, ctx);
   if (!condition) {
     throw new Error("Expected condition expression after 'while'");
@@ -683,13 +690,12 @@ function parseWhileStatement(
   if (!body) {
     throw new Error("Expected '{' after while condition");
   }
+  ctx.addElem(body);
 
   const endPos = checkpoint(stream);
 
-  // Initialize contents with attributes (if present) followed by body
-  const contents: (AttributeElem | StatementElem)[] = attributes
-    ? [...attributes, body]
-    : [body];
+  // Close and fill with text
+  const contents = closeElem(ctx, startPos, endPos);
 
   const whileStmt: StatementElem = {
     kind: "statement",
@@ -719,15 +725,15 @@ function parseLoopStatement(
     return null;
   }
 
+  // Open statement to collect contents including "loop" keyword
+  const initialContents: AttributeElem[] = attributes ? [...attributes] : [];
+  openElem(ctx, { kind: "statement", contents: initialContents });
+
   // Parse loop body (manually to handle continuing block)
   expect(stream, "{", "Expected '{' after 'loop'");
 
   ctx.pushScope();
 
-  // Initialize contents with attributes (if present)
-  const contents: (AttributeElem | StatementElem)[] = attributes
-    ? [...attributes]
-    : [];
   while (true) {
     const token = stream.peek();
     if (!token) {
@@ -744,7 +750,7 @@ function parseLoopStatement(
       stream.nextToken();
       const continuingBlock = parseCompoundStatement(stream, ctx);
       if (continuingBlock) {
-        contents.push(continuingBlock);
+        ctx.addElem(continuingBlock);
       }
       continue;
     }
@@ -752,13 +758,16 @@ function parseLoopStatement(
     // Regular statement
     const stmt = parseStatement(stream, ctx);
     if (stmt) {
-      contents.push(stmt);
+      ctx.addElem(stmt);
     }
   }
 
   ctx.popScope();
 
   const endPos = checkpoint(stream);
+
+  // Close and fill with text
+  const contents = closeElem(ctx, startPos, endPos);
 
   const loopStmt: StatementElem = {
     kind: "statement",
