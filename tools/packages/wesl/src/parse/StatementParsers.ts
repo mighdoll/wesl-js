@@ -596,11 +596,8 @@ function parseForStatement(
     if (varDecl) {
       ctx.addElem(varDecl);
     } else {
-      // Try expression statement (doesn't consume semicolon)
-      const initExpr = parseExpression(stream, ctx);
-      if (initExpr) {
-        ctx.addElem(initExpr);
-      }
+      // Parse expression (RefIdent elements will be added to contents automatically)
+      const _initExpr = parseExpression(stream, ctx);
       expect(stream, ";", "Expected ';' after for loop init");
     }
   } else {
@@ -608,30 +605,24 @@ function parseForStatement(
     expect(stream, ";", "Expected ';' after for loop init");
   }
 
-  // Parse condition (optional)
+  // Parse condition (optional) - RefIdent elements added to contents automatically
   const condToken = stream.peek();
   if (condToken && condToken.text !== ";") {
-    const condition = parseExpression(stream, ctx);
-    if (condition) {
-      ctx.addElem(condition);
-    }
+    const _condition = parseExpression(stream, ctx);
   }
   expect(stream, ";", "Expected ';' after for loop condition");
 
-  // Parse update (optional)
+  // Parse update (optional) - RefIdent elements added to contents automatically
   // Update can be: expression (e.g., i = i + 1), or postfix ++/--, or function call
   const updateToken = stream.peek();
   if (updateToken && updateToken.text !== ")") {
-    const update = parseExpression(stream, ctx);
-    if (update) {
-      ctx.addElem(update);
+    const _update = parseExpression(stream, ctx);
 
-      // Check for postfix ++ or -- (e.g., i++, count--)
-      // These are consumed as text, not as part of the expression AST
-      const postfixToken = stream.peek();
-      if (postfixToken && (postfixToken.text === "++" || postfixToken.text === "--")) {
-        stream.nextToken(); // consume the postfix operator (will be covered by text)
-      }
+    // Check for postfix ++ or -- (e.g., i++, count--)
+    // These are consumed as text, not as part of the expression AST
+    const postfixToken = stream.peek();
+    if (postfixToken && (postfixToken.text === "++" || postfixToken.text === "--")) {
+      stream.nextToken(); // consume the postfix operator (will be covered by text)
     }
   }
   expect(stream, ")", "Expected ')' after for loop header");
