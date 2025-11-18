@@ -118,7 +118,6 @@ function parseFnParam(
     kind: "typeDecl",
     decl: declIdentElem,
     typeRef,
-    typeScope,
     start: nameToken.span[0],
     end: typeDeclEndPos,
     contents: [], // TypedDecl inside param doesn't need separate contents
