@@ -7,6 +7,7 @@ test("parse complex condition", () => {
   expect(astToString(ast.moduleElem)).toMatchInlineSnapshot(`
     "module
       fn a() @if
+        attribute @if(true || (!foo && !!false))
         decl %a
         statement
           text '{}'"
@@ -22,7 +23,8 @@ test("@if(false) enable f16", () => {
   expect(astString).toMatchInlineSnapshot(`
     "module
       text '
-        @if(false)'
+        '
+      attribute @if(false)
       directive enable f16 @if
       text '
       '"
@@ -40,6 +42,7 @@ test("@if(false) const_assert true;", () => {
       text '
         '
       assert
+        attribute @if(false)
         text ' const_assert true;'
       text '
       '"
@@ -57,9 +60,9 @@ test("@if(true) var x = 7", () => {
       text '
         '
       gvar %x @if
-        text 'var'
+        attribute @if(true)
+        text ' var '
         typeDecl %x
-          text ' '
           decl %x
         text ' = 7;'
       text ' 
@@ -83,17 +86,17 @@ test("conditional statement", () => {
       fn main()
         decl %main
         statement
-          text '{'
+          text '{
+          '
           var %x
-            text '
-          var'
+            text 'var '
             typeDecl %x
-              text ' '
               decl %x
-            text ' = 1;'
-          text '
-          @if(true)'
+            text ' = 1'
+          text ';
+          '
           statement @if
+            attribute @if(true)
             text ' '
             ref x
             text ' = 2 ;'
@@ -122,18 +125,14 @@ test("compound statement", () => {
         decl %main
         statement
           text '{
-          @if(false) '
+          '
           statement @if
             attribute @if(false)
-            text ' {'
-            let %x
-              text '
-            let'
-              typeDecl %x
-                text ' '
-                decl %x
-              text ' = 1;'
-            text '
+            text ' {
+            let '
+            typeDecl %x
+              decl %x
+            text ' = 1;
           }'
           text '
         }'
@@ -158,13 +157,16 @@ test("conditional local var", () => {
         decl %main
         statement
           text '{
-          @if(true)'
-          var %x @if
-            text ' var'
-            typeDecl %x
-              text ' '
-              decl %x
-            text ' = 1;'
+          '
+          statement @if
+            attribute @if(true)
+            text ' '
+            var %x
+              text 'var '
+              typeDecl %x
+                decl %x
+              text ' = 1'
+            text ';'
           text '
         }'
       text '
@@ -183,9 +185,9 @@ test("@if(MOBILE) const x = 1", () => {
       text '
         '
       const %x @if
-        text ' const'
+        attribute @if(MOBILE)
+        text ' const '
         typeDecl %x
-          text ' '
           decl %x
         text ' = 1;'
       text '
@@ -205,15 +207,17 @@ test("@else after @if", () => {
       text '
         '
       const %x @if
-        text ' const'
+        attribute @if(false)
+        text ' const '
         typeDecl %x
-          text ' '
           decl %x
         text ' = 1;'
+      text '
+        '
       const %x @else
-        text ' const'
+        attribute @else
+        text ' const '
         typeDecl %x
-          text ' '
           decl %x
         text ' = 2;'
       text '
@@ -233,19 +237,17 @@ test("@else with function", () => {
       text '
         '
       fn foo() @if
+        attribute @if(DEBUG)
         decl %foo
         statement
-          text '{'
-          statement
-            text ' return 1;'
-          text ' }'
+          text '{ return 1; }'
+      text '
+        '
       fn foo() @else
+        attribute @else
         decl %foo
         statement
-          text '{'
-          statement
-            text ' return 2;'
-          text ' }'
+          text '{ return 2; }'
       text '
       '"
   `);
@@ -268,19 +270,19 @@ test("@else with statement", () => {
         decl %main
         statement
           text '{
-          @if(A)'
-          let %x @if
-            text ' let'
+          '
+          statement @if
+            attribute @if(A)
+            text ' let '
             typeDecl %x
-              text ' '
               decl %x
             text ' = 1.0;'
           text '
-          @else'
-          let %x @else
-            text ' let'
+          '
+          statement @else
+            attribute @else
+            text ' let '
             typeDecl %x
-              text ' '
               decl %x
             text ' = 2.0;'
           text '
@@ -307,29 +309,21 @@ test("@else compound statement", () => {
         decl %test
         statement
           text '{
-          @if(MOBILE) '
+          '
           statement @if
             attribute @if(MOBILE)
-            text ' {'
-            let %a
-              text ' let'
-              typeDecl %a
-                text ' '
-                decl %a
-              text ' = 1;'
-            text ' }'
+            text ' { let '
+            typeDecl %a
+              decl %a
+            text ' = 1; }'
           text '
-          @else '
+          '
           statement @else
             attribute @else
-            text ' {'
-            let %a
-              text ' let'
-              typeDecl %a
-                text ' '
-                decl %a
-              text ' = 2;'
-            text ' }'
+            text ' { let '
+            typeDecl %a
+              decl %a
+            text ' = 2; }'
           text '
         }'
       text '
@@ -353,18 +347,20 @@ test("@else with struct member", () => {
       struct Point
         text 'struct '
         decl %Point
-        text ' {'
+        text ' {
+          '
         member @if x: f32
-          text '
-          @if(DIMENSIONS_2) '
+          attribute @if(DIMENSIONS_2)
+          text ' '
           name x
           text ': '
           type f32
             ref f32
-        text ','
+        text ',
+          '
         member @else x: vec3<f32>
-          text '
-          @else '
+          attribute @else
+          text ' '
           name x
           text ': '
           type vec3<f32>
@@ -433,27 +429,23 @@ test("parse @else fn", () => {
       text '
         '
       fn testFn() @if
+        attribute @if(FOO)
         decl %testFn
         statement
-          text '{'
-          let %a
-            text ' let'
-            typeDecl %a
-              text ' '
-              decl %a
-            text ' = 0;'
-          text ' }'
+          text '{ let '
+          typeDecl %a
+            decl %a
+          text ' = 0; }'
+      text '
+        '
       fn testFn() @else
+        attribute @else
         decl %testFn
         statement
-          text '{'
-          let %a
-            text ' let'
-            typeDecl %a
-              text ' '
-              decl %a
-            text ' = 1;'
-          text ' }'
+          text '{ let '
+          typeDecl %a
+            decl %a
+          text ' = 1; }'
       text '
       '"
   `,

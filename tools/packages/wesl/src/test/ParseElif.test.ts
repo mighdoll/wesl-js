@@ -9,21 +9,25 @@ test("parse @elif basic", () => {
   expect(astToString(ast.moduleElem)).toMatchInlineSnapshot(`
     "module
       const %a @if
-        text ' const'
+        attribute @if(false)
+        text ' const '
         typeDecl %a
-          text ' '
           decl %a
         text ' = 1;'
+      text '
+    '
       const %a @elif
-        text ' const'
+        attribute @elif(true)
+        text ' const '
         typeDecl %a
-          text ' '
           decl %a
         text ' = 2;'
+      text '
+    '
       const %a @else
-        text ' const'
+        attribute @else
+        text ' const '
         typeDecl %a
-          text ' '
           decl %a
         text ' = 3;'"
   `);
@@ -34,10 +38,14 @@ test("parse @elif with complex condition", () => {
   expect(astToString(ast.moduleElem)).toMatchInlineSnapshot(`
     "module
       fn f() @if
+        attribute @if(foo)
         decl %f
         statement
           text '{}'
+      text '
+    '
       fn f() @elif
+        attribute @elif(bar && !baz)
         decl %f
         statement
           text '{}'"
@@ -51,27 +59,33 @@ test("parse multiple @elif", () => {
   expect(astToString(ast.moduleElem)).toMatchInlineSnapshot(`
     "module
       const %x @if
-        text ' const'
+        attribute @if(a)
+        text ' const '
         typeDecl %x
-          text ' '
           decl %x
         text ' = 1;'
+      text '
+    '
       const %x @elif
-        text ' const'
+        attribute @elif(b)
+        text ' const '
         typeDecl %x
-          text ' '
           decl %x
         text ' = 2;'
+      text '
+    '
       const %x @elif
-        text ' const'
+        attribute @elif(c)
+        text ' const '
         typeDecl %x
-          text ' '
           decl %x
         text ' = 3;'
+      text '
+    '
       const %x @else
-        text ' const'
+        attribute @else
+        text ' const '
         typeDecl %x
-          text ' '
           decl %x
         text ' = 4;'"
   `);

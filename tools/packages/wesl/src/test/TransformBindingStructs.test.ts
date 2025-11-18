@@ -57,7 +57,7 @@ test("transformBindingStruct", () => {
   const linked = SrcMapBuilder.build([srcBuilder]).dest.text;
   expect(linked).toMatchInlineSnapshot(
     `
-    "@group() @binding() var<storage, read_write> particles : array<f32>;
+    "@group(0) @binding(0) var<storage, read_write> particles : array<f32>;
     "
   `,
   );
@@ -141,7 +141,7 @@ test("lower binding structs", () => {
   const loweredAst = astToString(lowered.moduleElem);
   expect(loweredAst).toMatchInlineSnapshot(`
     "module
-      synthetic '@group() @binding() var<storage, read_write> particles : array<f32>;
+      synthetic '@group(0) @binding(0) var<storage, read_write> particles : array<f32>;
     '
       text '
         '
@@ -150,21 +150,15 @@ test("lower binding structs", () => {
       fn main(b: Bindings)
         decl %main
         param
-          text 'b: '
-          type Bindings
-            ref Bindings
         statement
-          text '{'
-          let %x
-            text '
-          let'
-            typeDecl %x
-              text ' '
-              decl %x
-            text ' = '
-            ref b
-            text '.particles;'
-          text '
+          text '{
+          let '
+          typeDecl %x
+            decl %x
+          text ' = '
+          memberRef b.particles
+            synthetic 'particles'
+          text ';
         }'
       text '
       '"
