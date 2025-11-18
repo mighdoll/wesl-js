@@ -124,7 +124,8 @@ test("compound statement", () => {
           text '{
           @if(false) '
           statement @if
-            text '{'
+            attribute @if(false)
+            text ' {'
             let %x
               text '
             let'
@@ -308,7 +309,8 @@ test("@else compound statement", () => {
           text '{
           @if(MOBILE) '
           statement @if
-            text '{'
+            attribute @if(MOBILE)
+            text ' {'
             let %a
               text ' let'
               typeDecl %a
@@ -319,7 +321,8 @@ test("@else compound statement", () => {
           text '
           @else '
           statement @else
-            text '{'
+            attribute @else
+            text ' {'
             let %a
               text ' let'
               typeDecl %a

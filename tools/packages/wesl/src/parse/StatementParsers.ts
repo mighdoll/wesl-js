@@ -159,7 +159,8 @@ function parseCompoundStatement(
   }
 
   // Open statement element for content collection
-  openElem(ctx, { kind: "statement", contents: [] });
+  const initialContents: AttributeElem[] = attributes ? [...attributes] : [];
+  openElem(ctx, { kind: "statement", contents: initialContents });
 
   // Push new scope for block
   ctx.pushScope();
@@ -220,7 +221,8 @@ function parseSimpleStatement(
     stream.nextToken(); // consume "return"
 
     // Open statement to collect contents including "return" keyword
-    openElem(ctx, { kind: "statement", contents: [] });
+    const initialContents: AttributeElem[] = attributes ? [...attributes] : [];
+    openElem(ctx, { kind: "statement", contents: initialContents });
 
     // Parse optional expression (RefIdent elements will be added to contents)
     const _expr = parseExpression(stream, ctx);
@@ -255,11 +257,14 @@ function parseSimpleStatement(
 
     const endPos = checkpoint(stream);
 
+    // Initialize contents with attributes (if present)
+    const contents: AttributeElem[] = attributes ? [...attributes] : [];
+
     const stmt: StatementElem = {
       kind: "statement",
       start: startPos,
       end: endPos,
-      contents: [],
+      contents,
     };
 
     attachAttributes(stmt, attributes);
@@ -434,7 +439,10 @@ function parseIfStatement(
     throw new Error("Expected '{' after if condition");
   }
 
-  const contents: StatementElem[] = [thenBlock];
+  // Initialize contents with attributes (if present) followed by then block
+  const contents: (AttributeElem | StatementElem)[] = attributes
+    ? [...attributes, thenBlock]
+    : [thenBlock];
 
   // Parse else if / else chains
   while (true) {
@@ -505,7 +513,8 @@ function parseForStatement(
   }
 
   // Open statement to collect contents
-  openElem(ctx, { kind: "statement", contents: [] });
+  const initialContents: AttributeElem[] = attributes ? [...attributes] : [];
+  openElem(ctx, { kind: "statement", contents: initialContents });
 
   // Create scope for loop variables
   ctx.pushScope();
@@ -617,11 +626,16 @@ function parseWhileStatement(
 
   const endPos = checkpoint(stream);
 
+  // Initialize contents with attributes (if present) followed by body
+  const contents: (AttributeElem | StatementElem)[] = attributes
+    ? [...attributes, body]
+    : [body];
+
   const whileStmt: StatementElem = {
     kind: "statement",
     start: startPos,
     end: endPos,
-    contents: [body],
+    contents,
   };
 
   attachAttributes(whileStmt, attributes);
@@ -650,7 +664,10 @@ function parseLoopStatement(
 
   ctx.pushScope();
 
-  const contents: StatementElem[] = [];
+  // Initialize contents with attributes (if present)
+  const contents: (AttributeElem | StatementElem)[] = attributes
+    ? [...attributes]
+    : [];
   while (true) {
     const token = stream.peek();
     if (!token) {
@@ -711,7 +728,8 @@ function parseSwitchStatement(
   }
 
   // Open statement to collect contents
-  openElem(ctx, { kind: "statement", contents: [] });
+  const initialContents: AttributeElem[] = attributes ? [...attributes] : [];
+  openElem(ctx, { kind: "statement", contents: initialContents });
 
   // Parse switch expression
   const expr = parseExpression(stream, ctx);
