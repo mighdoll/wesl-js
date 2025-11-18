@@ -534,20 +534,25 @@ test("parse for(;;) {} not as a fn call", () => {
       fn main()
         decl %main
         statement
-          text '{
-          for ('
-          var %a
-            text 'var '
-            typeDecl %a
-              decl %a
-            text ' = 1'
-          text '; '
-          ref a
-          text ' < 10; '
-          ref a
-          text '++) '
+          text '{'
           statement
-            text '{}'
+            text '
+          for ('
+            var %a
+              text 'var'
+              typeDecl %a
+                text ' '
+                decl %a
+              text ' = 1;'
+            text ' '
+            ref a
+            binary-expression binop(<)
+            text '; '
+            ref a
+            ref a
+            text '++) '
+            statement
+              text '{}'
           text '
         }'
       text '

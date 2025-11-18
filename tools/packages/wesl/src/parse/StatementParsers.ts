@@ -544,11 +544,19 @@ function parseForStatement(
   expect(stream, ";", "Expected ';' after for loop condition");
 
   // Parse update (optional)
+  // Update can be: expression (e.g., i = i + 1), or postfix ++/--, or function call
   const updateToken = stream.peek();
   if (updateToken && updateToken.text !== ")") {
     const update = parseExpression(stream, ctx);
     if (update) {
       ctx.addElem(update);
+
+      // Check for postfix ++ or -- (e.g., i++, count--)
+      // These are consumed as text, not as part of the expression AST
+      const postfixToken = stream.peek();
+      if (postfixToken && (postfixToken.text === "++" || postfixToken.text === "--")) {
+        stream.nextToken(); // consume the postfix operator (will be covered by text)
+      }
     }
   }
   expect(stream, ")", "Expected ')' after for loop header");
