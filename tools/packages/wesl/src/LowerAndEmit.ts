@@ -170,7 +170,8 @@ export function emitText(e: TextElem, ctx: EmitContext): void {
   // This happens when text between parent start and child element contains @if/@elif/@else
   // but the child element with that attribute was filtered out
   const text = e.srcModule.src.slice(e.start, e.end);
-  const conditionalMatch = text.match(/@(if|elif|else)\s*\([^)]*\)/);
+  // Match: @if(...), @elif(...), or @else (no parens)
+  const conditionalMatch = text.match(/@(if|elif)\s*\([^)]*\)|@else\b/);
 
   if (conditionalMatch) {
     // Emit text before the conditional
@@ -256,20 +257,23 @@ export function emitStruct(e: StructElem, ctx: EmitContext): void {
   emitDeclIdent(name, ctx);
 
   if (validLength === 1) {
-    srcBuilder.add(" { ", name.end, members[0].start);
+    srcBuilder.appendNext(" { ");
     emitContentsNoWs(validMembers[0] as ContainerElem, ctx);
-    srcBuilder.add(" }\n", end - 1, end);
+    srcBuilder.appendNext(" }");
+    srcBuilder.addNl();
   } else {
-    srcBuilder.add(" {\n", name.end, members[0].start);
+    srcBuilder.appendNext(" {");
+    srcBuilder.addNl();
 
     validMembers.forEach(m => {
-      srcBuilder.add("  ", m.start - 1, m.start);
+      srcBuilder.appendNext("  ");
       emitContentsNoWs(m as ContainerElem, ctx);
-      srcBuilder.add(",", m.end, m.end + 1);
+      srcBuilder.appendNext(",");
       srcBuilder.addNl();
     });
 
-    srcBuilder.add("}\n", end - 1, end);
+    srcBuilder.appendNext("}");
+    srcBuilder.addNl();
   }
 }
 
