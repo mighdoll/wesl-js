@@ -80,7 +80,7 @@ if (useV1Only) {
             name: "v2",
             setupFiles: ["./src/test/TestSetupV2.ts"],
             include: ["src/test/**/*.test.ts"],
-            exclude: baseExcludes,
+            exclude: [...baseExcludes, ...v1OnlyTests],
           },
         },
       ],
