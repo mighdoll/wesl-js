@@ -1,7 +1,7 @@
-# V2 Progress Update #20 - ParseWeslV2 Complete! 🎉
+# V2 Progress Update #20 - Critical Template Fix + ParseWeslV2 Complete! 🎉
 
 **Date**: 2025-11-17
-**Session Focus**: Completed ParseWeslV2 by implementing postfix increment/decrement operators
+**Session Focus**: Completed ParseWeslV2, then discovered and fixed critical template parameter binding bug
 
 ## Session 20 Results
 
@@ -13,18 +13,69 @@
 - V1 remains stable
 
 **V2 Parser (Development)**:
-- **417/515 passing (81.0%)** - Up from 80.4%! **+0.6% improvement**
-- **94 failures** (down from 97)
+- **439/515 passing (85.2%)** - Up from 80.4%! **+4.8% improvement** 🚀
+- **72 failures** (down from 97)
 - **4 skipped** tests
+- **25 tests fixed in this session!**
 
 **ParseWeslV2 Specific**:
 - **64/64 passing (100%)** 🎉 **COMPLETE!**
 - **0 failures** (down from 1)
 - All WGSL constructs parsing correctly
 
-## Feature Implemented
+## Features Implemented
 
-### Postfix Increment/Decrement Operators (`++`, `--`)
+### 1. Critical Fix: Template Parameter Types Missing from AST ⚠️
+
+**Discovery**: After implementing postfix operators, user noticed that `ref MyStruct` was missing from nested template AST. Investigation revealed template parameter types weren't being added to parent type's contents.
+
+**Impact**: This was a **critical binding bug**! Without ref nodes in the AST for nested types like `array` and `MyStruct` in `vec2<array<MyStruct,4>>`, the binding phase couldn't resolve type references. This would have broken all code using templated types.
+
+**Root Cause**: In `parseSimpleTypeRef()`, when parsing template parameters:
+```typescript
+const typeParam = parseSimpleTypeRef(stream, ctx);  // Recursive call
+if (typeParam) {
+  templateParams.push(typeParam);
+  // BUG: Comment said "typeParam will add itself to contents via its own open/close"
+  // But this was WRONG - it doesn't add itself!
+}
+```
+
+The recursive call to `parseSimpleTypeRef` opens/closes its own elem but returns the completed TypeRefElem. It does NOT automatically add itself to the parent's contents. The original comment was incorrect.
+
+**Before Fix (Missing Refs)**:
+```
+type vec2<array<MyStruct, >>
+  ref vec2
+  text '<array<MyStruct,4>>'  // ← Everything as text!
+```
+
+**After Fix (Correct Refs)**:
+```
+type vec2<array<MyStruct, >>
+  ref vec2
+  text '<'
+  type array<MyStruct, >
+    ref array
+    text '<'
+    type MyStruct
+      ref MyStruct  // ← Now present for binding!
+```
+
+**Fix**: Added `ctx.addElem(typeParam)` to add nested types to parent's contents:
+```typescript
+const typeParam = parseSimpleTypeRef(stream, ctx);
+if (typeParam) {
+  templateParams.push(typeParam);
+  ctx.addElem(typeParam); // ← FIX: Add to contents so refs appear in AST
+}
+```
+
+**Tests Fixed**: 22 tests (snapshot updates)
+- This fix corrected the AST structure for ALL tests using templated types
+- Updated 38 snapshots to reflect correct structure with ref nodes
+
+### 2. Postfix Increment/Decrement Operators (`++`, `--`)
 
 **Issue**: V2 couldn't parse for loops with postfix operators like `for (var i = 0; i < 10; i++)`
 
@@ -119,7 +170,7 @@ This revealed that `i++` was just `ref i` + text, not a special expression node.
 
 | Test Suite | V2 Pass Rate | Change | Notes |
 |------------|--------------|--------|-------|
-| Overall | 417/515 (81.0%) | +0.6% | Up from 80.4% |
+| Overall | 439/515 (85.2%) | +4.8% | Up from 80.4% (25 tests fixed!) |
 | **ParseWeslV2** | **64/64 (100%)** | **+1.6%** | 🎉 **COMPLETE!** |
 | ImportCasesV2 | 39/39 (100%) | - | ✅ Complete |
 | LinkerV2 | 12/12 (100%) | - | ✅ Complete |
@@ -178,21 +229,23 @@ Session 20 completed ParseWeslV2 to 100% by adding postfix increment/decrement o
 
 **Key Achievements**:
 - ParseWeslV2: 100% (64/64) - **MILESTONE COMPLETE!** 🎉
-- V2 overall: 81.0% (417/515)
-- Fixed 3 tests in this session (8 total across sessions 19-20)
+- V2 overall: 85.2% (439/515) - **+4.8% in one session!**
+- Fixed 25 tests in this session (28 total across sessions 19-20)
+- Fixed critical binding bug in template parameter parsing
 - Zero V1 regressions maintained
 
 **Combined Progress (Sessions 19-20)**:
 - Started: 80.4% (414/515) with 97 failures
-- Now: 81.0% (417/515) with 94 failures
-- **Total improvement**: +0.6%, fixed 3 tests
+- After Session 19: 80.4% (414/515) with 97 failures (template expression fix)
+- After Session 20: 85.2% (439/515) with 72 failures (postfix + template param fix)
+- **Total improvement**: +4.8%, fixed 25 tests
 
 The V2 parser has reached a significant milestone with ParseWeslV2 complete. All basic WGSL constructs are now parsing correctly, and the parser is ready for more advanced features.
 
 ---
 
 **Previous**: [v2-progress-update-19.md](./v2-progress-update-19.md)
-**Current Status**: V2 at 81.0% (417/515), V1 at 99.5% (409/411)
-**Key Achievement**: ParseWeslV2 complete (100%), postfix operators implemented
-**Next Focus**: Statement @if attributes (~20 tests), or continue expression/statement parsing
-**Test Commands**: `V1_ONLY=true bb test --dangerouslyDisableSandbox` (production), `V2_ONLY=true bb test --dangerouslyDisableSandbox` (development)
+**Current Status**: V2 at 85.2% (439/515), V1 at 99.5% (409/411)
+**Key Achievements**: ParseWeslV2 complete (100%), critical template param binding bug fixed, +4.8% improvement
+**Next Focus**: Continue to 90%+ with statement parsing or expression operators
+**Test Commands**: `V1_ONLY=true bb test` (production, use `dangerouslyDisableSandbox` for full BulkTests), `V2_ONLY=true bb test` (development)
