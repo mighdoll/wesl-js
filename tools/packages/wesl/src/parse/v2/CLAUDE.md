@@ -582,8 +582,9 @@ Dual-licensed under MIT or Apache-2.0 (see project root)
 
 ---
 
-**Last Updated**: 2025-11-14
-**Current Status**: V2 at 63% (338/539), V1 at 100% (409/411) - **NO REGRESSIONS**
-**Recent Achievement**: Fixed V1 regression + V2 param attributes + AST divergence handling
-**Next Focus**: Phase 4 - Statement & expression parsing (would unlock ~40% more tests)
-**See**: [v2-progress-update-10.md](../../v2-progress-update-10.md) for latest details
+**Last Updated**: 2025-11-18
+**Current Status**: V2 at 92.2% (416/451), V1 at 100% (409/411) - **NO REGRESSIONS**
+**Recent Achievement**: Fixed @else attribute filtering (+3 tests), ConditionalTranslationCases 53% passing
+**Next Focus**: Complete Phase 4 (missing statements: for, while, loop, if, switch, break, continue, discard)
+**Future**: Text→Comment conversion deferred (see TEXT_ELEMENT_SUMMARY.md)
+**See**: Latest commit for progress details
