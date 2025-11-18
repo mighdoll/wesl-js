@@ -168,8 +168,14 @@ function parseCompoundStatement(
   const initialContents: AttributeElem[] = attributes ? [...attributes] : [];
   openElem(ctx, { kind: "statement", contents: initialContents });
 
-  // Push new scope for block
-  ctx.pushScope();
+  // Check if block is empty (just "{ }")
+  const nextToken = stream.peek();
+  const isEmpty = nextToken && nextToken.text === "}";
+
+  // Only push scope if block is non-empty
+  if (!isEmpty) {
+    ctx.pushScope();
+  }
 
   // Parse nested statements
   while (true) {
@@ -187,8 +193,10 @@ function parseCompoundStatement(
     }
   }
 
-  // Pop scope
-  ctx.popScope();
+  // Pop scope only if we pushed one
+  if (!isEmpty) {
+    ctx.popScope();
+  }
 
   const endPos = checkpoint(stream);
 

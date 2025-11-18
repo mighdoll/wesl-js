@@ -247,9 +247,7 @@ test("for()", () => {
     "{ 
       -{ %main 
         { %i 
-          { %i i i 
-            {  } #4
-          } #3
+          { %i i i } #3
         } #2
       } #1
     } #0"
@@ -267,9 +265,7 @@ test("fn with param", () => {
     "{ 
       -{ %main 
         { %i i32 %x i 
-          { %i i x i 
-            {  } #4
-          } #3
+          { %i i x i } #3
         } #2
       } #1
     } #0"
@@ -380,9 +376,7 @@ test("scope with an attribute", () => {
     "{ 
       -{ %main 
         { 
-           @if(foo) -{ 
-            {  } #4
-          } #3
+           @if(foo) -{  } #3
         } #2
       } #1
     } #0"
@@ -479,8 +473,10 @@ test("@if fn", () => {
       -{ %loc 
         {  } #2
       } #1
-      -{ %fragmentMain 
-        { %p vec3f vec4f %x p } #4
+       @if(true) -{ 
+        -{ %fragmentMain 
+          { %p vec3f vec4f %x p } #5
+        } #4
       } #3
     } #0"
   `);
@@ -493,8 +489,10 @@ test("@if const", () => {
   const { rootScope } = testParseWESL(src);
   expect(scopeToString(rootScope)).toMatchInlineSnapshot(`
     "{ 
-      -{ %a 
-        {  } #2
+       @if(true) -{ 
+        -{ %a 
+          {  } #3
+        } #2
       } #1
     } #0"
   `);

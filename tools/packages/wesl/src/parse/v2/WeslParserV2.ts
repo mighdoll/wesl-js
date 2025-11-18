@@ -165,6 +165,20 @@ export class WeslParserV2 {
       const beforeAttributes = stream.checkpoint();
       const attributes = parseAttributeList(stream);
 
+      // Check if attributes contain @if/@elif/@else
+      const hasConditional = attributes.some(
+        (attr) =>
+          attr.kind === "attribute" &&
+          (attr.attribute.kind === "@if" ||
+            attr.attribute.kind === "@elif" ||
+            attr.attribute.kind === "@else"),
+      );
+
+      // Create partial scope if conditional attributes present
+      if (hasConditional) {
+        this.ctx.pushScope("partial");
+      }
+
       // Try each parser until one succeeds
       let parsed = false;
       for (const parser of parsers) {
@@ -183,6 +197,19 @@ export class WeslParserV2 {
           parsed = true;
           break;
         }
+      }
+
+      // Pop partial scope and set conditional attribute
+      if (hasConditional && parsed) {
+        const partialScope = this.ctx.popScope();
+        const condAttr = attributes.find(
+          (attr) =>
+            attr.kind === "attribute" &&
+            (attr.attribute.kind === "@if" ||
+              attr.attribute.kind === "@elif" ||
+              attr.attribute.kind === "@else"),
+        );
+        partialScope.condAttribute = condAttr?.attribute;
       }
 
       if (parsed) {
