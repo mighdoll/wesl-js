@@ -165,6 +165,14 @@ function emitRootElemNl(ctx: EmitContext): void {
   }
 }
 
+// TODO: This function will be obsoleted when we implement Text→Comment conversion
+//
+// Current issue: V2 stores attributes separately from contents, but closeElem()
+// creates TextElems that span over attribute source ranges. This causes duplicate
+// attribute text to appear in TextElems, requiring this filtering workaround.
+//
+// Future: TextElems will be replaced with CommentElems (only comments preserved).
+// All keywords, punctuation, and whitespace will be regenerated during emission.
 export function emitText(e: TextElem, ctx: EmitContext): void {
   // V2: Check if this text element contains conditional attributes that should be filtered
   // This happens when text between parent start and child element contains @if/@elif/@else

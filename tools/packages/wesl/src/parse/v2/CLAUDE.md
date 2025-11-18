@@ -536,22 +536,33 @@ V1_ONLY=true bb test --dangerouslyDisableSandbox
 - [x] V2 parser compiles and runs
 - [x] All declaration parsing works (const, var, alias, struct, fn)
 - [x] LinkerV2: 100% passing (12/12)
-- [x] ScopeWESLV2: 100% passing (11/11)
+- [x] ScopeWESLV2: 100% passing (24/24)
 - [x] ImportCasesV2: 100% passing (39/39) 🎉
 - [x] V1 tests: 100% passing (409/411) - **NO REGRESSIONS**
-- [x] V2 tests: 63% passing (338/539)
+- [x] V2 tests: 92.2% passing (416/451)
 - [x] Function parameter attributes working
 - [x] V1/V2 AST divergence handled cleanly in emit layer
+- [x] Phase 4: Statement/expression parsing largely implemented
+- [x] ConditionalTranslationCases: 53% passing (26/49)
 
 ### Remaining Work (to 100%)
 
-- [ ] Phase 4: Implement statement parsing (if, for, while, return, etc.)
-- [ ] Phase 4: Implement expression parsing (binary ops, calls, member access)
-- [ ] Fix BulkTests (~200 tests failing, need expression/statement parsing)
-- [ ] Fix ConditionalTranslationCases (@if on statements/directives)
+- [ ] Phase 4 completion: Missing statements (for, while, loop, if, switch, break, continue, discard)
+- [ ] Add const_assert parsing to DirectiveParsers.ts
+- [ ] Fix struct member formatting with conditional attributes (2 tests)
+- [ ] Fix expression/whitespace issues (3 tests)
+- [ ] Fix variable reference issues with @else (3 tests)
 - [ ] Performance benchmarking (target: 2-3x faster than V1)
 - [ ] Bundle size validation (target: ~110KB, down from 140KB)
 - [ ] Eventually: Remove mini-parse dependency and V1 code
+
+### Future Enhancements (Deferred)
+
+- [ ] **Text→Comment Conversion** (see TEXT_ELEMENT_SUMMARY.md)
+  - Replace TextElems with CommentElems (only comments preserved)
+  - Regenerate keywords, punctuation, whitespace during emission
+  - Benefits: 35% smaller AST, cleaner architecture, better tooling support
+  - Status: Proposal approved, implementation deferred until V2 core complete
 
 ## Getting Help
 
