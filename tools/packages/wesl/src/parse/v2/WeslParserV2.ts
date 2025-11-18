@@ -194,6 +194,14 @@ export class WeslParserV2 {
             elem.start = beforeAttributes;
           }
           this.ctx.addElem(elem);
+
+          // Collect const_assert elements into moduleAsserts array
+          if (elem.kind === "assert") {
+            const ast = this.state.stable;
+            if (!ast.moduleAsserts) ast.moduleAsserts = [];
+            ast.moduleAsserts.push(elem);
+          }
+
           parsed = true;
           break;
         }
