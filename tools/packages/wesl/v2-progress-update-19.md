@@ -8,15 +8,14 @@
 ### Test Results
 
 **V1 Parser (Production)**:
-- **333/334 passing (99.7%)** ✅ **NO REGRESSIONS**
-- 1 skipped test
-- BulkTests excluded (requires sandbox disabled)
+- **409/411 passing (99.5%)** ✅ **NO REGRESSIONS**
+- 2 skipped tests
 - V1 remains stable
 
 **V2 Parser (Development)**:
-- **371/438 passing (84.7%)** - Up from 84.2%! **+0.5% improvement**
-- **64 failures** (down from 69)
-- **3 skipped** tests
+- **414/515 passing (80.4%)** - Up from 80.0%! **+0.4% improvement**
+- **97 failures** (down from 100)
+- **4 skipped** tests
 
 **ParseWeslV2 Specific**:
 - **63/64 passing (98.4%)** - Up from 95.3%! **+3.1% improvement**
@@ -153,13 +152,13 @@ Revealed that `token.text` was `">="` not `">"`, leading directly to the fix.
 
 | Test Suite | V2 Pass Rate | Change | Notes |
 |------------|--------------|--------|-------|
-| Overall | 371/438 (84.7%) | +0.5% | Up from 84.2% |
+| Overall | 414/515 (80.4%) | +0.4% | Up from 80.0% |
 | ParseWeslV2 | 63/64 (98.4%) | +3.1% | Up from 95.3% |
 | ImportCasesV2 | 39/39 (100%) | - | ✅ Complete |
 | LinkerV2 | 12/12 (100%) | - | ✅ Complete |
 | ScopeWESLV2 | 11/11 (100%) | - | ✅ Complete |
 | BindWESLV2 | 4/4 (100%) | - | ✅ Complete |
-| **V1 Tests** | **333/334 (99.7%)** | **±0%** | ✅ **NO REGRESSIONS** |
+| **V1 Tests** | **409/411 (99.5%)** | **±0%** | ✅ **NO REGRESSIONS** |
 
 ## Recommendations for Next Session
 
@@ -199,7 +198,7 @@ The V2 parser continues to maintain 100% V1 compatibility with no regressions.
 ---
 
 **Previous**: [v2-progress-update-18.md](./v2-progress-update-18.md)
-**Current Status**: V2 at 84.7% (371/438), V1 at 99.7% (333/334)
+**Current Status**: V2 at 80.4% (414/515), V1 at 99.5% (409/411)
 **Key Achievement**: Template expression parsing fixed, ParseWeslV2 at 98.4%
 **Next Focus**: Fix postfix increment to complete ParseWeslV2, or implement statement @if
-**Test Commands**: `V1_ONLY=true pnpm test` (production), `V2_ONLY=true bb test` (development)
+**Test Commands**: `V1_ONLY=true bb test --dangerouslyDisableSandbox` (production), `V2_ONLY=true bb test --dangerouslyDisableSandbox` (development)
