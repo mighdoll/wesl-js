@@ -29,9 +29,11 @@ test("scope from simple fn", () => {
   `;
   const { rootScope } = testParseWESL(src);
   expect(scopeToString(rootScope)).toMatchInlineSnapshot(`
-    "{
-      -{ %main
-        { %x i32 } #2
+    "{ 
+      -{ %main 
+        { %x 
+          { i32 } #3
+        } #2
       } #1
     } #0"
   `);
@@ -242,10 +244,12 @@ test("for()", () => {
   const { rootScope } = testParseWESL(src);
 
   expect(scopeToString(rootScope)).toMatchInlineSnapshot(`
-    "{
-      -{ %main
-        { %i
-          { %i i i } #3
+    "{ 
+      -{ %main 
+        { %i 
+          { %i i i 
+            {  } #4
+          } #3
         } #2
       } #1
     } #0"
@@ -260,10 +264,12 @@ test("fn with param", () => {
     }`;
   const { rootScope } = testParseWESL(src);
   expect(scopeToString(rootScope)).toMatchInlineSnapshot(`
-    "{
-      -{ %main
-        { %i i32 %x i
-          { %i i x i } #3
+    "{ 
+      -{ %main 
+        { %i i32 %x i 
+          { %i i x i 
+            {  } #4
+          } #3
         } #2
       } #1
     } #0"
@@ -371,10 +377,12 @@ test("scope with an attribute", () => {
   const { rootScope } = testParseWESL(src);
 
   expect(scopeToString(rootScope)).toMatchInlineSnapshot(`
-    "{
-      -{ %main
-        {
-           @if(foo) {  } #3
+    "{ 
+      -{ %main 
+        { 
+           @if(foo) -{ 
+            {  } #4
+          } #3
         } #2
       } #1
     } #0"
@@ -392,9 +400,9 @@ test("partial scope", () => {
   const { rootScope } = testParseWESL(src);
 
   expect(scopeToString(rootScope)).toMatchInlineSnapshot(`
-    "{
-      -{ %main
-        { %x
+    "{ 
+      -{ %main 
+        { %x 
            @if(false) -{ y } #3
         } #2
       } #1
@@ -467,11 +475,11 @@ test("@if fn", () => {
   `;
   const { rootScope } = testParseWESL(src);
   expect(scopeToString(rootScope)).toMatchInlineSnapshot(`
-    "{
-      -{ %loc
+    "{ 
+      -{ %loc 
         {  } #2
       } #1
-       @if(true) -{ %fragmentMain loc
+      -{ %fragmentMain 
         { %p vec3f vec4f %x p } #4
       } #3
     } #0"
@@ -484,8 +492,8 @@ test("@if const", () => {
   `;
   const { rootScope } = testParseWESL(src);
   expect(scopeToString(rootScope)).toMatchInlineSnapshot(`
-    "{
-       @if(true) -{ %a
+    "{ 
+      -{ %a 
         {  } #2
       } #1
     } #0"

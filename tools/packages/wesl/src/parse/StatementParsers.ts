@@ -7,7 +7,13 @@
  * full expression support for conditions and assignments.
  */
 
-import type { AttributeElem, StatementElem } from "../AbstractElems.ts";
+import type {
+  AttributeElem,
+  ElseAttribute,
+  ElifAttribute,
+  IfAttribute,
+  StatementElem,
+} from "../AbstractElems.ts";
 import { parseAttributeList } from "./AttributeParsers.ts";
 import {
   parseConstAssert,
@@ -805,6 +811,31 @@ function parseSwitchStatement(
   return switchStmt;
 }
 
+/** Check if attributes contain @if/@elif/@else */
+function hasConditionalAttribute(attributes: AttributeElem[]): boolean {
+  return attributes.some(
+    (attr) =>
+      attr.kind === "attribute" &&
+      (attr.attribute.kind === "@if" ||
+        attr.attribute.kind === "@elif" ||
+        attr.attribute.kind === "@else"),
+  );
+}
+
+/** Get the conditional attribute from a list */
+function getConditionalAttribute(
+  attributes: AttributeElem[],
+): IfAttribute | ElifAttribute | ElseAttribute | undefined {
+  const elem = attributes.find(
+    (attr) =>
+      attr.kind === "attribute" &&
+      (attr.attribute.kind === "@if" ||
+        attr.attribute.kind === "@elif" ||
+        attr.attribute.kind === "@else"),
+  );
+  return elem?.attribute as IfAttribute | ElifAttribute | ElseAttribute | undefined;
+}
+
 /**
  * Parse a single statement
  * Week 10: Handles all statement types with structural parsing
@@ -826,86 +857,118 @@ export function parseStatement(
     return null;
   }
 
+  // If we have conditional attributes, create a partial scope
+  const hasConditional = attributes.length > 0 && hasConditionalAttribute(attributes);
+  if (hasConditional) {
+    ctx.pushScope("partial");
+  }
+
+  let stmt: StatementElem | null = null;
+
   // Try local variable declarations (var, let, const)
-  const localVar = parseLocalVarDecl(
-    stream,
-    ctx,
-    attributes.length > 0 ? attributes : undefined,
-  );
-  if (localVar) return localVar as unknown as StatementElem;
+  const attrsOrUndef = attributes.length > 0 ? attributes : undefined;
 
-  const letDecl = parseLetDecl(
-    stream,
-    ctx,
-    attributes.length > 0 ? attributes : undefined,
-  );
-  if (letDecl) return letDecl as unknown as StatementElem;
+  stmt = parseLocalVarDecl(stream, ctx, attrsOrUndef) as any;
+  if (stmt) {
+    if (hasConditional) {
+      const partialScope = ctx.popScope();
+      partialScope.condAttribute = getConditionalAttribute(attributes);
+    }
+    return stmt as unknown as StatementElem;
+  }
 
-  const constDecl = parseConstDecl(
-    stream,
-    ctx,
-    attributes.length > 0 ? attributes : undefined,
-  );
-  if (constDecl) return constDecl as unknown as StatementElem;
+  stmt = parseLetDecl(stream, ctx, attrsOrUndef) as any;
+  if (stmt) {
+    if (hasConditional) {
+      const partialScope = ctx.popScope();
+      partialScope.condAttribute = getConditionalAttribute(attributes);
+    }
+    return stmt as unknown as StatementElem;
+  }
+
+  stmt = parseConstDecl(stream, ctx, attrsOrUndef) as any;
+  if (stmt) {
+    if (hasConditional) {
+      const partialScope = ctx.popScope();
+      partialScope.condAttribute = getConditionalAttribute(attributes);
+    }
+    return stmt as unknown as StatementElem;
+  }
 
   // Try const_assert statement
-  const constAssert = parseConstAssert(
-    stream,
-    ctx,
-    attributes.length > 0 ? attributes : undefined,
-  );
-  if (constAssert) return constAssert as unknown as StatementElem;
+  stmt = parseConstAssert(stream, ctx, attrsOrUndef) as any;
+  if (stmt) {
+    if (hasConditional) {
+      const partialScope = ctx.popScope();
+      partialScope.condAttribute = getConditionalAttribute(attributes);
+    }
+    return stmt as unknown as StatementElem;
+  }
 
   // Try compound statement (block)
-  const compoundStmt = parseCompoundStatement(
-    stream,
-    ctx,
-    attributes.length > 0 ? attributes : undefined,
-  );
-  if (compoundStmt) return compoundStmt;
+  stmt = parseCompoundStatement(stream, ctx, attrsOrUndef);
+  if (stmt) {
+    if (hasConditional) {
+      const partialScope = ctx.popScope();
+      partialScope.condAttribute = getConditionalAttribute(attributes);
+    }
+    return stmt;
+  }
 
   // Try control flow statements
-  const ifStmt = parseIfStatement(
-    stream,
-    ctx,
-    attributes.length > 0 ? attributes : undefined,
-  );
-  if (ifStmt) return ifStmt;
+  stmt = parseIfStatement(stream, ctx, attrsOrUndef);
+  if (stmt) {
+    if (hasConditional) {
+      const partialScope = ctx.popScope();
+      partialScope.condAttribute = getConditionalAttribute(attributes);
+    }
+    return stmt;
+  }
 
-  const switchStmt = parseSwitchStatement(
-    stream,
-    ctx,
-    attributes.length > 0 ? attributes : undefined,
-  );
-  if (switchStmt) return switchStmt;
+  stmt = parseSwitchStatement(stream, ctx, attrsOrUndef);
+  if (stmt) {
+    if (hasConditional) {
+      const partialScope = ctx.popScope();
+      partialScope.condAttribute = getConditionalAttribute(attributes);
+    }
+    return stmt;
+  }
 
-  const forStmt = parseForStatement(
-    stream,
-    ctx,
-    attributes.length > 0 ? attributes : undefined,
-  );
-  if (forStmt) return forStmt;
+  stmt = parseForStatement(stream, ctx, attrsOrUndef);
+  if (stmt) {
+    if (hasConditional) {
+      const partialScope = ctx.popScope();
+      partialScope.condAttribute = getConditionalAttribute(attributes);
+    }
+    return stmt;
+  }
 
-  const whileStmt = parseWhileStatement(
-    stream,
-    ctx,
-    attributes.length > 0 ? attributes : undefined,
-  );
-  if (whileStmt) return whileStmt;
+  stmt = parseWhileStatement(stream, ctx, attrsOrUndef);
+  if (stmt) {
+    if (hasConditional) {
+      const partialScope = ctx.popScope();
+      partialScope.condAttribute = getConditionalAttribute(attributes);
+    }
+    return stmt;
+  }
 
-  const loopStmt = parseLoopStatement(
-    stream,
-    ctx,
-    attributes.length > 0 ? attributes : undefined,
-  );
-  if (loopStmt) return loopStmt;
+  stmt = parseLoopStatement(stream, ctx, attrsOrUndef);
+  if (stmt) {
+    if (hasConditional) {
+      const partialScope = ctx.popScope();
+      partialScope.condAttribute = getConditionalAttribute(attributes);
+    }
+    return stmt;
+  }
 
   // Fall back to simple statement
-  return parseSimpleStatement(
-    stream,
-    ctx,
-    attributes.length > 0 ? attributes : undefined,
-  );
+  stmt = parseSimpleStatement(stream, ctx, attrsOrUndef);
+  if (stmt && hasConditional) {
+    const partialScope = ctx.popScope();
+    partialScope.condAttribute = getConditionalAttribute(attributes);
+  }
+
+  return stmt;
 }
 
 /**
