@@ -5,9 +5,9 @@ import { parseTest } from "./TestUtil.ts";
 test("parse fn foo() { invalid }", () => {
   const src = "fn foo() { let }";
   expect(() => parseTest(src)).toThrowErrorMatchingInlineSnapshot(`
-    [Error: ./test.wesl:1:15 error: Expected identifier after 'let'
+    [Error: ./test.wesl:1:16 error: Expected identifier after 'let'
     fn foo() { let }
-                  ^]
+                   ^]
   `);
 });
 
@@ -27,9 +27,9 @@ test("parse invalid if", () => {
 test("parse invalid name", () => {
   const src = "var package = 3;";
   expect(() => parseTest(src)).toThrowErrorMatchingInlineSnapshot(`
-    [Error: ./test.wesl:1:4 error: Expected identifier after 'var'
+    [Error: ./test.wesl:1:5 error: Expected identifier after 'var'
     var package = 3;
-       ^]
+        ^^^^^^^]
   `);
 });
 

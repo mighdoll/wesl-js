@@ -26,7 +26,13 @@ import type { Scope } from "../Scope.ts";
 import { parseAttributeList } from "./AttributeParsers.ts";
 import { parseSimpleExpression } from "./ExpressionParsers.ts";
 import type { ParseContext } from "./ParseContext.ts";
-import { checkpoint, consume, expect, reset } from "./ParseUtil.ts";
+import {
+  checkpoint,
+  consume,
+  expect,
+  reset,
+  throwParseError,
+} from "./ParseUtil.ts";
 import { parseSimpleTypeRef } from "./TypeParsers.ts";
 import { closeElem, openElem } from "./v2/ContentsHelpers.ts";
 import type { WeslStream } from "./WeslStream.ts";
@@ -176,7 +182,7 @@ export function parseConstDecl(
   // Parse the typed declaration (name with optional type)
   const typedDecl = parseTypedDecl(stream, ctx);
   if (!typedDecl) {
-    throw new Error("Expected identifier after 'const'");
+    throwParseError(stream, "Expected identifier after 'const'");
   }
 
   // Add typedDecl to contents
@@ -262,7 +268,7 @@ export function parseOverrideDecl(
   // Parse the typed declaration (name with optional type)
   const typedDecl = parseTypedDecl(stream, ctx);
   if (!typedDecl) {
-    throw new Error("Expected identifier after 'override'");
+    throwParseError(stream, "Expected identifier after 'override'");
   }
 
   // Add typedDecl to contents
@@ -360,7 +366,7 @@ export function parseVarDecl(
   // Parse the typed declaration (name with optional type)
   const typedDecl = parseTypedDecl(stream, ctx);
   if (!typedDecl) {
-    throw new Error("Expected identifier after 'var'");
+    throwParseError(stream, "Expected identifier after 'var'");
   }
 
   // Add typedDecl to contents
@@ -441,7 +447,7 @@ export function parseAliasDecl(
   // Parse the name (just DeclIdentElem, not TypedDeclElem)
   const nameToken = stream.nextToken();
   if (!nameToken || nameToken.kind !== "word") {
-    throw new Error("Expected identifier after 'alias'");
+    throwParseError(stream, "Expected identifier after 'alias'");
   }
 
   // Create DeclIdent for this alias
@@ -604,7 +610,7 @@ export function parseStructDecl(
   // Parse struct name
   const nameToken = stream.nextToken();
   if (!nameToken || nameToken.kind !== "word") {
-    throw new Error("Expected identifier after 'struct'");
+    throwParseError(stream, "Expected identifier after 'struct'");
   }
 
   // Create DeclIdent for this struct
@@ -769,7 +775,7 @@ export function parseLocalVarDecl(
   // Parse the typed declaration (name with optional type)
   const typedDecl = parseTypedDecl(stream, ctx);
   if (!typedDecl) {
-    throw new Error("Expected identifier after 'var'");
+    throwParseError(stream, "Expected identifier after 'var'");
   }
 
   // Add typedDecl to contents
@@ -830,7 +836,7 @@ export function parseLetDecl(
   // Parse the typed declaration (name with optional type)
   const typedDecl = parseTypedDecl(stream, ctx);
   if (!typedDecl) {
-    throw new Error("Expected identifier after 'let'");
+    throwParseError(stream, "Expected identifier after 'let'");
   }
 
   // Add typedDecl to contents

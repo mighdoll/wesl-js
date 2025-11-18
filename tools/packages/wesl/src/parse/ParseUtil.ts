@@ -88,6 +88,26 @@ export function expectKind<T extends Token>(
 }
 
 /**
+ * Throw a ParseError with the span of the current/next token
+ * Use this when you encounter an unexpected token or missing token
+ */
+export function throwParseError(
+  stream: Stream<Token>,
+  message: string,
+): never {
+  const weslStream = stream as WeslStream;
+  const token = weslStream.peek();
+  if (token) {
+    // Use the actual token's span for better highlighting
+    throw new ParseError(message, token.span);
+  } else {
+    // At EOF, use current position
+    const pos = weslStream.checkpoint();
+    throw new ParseError(message, [pos, pos]);
+  }
+}
+
+/**
  * Manual backtracking helper - checkpoint and reset on null return.
  * Use this pattern instead of try/catch for performance.
  *
