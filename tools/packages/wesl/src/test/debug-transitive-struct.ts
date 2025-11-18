@@ -31,9 +31,16 @@ struct package_file2_BStruct { x: u32 }
   `,
 };
 
-try {
-  testLink(testCase, { useV2Parser: true });
-  console.log("Test passed!");
-} catch (error) {
-  console.log("Test failed:", error.message);
+async function runTest() {
+  try {
+    await testLink(testCase.weslSrc, "./main.wgsl", testCase.expect);
+    console.log("Test passed!");
+  } catch (error) {
+    console.log(
+      "Test failed:",
+      error instanceof Error ? error.message : String(error),
+    );
+  }
 }
+
+runTest();

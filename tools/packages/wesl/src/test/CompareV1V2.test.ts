@@ -51,13 +51,16 @@ test("compare V1 vs V2 for import test case", async () => {
 
   console.log("\n=== V1 Root Scope Contents ===");
   astV1.rootScope.contents.forEach((item, i) => {
-    if ("kind" in item && item.kind === "scope") {
+    if ("kind" in item && (item.kind === "scope" || item.kind === "partial")) {
       console.log(
         `${i}: [Scope id=${item.id}, contents.length=${item.contents.length}]`,
       );
       // Look inside the scope
       item.contents.forEach((subItem, j) => {
-        if ("kind" in subItem) {
+        if (
+          "kind" in subItem &&
+          (subItem.kind === "scope" || subItem.kind === "partial")
+        ) {
           console.log(`  ${j}: [Scope]`);
         } else {
           const type = "declElem" in subItem ? "DeclIdent" : "RefIdent";
@@ -65,23 +68,24 @@ test("compare V1 vs V2 for import test case", async () => {
         }
       });
     } else {
-      const ident = item;
-      const type = "declElem" in ident ? "DeclIdent" : "RefIdent";
-      console.log(
-        `${i}: ${type} "${ident.originalName}", isGlobal=${ident.isGlobal}`,
-      );
+      const type = "declElem" in item ? "DeclIdent" : "RefIdent";
+      const isGlobal = "declElem" in item ? item.isGlobal : "N/A";
+      console.log(`${i}: ${type} "${item.originalName}", isGlobal=${isGlobal}`);
     }
   });
 
   console.log("\n=== V2 Root Scope Contents ===");
   astV2.rootScope.contents.forEach((item, i) => {
-    if ("kind" in item && item.kind === "scope") {
+    if ("kind" in item && (item.kind === "scope" || item.kind === "partial")) {
       console.log(
         `${i}: [Scope id=${item.id}, contents.length=${item.contents.length}]`,
       );
       // Look inside the scope
       item.contents.forEach((subItem, j) => {
-        if ("kind" in subItem) {
+        if (
+          "kind" in subItem &&
+          (subItem.kind === "scope" || subItem.kind === "partial")
+        ) {
           console.log(`  ${j}: [Scope]`);
         } else {
           const type = "declElem" in subItem ? "DeclIdent" : "RefIdent";
@@ -89,11 +93,9 @@ test("compare V1 vs V2 for import test case", async () => {
         }
       });
     } else {
-      const ident = item;
-      const type = "declElem" in ident ? "DeclIdent" : "RefIdent";
-      console.log(
-        `${i}: ${type} "${ident.originalName}", isGlobal=${ident.isGlobal}`,
-      );
+      const type = "declElem" in item ? "DeclIdent" : "RefIdent";
+      const isGlobal = "declElem" in item ? item.isGlobal : "N/A";
+      console.log(`${i}: ${type} "${item.originalName}", isGlobal=${isGlobal}`);
     }
   });
 
