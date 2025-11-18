@@ -18,6 +18,7 @@ import { isGlobal } from "./BindIdents.ts";
 import { failIdentElem } from "./ClickableError.ts";
 import { filterValidElements } from "./Conditions.ts";
 import { identToString } from "./debug/ScopeToString.ts";
+import { weslParserConfig } from "./ParseWESL.ts";
 import type { Conditions, DeclIdent, Ident } from "./Scope.ts";
 
 export interface EmitParams {
@@ -91,7 +92,6 @@ export function lowerAndEmitElem(e: AbstractElem, ctx: EmitContext): void {
     // container elements just emit their child elements
     case "param":
     case "typeDecl":
-    case "module":
     case "member":
     case "memberRef":
     case "expression":
@@ -99,6 +99,26 @@ export function lowerAndEmitElem(e: AbstractElem, ctx: EmitContext): void {
     case "stuff":
     case "switch-clause":
       emitContents(e, ctx);
+      return;
+
+    case "module":
+      // V2: Skip whitespace-only text elements at module level
+      // (rely on emitRootElemNl for proper spacing)
+      if (weslParserConfig.useV2Parser) {
+        const validElements = filterValidElements(e.contents, ctx.conditions);
+        validElements.forEach(child => {
+          // Skip whitespace-only text elements
+          if (child.kind === "text") {
+            const text = child.srcModule.src.slice(child.start, child.end);
+            if (text.trim() === "") {
+              return; // Skip
+            }
+          }
+          lowerAndEmitElem(child, ctx);
+        });
+      } else {
+        emitContents(e, ctx);
+      }
       return;
 
     // var, let, statement can have @if/@elif/@else attributes
