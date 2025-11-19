@@ -797,13 +797,13 @@ describe("ParserV2 Parity: Complex Real-World Examples", () => {
     expect(v2SemanticElems[2].kind).toBe("fn");
   });
 
-  test.skip("full program with imports and directives", () => {
-    // Skip: V1 parser limitation - combination of features fails in V1
+  test("full program with imports and directives", () => {
+    // Imports must come before directives in WESL
     const { v2SemanticElems } = testParity(`
+      import pkg::module;
+
       enable f16;
       diagnostic(off, derivative_uniformity);
-
-      import pkg::module;
 
       const PI = 3.14159;
 
@@ -825,13 +825,14 @@ describe("ParserV2 Parity: Complex Real-World Examples", () => {
       }
     `);
 
-    expect(v2SemanticElems.length).toBe(7);
-    expect(v2SemanticElems[0].kind).toBe("directive");
+    expect(v2SemanticElems.length).toBe(8);
+    expect(v2SemanticElems[0].kind).toBe("import");
     expect(v2SemanticElems[1].kind).toBe("directive");
-    expect(v2SemanticElems[2].kind).toBe("import");
+    expect(v2SemanticElems[2].kind).toBe("directive");
     expect(v2SemanticElems[3].kind).toBe("const");
     expect(v2SemanticElems[4].kind).toBe("struct");
     expect(v2SemanticElems[5].kind).toBe("gvar");
     expect(v2SemanticElems[6].kind).toBe("fn");
+    expect(v2SemanticElems[7].kind).toBe("fn");
   });
 });
