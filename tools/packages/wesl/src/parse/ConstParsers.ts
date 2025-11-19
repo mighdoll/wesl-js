@@ -228,11 +228,11 @@ export function parseConstDecl(
   const contents = closeElem(ctx, startPos, endPos);
 
   // Save the scope as the dependentScope for binding
-  // Prefer typeScope (for type references) over partial scope (for initializers)
-  // This matches V1 behavior and allows binding to recursively process references
+  // Use constScope (the partial scope) which contains both typeScope and initializer scope
+  // This allows binding to recursively process all references
   if (typedDecl?.decl?.ident) {
     const constScope = ctx.currentScope();
-    typedDecl.decl.ident.dependentScope = typedDecl.typeScope || constScope;
+    typedDecl.decl.ident.dependentScope = constScope;
   }
 
   // Pop the partial scope for the const declaration

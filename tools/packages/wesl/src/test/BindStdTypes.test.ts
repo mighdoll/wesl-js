@@ -92,3 +92,27 @@ test("bind types in @if partials", async () => {
   expect(result.dest).toContain("fn process()");
   expect(result.dest).toContain("fn transform()");
 });
+
+test("bind types in const declarations - like lygia", async () => {
+  const result = await link({
+    weslSrc: {
+      "main.wesl": `
+        const SCALE: vec4f = vec4f(0.1031, 0.1030, 0.0973, 0.1099);
+
+        fn random(p: f32) -> f32 {
+          var x = fract(p * SCALE.x);
+          return x;
+        }
+
+        fn main() {
+          let r = random(1.0);
+        }
+      `,
+    },
+    rootModuleName: "main.wesl",
+  });
+
+  expect(result.dest).toContain("vec4f");
+  expect(result.dest).toContain("const SCALE");
+  expect(result.dest).toContain("fn random");
+});
