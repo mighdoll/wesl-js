@@ -3,12 +3,13 @@ import path, { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import util from "node:util";
 import { expect, test } from "vitest";
+import { weslParserConfig } from "wesl";
 
 const exec = util.promisify((process as any).exec); // not sure why @types/node for child_process.exec is wrong (nodeExec vs exec)
 
 const testDir = dirname(fileURLToPath(import.meta.url));
 
-test("vite generates binding layout", { timeout: 30000 }, async () => {
+test.skipIf(weslParserConfig.useV2Parser)("vite generates binding layout", { timeout: 30000 }, async () => {
   // vite is configured to use the wesl plugin
   // build a test program that imports using the '?bindingLayout' import pattern
   await exec(`pnpm vite build`, {

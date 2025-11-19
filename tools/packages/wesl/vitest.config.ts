@@ -59,31 +59,13 @@ if (useV1Only) {
     },
   };
 } else {
-  // Default: dual parser mode - run tests with both V1 and V2 sequentially
-  // (sequential to avoid race conditions with shared weslParserConfig)
+  // Default: V2 parser mode (feat/custom-parser branch default)
+  // Excludes V1-specific tests that check V1 AST structure
   config = {
     test: {
-      sequence: {
-        concurrent: false, // Run projects sequentially to avoid config race
-      },
-      projects: [
-        {
-          test: {
-            name: "v1",
-            setupFiles: ["./src/test/TestSetupV1.ts"],
-            include: ["src/test/**/*.test.ts"],
-            exclude: [...baseExcludes, ...v2OnlyTests],
-          },
-        },
-        {
-          test: {
-            name: "v2",
-            setupFiles: ["./src/test/TestSetupV2.ts"],
-            include: ["src/test/**/*.test.ts"],
-            exclude: [...baseExcludes, ...v1OnlyTests],
-          },
-        },
-      ],
+      setupFiles: "./src/test/TestSetupV2.ts",
+      include: ["src/test/**/*.test.ts"],
+      exclude: [...baseExcludes, ...v1OnlyTests],
     },
   };
 }
