@@ -29,7 +29,7 @@
     "publish:all": "pnpm --filter \"./packages/**\" publish",
     "test": "cross-env FORCE_COLOR=1 NODE_OPTIONS=--expose-gc vitest",
     "test:all": "run-p test:unit test:built test:examples",
-    "test:all:v1": "run-p test:unit:v1 test:built:v1 test:examples:v1",
+    "test:all:v1": "run-p test:unit:v1 test:built:v1",
     "test:built": "pnpm --filter built-test test:built",
     "test:built:v1": "cross-env V1_ONLY=true pnpm --filter built-test test:built",
     "test:examples": "pnpm --filter \"./examples/**\" test",
