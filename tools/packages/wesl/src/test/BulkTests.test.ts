@@ -26,11 +26,11 @@ bulkTests.forEach(v => {
   });
 });
 
-test.skip("Debug specific bulk test", async () => {
-  const baseDir = "";
-  const filePath = "";
-  await runBulkTest(baseDir, filePath);
-});
+// test.skip("Debug specific bulk test", async () => {
+//   const baseDir = "";
+//   const filePath = "";
+//   await runBulkTest(baseDir, filePath);
+// });
 
 // Helper functions
 async function runBulkTest(baseDir: string, filePath: string): Promise<void> {
