@@ -59,7 +59,8 @@ if (useV1Only) {
     },
   };
 } else {
-  // Default: V2 parser mode (feat/custom-parser branch default)
+  // Default: V2 parser mode for wesl package tests
+  // (Global default is V1, but wesl package tests default to V2)
   // Excludes V1-specific tests that check V1 AST structure
   config = {
     test: {
