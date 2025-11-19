@@ -3,35 +3,53 @@
 ## Issue Investigated
 Lygia tests failing with "unresolved identifier: vec4f" errors when using V2 parser.
 
-## Root Cause Identified
-The V2 parser stores type RefIdents (e.g., `vec4f` in function signatures or const type annotations) in dependent scopes. When `bindIdentsRecursive` processes root-level declarations, it was not processing their dependent scopes if those declarations were pre-initialized.
+## Root Causes Identified
 
-## Fix Applied
-Modified `BindIdents.ts` `processScope` function (lines 303-359) to:
+### Issue 1: Missing Dependent Scope Processing in Partials
+The V2 parser stores type RefIdents in dependent scopes. When `bindIdentsRecursive` processes root-level declarations, it was not processing their dependent scopes for declarations inside partial scopes.
+
+### Issue 2: Const Initializer Expressions Not Bound
+The V2 parser in `ConstParsers.ts` was setting `dependentScope` to `typeScope` (type annotation only) instead of `constScope` (which contains both type annotation AND initializer expression).
+
+Example: `const SCALE: vec4f = vec4f(.1031, .1030, .0973, .1099);`
+- The type annotation `vec4f` was in `typeScope` ✓
+- The constructor call `vec4f` was in initializer expression scope (child of `constScope`)
+- Using `typeScope` meant the constructor call was never bound!
+
+## Fixes Applied
+
+### Fix 1: BindIdents.ts
+Modified `processScope` function to:
 1. Process dependent scopes for root declarations that are direct children of root scope
 2. Process dependent scopes for root declarations inside partial scopes
+3. Added `processDependentScopesInPartial` helper to recursively handle nested partials
 
-Added code at lines 345-358 to handle partials at root level containing declarations with dependent scopes.
+### Fix 2: ConstParsers.ts (THE KEY FIX)
+Changed line 235 from:
+```typescript
+typedDecl.decl.ident.dependentScope = typedDecl.typeScope || constScope;
+```
+to:
+```typescript
+typedDecl.decl.ident.dependentScope = constScope;
+```
+
+This ensures all RefIdents (both type annotation AND initializer) get processed.
 
 ## Current Status - RESOLVED ✓
-- All wesl package tests pass (518 tests)
-- Fix refactored to handle nested partial scopes recursively
-- Added new helper function `processDependentScopesInPartial` that recurses through partial tree
-- Test coverage expanded to 4 tests including @if partials
+- wesl package: 520 passed ✓
+- lygia: 629/630 passed (was 569/630) - **60 tests fixed!** ✓
 
-## Solution Implemented
-Created recursive helper function `processDependentScopesInPartial` (BindIdents.ts:345-371) that:
-1. Traverses all items in a partial scope
-2. Processes dependent scopes for any declarations found
-3. Recursively handles nested partial scopes
-
-This replaces the previous single-level fix with a fully recursive solution that handles arbitrarily nested @if/@else blocks containing root declarations with type references.
+The remaining lygia failure is about a missing module `lygia::space::bracketing::bracketing` (unrelated).
 
 ## Files Modified
-- `tools/packages/wesl/src/BindIdents.ts` - Refactored to recursive solution (lines 336-371)
-- `tools/packages/wesl/src/test/BindStdTypes.test.ts` - Added test coverage (4 tests, all passing)
+- `tools/packages/wesl/src/BindIdents.ts` - Recursive partial scope processing
+- `tools/packages/wesl/src/parse/ConstParsers.ts` - Use constScope for dependentScope
+- `tools/packages/wesl/src/test/BindStdTypes.test.ts` - Added 5 test cases
 
-## Technical Details
-The V2 parser creates RefIdents for type names and saves them to scopes via `ctx.saveIdent()`. Type references in function signatures are stored in the function's dependent scope. When a module's root declarations are pre-initialized via `findValidRootDecls`, they're added to `knownDecls` before scope traversal. During traversal, these known declarations were being skipped, so their dependent scopes (containing type RefIdents) were never visited, leaving those RefIdents unmarked as std types.
+## Commits
+1. `6bd2e91c` - fix: recursively process dependent scopes in nested partials
+2. `3d985b04` - fix: use constScope for const declarations to bind all RefIdents
 
-The fix ensures that even pre-initialized root declarations have their dependent scopes processed. However, the current implementation doesn't handle deeply nested partial scopes correctly.
+## Key Insight
+The BindIdents fix was necessary but not sufficient. The real issue was in the V2 parser itself - it was preferring `typeScope` over `constScope`, which meant RefIdents in initializer expressions were never attached to any scope that would be processed during binding.
