@@ -96,9 +96,17 @@ export function lowerAndEmitElem(e: AbstractElem, ctx: EmitContext): void {
     case "memberRef":
     case "expression":
     case "type":
-    case "stuff":
     case "switch-clause":
       emitContents(e, ctx);
+      return;
+
+    // V2: "stuff" elements (compound statements) need trimming for proper formatting
+    case "stuff":
+      if (weslParserConfig.useV2Parser) {
+        emitContentsWithTrimming(e, ctx);
+      } else {
+        emitContents(e, ctx);
+      }
       return;
 
     case "module":
@@ -360,8 +368,22 @@ function emitContentsWithTrimming(elem: ContainerElem, ctx: EmitContext): void {
       const conditionalMatch = text.match(/@(if|elif)\s*\([^)]*\)|@else\b/);
 
       if (conditionalMatch) {
-        // Let emitText handle this (it filters out conditionals)
-        emitText(e, ctx);
+        // Text contains conditional attribute - need to filter AND trim
+        let beforeMatch = text.substring(0, conditionalMatch.index!);
+
+        // Trim leading whitespace from first text element
+        if (i === 0) {
+          beforeMatch = beforeMatch.trimStart();
+        }
+        // Trim trailing whitespace from last text element
+        if (i === validElements.length - 1) {
+          beforeMatch = beforeMatch.trimEnd();
+        }
+
+        if (beforeMatch) {
+          ctx.srcBuilder.add(beforeMatch, e.start, e.start + beforeMatch.length);
+        }
+        // Skip the conditional attribute part (emitText logic)
       } else {
         // No conditional - handle trimming ourselves
         let trimmed = text;
