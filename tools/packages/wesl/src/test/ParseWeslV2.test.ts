@@ -330,17 +330,18 @@ test("parse array alias", () => {
     "module
       text '
         '
-      alias %Points3=array<Point, >
+      alias %Points3=array<Point, ' 3'>
         text 'alias '
         decl %Points3
         text ' = '
-        type array<Point, >
+        type array<Point, ' 3'>
           ref array
           text '<'
           type Point
             ref Point
           text ','
-          expression 
+          expression ' 3'
+            text ' 3'
           text '>'
         text ';'
       text '
@@ -451,17 +452,18 @@ test("parse simple templated type", () => {
   const astString = astToString(ast.moduleElem);
   expect(astString).toMatchInlineSnapshot(`
     "module
-      fn main(a: array<MyStruct, >)
+      fn main(a: array<MyStruct, '4'>)
         decl %main
         param
           text 'a: '
-          type array<MyStruct, >
+          type array<MyStruct, '4'>
             ref array
             text '<'
             type MyStruct
               ref MyStruct
             text ','
-            expression 
+            expression '4'
+              text '4'
             text '>'
         statement
           text '{ }'"
@@ -474,17 +476,18 @@ test("parse with space before template", () => {
   const astString = astToString(ast.moduleElem);
   expect(astString).toMatchInlineSnapshot(`
     "module
-      fn main(a: array<MyStruct, >)
+      fn main(a: array<MyStruct, '4'>)
         decl %main
         param
           text 'a: '
-          type array<MyStruct, >
+          type array<MyStruct, '4'>
             ref array
             text ' <'
             type MyStruct
               ref MyStruct
             text ','
-            expression 
+            expression '4'
+              text '4'
             text '>'
         statement
           text '{ }'"
@@ -497,20 +500,21 @@ test("parse nested template that ends with >> ", () => {
   const astString = astToString(ast.moduleElem);
   expect(astString).toMatchInlineSnapshot(`
     "module
-      fn main(a: vec2<array<MyStruct, >>)
+      fn main(a: vec2<array<MyStruct, '4'>>)
         decl %main
         param
           text 'a: '
-          type vec2<array<MyStruct, >>
+          type vec2<array<MyStruct, '4'>>
             ref vec2
             text '<'
-            type array<MyStruct, >
+            type array<MyStruct, '4'>
               ref array
               text ' <'
               type MyStruct
                 ref MyStruct
               text ','
-              expression 
+              expression '4'
+                text '4'
               text '>'
             text '>'
         statement
@@ -525,19 +529,20 @@ test("parse type in <template> in global var", () => {
   const astString = astToString(ast.moduleElem);
   expect(astString).toMatchInlineSnapshot(`
     "module
-      gvar %x : array<MyStruct, >
+      gvar %x : array<MyStruct, ' 8'>
         text 'var<private>'
-        typeDecl %x : array<MyStruct, >
+        typeDecl %x : array<MyStruct, ' 8'>
           text ' '
           decl %x
           text ':'
-          type array<MyStruct, >
+          type array<MyStruct, ' 8'>
             ref array
             text '<'
             type MyStruct
               ref MyStruct
             text ','
-            expression 
+            expression ' 8'
+              text ' 8'
             text '>'
         text ';'"
   `);
@@ -570,9 +575,7 @@ test("parse for(;;) {} not as a fn call", () => {
               text ' = 1;'
             text ' '
             ref a
-            binary-expression binop(<)
-            text '; '
-            ref a
+            text ' < 10; '
             ref a
             text '++) '
             statement
@@ -792,12 +795,14 @@ test("parse switch statement", () => {
             statement
               text '{'
               statement
+                text ' break;'
               text ' }'
             text '
             default: '
             statement
               text '{'
               statement
+                text ' break;'
               text ' }'
             text '
           }'
@@ -842,6 +847,7 @@ test("parse switch statement-2", () => {
             statement
               text '{'
               statement
+                text ' if 1 > 0 '
                 statement
                   text '{ }'
               text ' }'
@@ -850,6 +856,7 @@ test("parse switch statement-2", () => {
             statement
               text '{'
               statement
+                text ' break;'
               text ' }'
             text '
           }'
@@ -929,19 +936,20 @@ test("var<workgroup> work: array<u32, 128>;", ctx => {
   const astString = astToString(ast.moduleElem);
   expect(astString).toMatchInlineSnapshot(`
     "module
-      gvar %work : array<u32, >
+      gvar %work : array<u32, ' 128'>
         text 'var<workgroup>'
-        typeDecl %work : array<u32, >
+        typeDecl %work : array<u32, ' 128'>
           text ' '
           decl %work
           text ': '
-          type array<u32, >
+          type array<u32, ' 128'>
             ref array
             text '<'
             type u32
               ref u32
             text ','
-            expression 
+            expression ' 128'
+              text ' 128'
             text '>'
         text ';'"
   `);
@@ -994,19 +1002,20 @@ test("fn main() { var tmp: array<i32, 1 << 1>=array(1, 2); }", ctx => {
         decl %main
         statement
           text '{'
-          var %tmp : array<i32, >
+          var %tmp : array<i32, ' 1 << 1'>
             text ' var'
-            typeDecl %tmp : array<i32, >
+            typeDecl %tmp : array<i32, ' 1 << 1'>
               text ' '
               decl %tmp
               text ': '
-              type array<i32, >
+              type array<i32, ' 1 << 1'>
                 ref array
                 text '<'
                 type i32
                   ref i32
                 text ','
-                expression 
+                expression ' 1 << 1'
+                  text ' 1 << 1'
                 text '>'
             text '='
             ref array

@@ -404,6 +404,33 @@ function parseSimpleStatement(
 
   const expr = parseExpression(stream, ctx);
   if (expr) {
+    // Check for postfix increment/decrement operators (e.g., x++, x--)
+    const postfixToken = stream.peek();
+    if (
+      postfixToken &&
+      (postfixToken.text === "++" || postfixToken.text === "--")
+    ) {
+      stream.nextToken(); // consume postfix operator
+
+      // Expect semicolon
+      expect(stream, ";", "Expected ';' after postfix operator");
+
+      const endPos = checkpoint(stream);
+
+      // Close and fill with text
+      const contents = closeElem(ctx, startPos, endPos);
+
+      const stmt: StatementElem = {
+        kind: "statement",
+        start: startPos,
+        end: endPos,
+        contents,
+      };
+
+      attachAttributes(stmt, attributes);
+      return stmt;
+    }
+
     // Check for assignment operators after the expression
     const assignToken = stream.peek();
     if (assignToken && isAssignmentOperator(assignToken.text)) {
@@ -619,19 +646,28 @@ function parseForStatement(
   expect(stream, ";", "Expected ';' after for loop condition");
 
   // Parse update (optional) - RefIdent elements added to contents automatically
-  // Update can be: expression (e.g., i = i + 1), or postfix ++/--, or function call
+  // Update can be: assignment (e.g., i += 1), expression (e.g., i = i + 1), postfix ++/--, or function call
   const updateToken = stream.peek();
   if (updateToken && updateToken.text !== ")") {
     const _update = parseExpression(stream, ctx);
 
-    // Check for postfix ++ or -- (e.g., i++, count--)
-    // These are consumed as text, not as part of the expression AST
-    const postfixToken = stream.peek();
-    if (
-      postfixToken &&
-      (postfixToken.text === "++" || postfixToken.text === "--")
-    ) {
-      stream.nextToken(); // consume the postfix operator (will be covered by text)
+    // Check for assignment operators after the expression (e.g., i += 1, i = i + 1)
+    const assignToken = stream.peek();
+    if (assignToken && isAssignmentOperator(assignToken.text)) {
+      stream.nextToken(); // consume assignment operator
+
+      // Parse right-hand side expression
+      const _rhs = parseExpression(stream, ctx);
+    } else {
+      // Check for postfix ++ or -- (e.g., i++, count--)
+      // These are consumed as text, not as part of the expression AST
+      const postfixToken = stream.peek();
+      if (
+        postfixToken &&
+        (postfixToken.text === "++" || postfixToken.text === "--")
+      ) {
+        stream.nextToken(); // consume the postfix operator (will be covered by text)
+      }
     }
   }
   expect(stream, ")", "Expected ')' after for loop header");

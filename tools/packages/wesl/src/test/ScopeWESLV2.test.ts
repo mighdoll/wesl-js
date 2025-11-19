@@ -202,9 +202,12 @@ test("scope from fn with reference", () => {
   const { rootScope } = testParseWESL(src);
 
   expect(scopeToString(rootScope)).toMatchInlineSnapshot(`
-    "{
-      -{ %main
-        { %x i32 x } #2
+    "{ 
+      -{ %main 
+        { %x 
+          { i32 } #3
+          x
+        } #2
       } #1
     } #0"
   `);

@@ -107,12 +107,20 @@ function parseStubTemplateExpression(
     return null;
   }
 
-  // Create UnknownExpressionElem
+  // Create TextElem to cover the consumed expression tokens
+  const textElem = {
+    kind: "text" as const,
+    start: startPos,
+    end: endPos,
+    srcModule: _ctx.srcModule,
+  };
+
+  // Create UnknownExpressionElem with TextElem in contents
   const exprElem: UnknownExpressionElem = {
     kind: "expression",
     start: startPos,
     end: endPos,
-    contents: [],
+    contents: [textElem],
   };
 
   return exprElem;
