@@ -174,15 +174,13 @@ function parseCompoundStatement(
 
   // Only push scope if block is non-empty AND no conditional attributes
   // (if conditional attributes exist, the partial scope is already pushed by parseStatement)
-  const hasConditional =
-    attributes &&
-    attributes.some(
-      attr =>
-        attr.kind === "attribute" &&
-        (attr.attribute.kind === "@if" ||
-          attr.attribute.kind === "@elif" ||
-          attr.attribute.kind === "@else"),
-    );
+  const hasConditional = attributes?.some(
+    attr =>
+      attr.kind === "attribute" &&
+      (attr.attribute.kind === "@if" ||
+        attr.attribute.kind === "@elif" ||
+        attr.attribute.kind === "@else"),
+  );
 
   const shouldPushScope = !isEmpty && !hasConditional;
   if (shouldPushScope) {
@@ -884,10 +882,24 @@ function parseSwitchStatement(
     if (token.text === "case") {
       stream.nextToken(); // consume "case"
 
-      // Parse case value expression
+      // Parse case value expression(s) - can be comma-separated (e.g., case 1u, 2u, 3u:)
       const caseExpr = parseExpression(stream, ctx);
       if (!caseExpr) {
         throw new Error("Expected expression after 'case'");
+      }
+
+      // Check for additional comma-separated case values
+      while (true) {
+        const commaToken = stream.peek();
+        if (!commaToken || commaToken.text !== ",") break;
+
+        stream.nextToken(); // consume ","
+
+        // Parse next case value
+        const nextExpr = parseExpression(stream, ctx);
+        if (!nextExpr) {
+          throw new Error("Expected expression after ',' in case values");
+        }
       }
 
       // Check for optional colon (WGSL allows both `case 0:` and `case 0 { }`)

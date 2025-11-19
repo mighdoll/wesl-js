@@ -108,7 +108,12 @@ export async function testFromCase(
   const adjustedUnderscoreWgsl = adjustV2Expectations(name, underscoreWgsl);
 
   await testLink(trimmedWesl, rootName, adjustedExpectedWgsl);
-  await testLink(trimmedWesl, rootName, adjustedUnderscoreWgsl, underscoreMangle);
+  await testLink(
+    trimmedWesl,
+    rootName,
+    adjustedUnderscoreWgsl,
+    underscoreMangle,
+  );
 }
 
 /**

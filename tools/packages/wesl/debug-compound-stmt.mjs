@@ -17,13 +17,19 @@ function showElem(elem, depth = 0, label = "") {
     const text = elem.srcModule.src.slice(elem.start, elem.end);
     const repr = JSON.stringify(text);
     const trimmed = text.trim() === "" ? " [WS]" : "";
-    console.log(`${indent}text[${elem.start}-${elem.end}]: ${repr}${trimmed}${labelStr}`);
+    console.log(
+      `${indent}text[${elem.start}-${elem.end}]: ${repr}${trimmed}${labelStr}`,
+    );
   } else if (elem.kind === "attribute") {
-    console.log(`${indent}attribute[${elem.start}-${elem.end}]: ${elem.attribute.kind}${labelStr}`);
+    console.log(
+      `${indent}attribute[${elem.start}-${elem.end}]: ${elem.attribute.kind}${labelStr}`,
+    );
   } else {
     const attrs = elem.attributes?.map(a => a.attribute.kind).join(",") || "";
     const attrStr = attrs ? ` [@${attrs}]` : "";
-    console.log(`${indent}${elem.kind}:${attrStr} [${elem.start}-${elem.end}]${labelStr}`);
+    console.log(
+      `${indent}${elem.kind}:${attrStr} [${elem.start}-${elem.end}]${labelStr}`,
+    );
 
     // Show attributes separately
     if (elem.attributes) {
@@ -31,7 +37,9 @@ function showElem(elem, depth = 0, label = "") {
     }
 
     if (elem.contents) {
-      elem.contents.forEach((child, i) => showElem(child, depth + 1, `content[${i}]`));
+      elem.contents.forEach((child, i) =>
+        showElem(child, depth + 1, `content[${i}]`),
+      );
     }
   }
 }

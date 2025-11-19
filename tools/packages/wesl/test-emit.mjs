@@ -1,8 +1,8 @@
 #!/usr/bin/env node
+import { SrcMapBuilder } from "mini-parse";
+import { lowerAndEmit } from "./src/LowerAndEmit.ts";
 import { weslParserConfig } from "./src/ParseWESL.ts";
 import { parseWeslV2 } from "./src/parse/v2/WeslParserV2.ts";
-import { lowerAndEmit } from "./src/LowerAndEmit.ts";
-import { SrcMapBuilder } from "mini-parse";
 
 weslParserConfig.useV2Parser = true;
 
@@ -18,7 +18,7 @@ lowerAndEmit({
   srcBuilder,
   rootElems: result.moduleElem.contents,
   conditions: { true: true },
-  extracting: true
+  extracting: true,
 });
 
 const output = srcBuilder.finish();

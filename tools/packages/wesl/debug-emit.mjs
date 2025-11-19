@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-import { parseWeslV2 } from "./src/parse/v2/WeslParserV2.ts";
-import { weslParserConfig } from "./src/ParseWESL.ts";
-import { lowerAndEmit } from "./src/LowerAndEmit.ts";
 import { SrcMapBuilder } from "mini-parse";
+import { lowerAndEmit } from "./src/LowerAndEmit.ts";
+import { weslParserConfig } from "./src/ParseWESL.ts";
+import { parseWeslV2 } from "./src/parse/v2/WeslParserV2.ts";
 
 const src = `const c1 = 10;
 const c2 = 10;
@@ -25,4 +25,6 @@ lowerAndEmit({
 console.log("Output:");
 console.log(JSON.stringify(srcBuilder.src()));
 console.log("\nExpected:");
-console.log(JSON.stringify("const c1 = 10;\n\nconst c2 = 10;\n\nconst c3 = 10;\n\n"));
+console.log(
+  JSON.stringify("const c1 = 10;\n\nconst c2 = 10;\n\nconst c3 = 10;\n\n"),
+);

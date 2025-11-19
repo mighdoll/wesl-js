@@ -381,7 +381,11 @@ function emitContentsWithTrimming(elem: ContainerElem, ctx: EmitContext): void {
         }
 
         if (beforeMatch) {
-          ctx.srcBuilder.add(beforeMatch, e.start, e.start + beforeMatch.length);
+          ctx.srcBuilder.add(
+            beforeMatch,
+            e.start,
+            e.start + beforeMatch.length,
+          );
         }
         // Skip the conditional attribute part (emitText logic)
       } else {

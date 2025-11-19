@@ -17,7 +17,10 @@ function showTextElems(elem, depth = 0) {
     const trimmed = text.trim() === "" ? " [WHITESPACE-ONLY]" : "";
     console.log(`${indent}text[${elem.start}-${elem.end}]: ${repr}${trimmed}`);
   } else if (elem.contents) {
-    console.log(`${indent}${elem.kind}:` + (elem.attributes ? ` [@${elem.attributes[0]?.condition}]` : ""));
+    console.log(
+      `${indent}${elem.kind}:` +
+        (elem.attributes ? ` [@${elem.attributes[0]?.condition}]` : ""),
+    );
     elem.contents.forEach(child => showTextElems(child, depth + 1));
   }
 }
