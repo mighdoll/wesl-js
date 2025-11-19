@@ -13,21 +13,23 @@ Modified `BindIdents.ts` `processScope` function (lines 303-359) to:
 
 Added code at lines 345-358 to handle partials at root level containing declarations with dependent scopes.
 
-## Current Status
+## Current Status - RESOLVED ✓
 - All wesl package tests pass (518 tests)
-- Lygia random test still fails with same vec4f error
-- The issue is that partial scopes can be NESTED, and the fix only handles one level
-- Need to make the partial scope handling recursive or process ALL declarations in the partial tree, not just direct children
+- Fix refactored to handle nested partial scopes recursively
+- Added new helper function `processDependentScopesInPartial` that recurses through partial tree
+- Test coverage expanded to 4 tests including @if partials
 
-## Next Steps
-1. Modify the fix to recursively process nested partial scopes
-2. Alternatively, refactor to collect ALL root declarations from partial tree before processing dependent scopes
-3. Add test coverage for nested partial scopes with type references
-4. Clean up debug code and verify all tests pass
+## Solution Implemented
+Created recursive helper function `processDependentScopesInPartial` (BindIdents.ts:345-371) that:
+1. Traverses all items in a partial scope
+2. Processes dependent scopes for any declarations found
+3. Recursively handles nested partial scopes
+
+This replaces the previous single-level fix with a fully recursive solution that handles arbitrarily nested @if/@else blocks containing root declarations with type references.
 
 ## Files Modified
-- `tools/packages/wesl/src/BindIdents.ts` - Added dependent scope processing for root declarations
-- `tools/packages/wesl/src/test/BindStdTypes.test.ts` - Added test coverage (3 tests, all passing)
+- `tools/packages/wesl/src/BindIdents.ts` - Refactored to recursive solution (lines 336-371)
+- `tools/packages/wesl/src/test/BindStdTypes.test.ts` - Added test coverage (4 tests, all passing)
 
 ## Technical Details
 The V2 parser creates RefIdents for type names and saves them to scopes via `ctx.saveIdent()`. Type references in function signatures are stored in the function's dependent scope. When a module's root declarations are pre-initialized via `findValidRootDecls`, they're added to `knownDecls` before scope traversal. During traversal, these known declarations were being skipped, so their dependent scopes (containing type RefIdents) were never visited, leaving those RefIdents unmarked as std types.

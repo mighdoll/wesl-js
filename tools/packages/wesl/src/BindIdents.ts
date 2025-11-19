@@ -106,6 +106,7 @@ export function bindIdents(params: BindIdentsParams): BindResults {
   const { rootAst, resolver, virtuals, accumulateUnbound } = params;
   const { conditions = {}, mangler = minimalMangle } = params;
 
+
   const validRootDecls = findValidRootDecls(rootAst.rootScope, conditions);
   const { globalNames, knownDecls } = initializeRootDecls(validRootDecls);
 
@@ -301,20 +302,72 @@ function processScope(
 
   scope.contents.forEach(child => {
     if (child.kind === "decl") {
-      if (!isRoot) liveDecls.decls.set(child.originalName, child);
+      if (!isRoot) {
+        liveDecls.decls.set(child.originalName, child);
+      } else {
+        // For root scope declarations, process their dependent scopes
+        // (they're already in liveDecls from initialization)
+        if (child.dependentScope) {
+          const rootDecls = rootLiveDecls(child, bindContext.conditions);
+          if (rootDecls) {
+            const rootLive = makeLiveDecls(rootDecls);
+            const fromDeps = bindIdentsRecursive(
+              child.dependentScope,
+              bindContext,
+              rootLive,
+            );
+            newFromChildren.push(...fromDeps);
+          }
+        }
+      }
     } else if (child.kind === "ref") {
       const newDecl = handleRef(child, liveDecls, bindContext);
       if (newDecl) newGlobals.push(newDecl);
     } else {
+      // Handle nested scopes (including partials that may contain root decls)
       const fromScope = handleScope(child, liveDecls, bindContext, elseValid);
       if (fromScope) {
         newFromChildren.push(...fromScope.decls);
         elseValid = fromScope.nextElseState;
       }
+
+      // If this is a partial scope at root level, recursively process dependent scopes
+      // for any root declarations it contains (partials can be nested)
+      if (isRoot && child.kind === "partial") {
+        processDependentScopesInPartial(child, bindContext, newFromChildren);
+      }
     }
   });
 
   return { newGlobals, newFromChildren };
+}
+
+/**
+ * Recursively process dependent scopes for all declarations within a partial scope tree.
+ * Handles nested partial scopes.
+ */
+function processDependentScopesInPartial(
+  partial: Scope,
+  bindContext: BindContext,
+  newFromChildren: DeclIdent[],
+): void {
+  partial.contents.forEach(item => {
+    if (item.kind === "decl" && item.dependentScope) {
+      const rootDecls = rootLiveDecls(item, bindContext.conditions);
+      if (rootDecls) {
+        const rootLive = makeLiveDecls(rootDecls);
+        const fromDeps = bindIdentsRecursive(
+          item.dependentScope,
+          bindContext,
+          rootLive,
+        );
+        newFromChildren.push(...fromDeps);
+      }
+    } else if (item.kind === "partial") {
+      // Recursively handle nested partials
+      processDependentScopesInPartial(item, bindContext, newFromChildren);
+    }
+  });
 }
 
 /**
