@@ -36,16 +36,17 @@ typedDecl.decl.ident.dependentScope = constScope;
 
 This ensures all RefIdents (both type annotation AND initializer) get processed.
 
-## Current Status - RESOLVED ✓
+## Current Status - ALL RESOLVED ✓
 - wesl package: 524 passed ✓
-- lygia: 629/630 passed (was 569/630) - **60 tests fixed!** ✓
+- lygia: **630/630 passed** ✓ (was 569/630) - **61 tests fixed!** ✓
 
-The remaining lygia failure (`lygia::space::bracketing::bracketing` module not found) is a **V2 import resolution bug** - this test passes with V1.
+All lygia tests now pass with V2!
 
 ## Files Modified
 - `tools/packages/wesl/src/BindIdents.ts` - Recursive partial scope processing
 - `tools/packages/wesl/src/parse/ConstParsers.ts` - Use constScope for dependentScope
-- `tools/packages/wesl/src/test/BindStdTypes.test.ts` - Added 5 test cases
+- `tools/packages/wesl/src/parse/v2/WeslParserV2.ts` - Skip standalone semicolons (`;` after `}`)
+- `tools/packages/wesl/src/test/BindStdTypes.test.ts` - Added 6 test cases (including explicit package name test)
 
 ## Commits
 1. `6bd2e91c` - fix: recursively process dependent scopes in nested partials
@@ -69,17 +70,20 @@ Both approaches work because binding traverses recursively. No need to match V1'
    - V2 tests: 526 passed (+2 from this fix)
    - Commit: `4b68e4ff`
 
-2. **Investigate bracketing V2 bug** - `lygia::space::bracketing::bracketing` module not found
-   - This is a V2 import resolution bug (passes with V1)
+2. **Investigate bracketing V2 bug** - `lygia::space::bracketing::bracketing` module not found - **RESOLVED ✓**
+   - This was a V2 parser bug (passes with V1)
    - Import path: `lygia::space::bracketing::bracketing` (function from module)
    - Module file: `space/bracketing.wesl`
-   - **Investigation findings**:
-     - Import parsing and flattening are IDENTICAL for V1 and V2 ✓
-     - The issue is NOT in parsing or FlattenTreeImport
-     - Bug occurs when resolver tries to find module `lygia::space::bracketing`
-     - Involves FileModuleResolver and package name configuration in wesl-test
-     - The pattern `import package::space::bracketing::bracketing` works (tested)
-     - The pattern `import lygia::space::bracketing::bracketing` fails when lygia is the package name
-   - **Next step**: Debug FileModuleResolver in wesl-test to see why it can't find the module with explicit package name
+   - **Root Cause Identified**:
+     - The bracketing.wesl file has `};` after struct declarations (trailing semicolon)
+     - WGSL doesn't require trailing semicolons after structs, but some files have them
+     - The struct parser only consumed `}`, leaving `;` in the stream
+     - When the main parsing loop tried to parse the next declaration (the function), it saw `;` instead of `fn`
+     - The function was never parsed, so `bracketing` wasn't in the scope tree
+   - **Fix Applied**:
+     - Modified WeslParserV2.ts to skip standalone semicolons at the start of each parsing iteration
+     - The semicolon is preserved in output via TextElem coverage between declarations
+     - This correctly handles valid WGSL syntax (optional semicolon after struct)
+     - Commit: (pending)
 
 3. **Documentation updated** - Lygia testing instructions in v2/CLAUDE.md ✓

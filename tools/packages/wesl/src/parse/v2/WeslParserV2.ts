@@ -162,6 +162,12 @@ export class WeslParserV2 {
       const token = stream.peek();
       if (!token) break;
 
+      // Skip standalone semicolons (valid WGSL after structs - see gpuweb/gpuweb#2492)
+      if (token.text === ";") {
+        stream.nextToken();
+        continue;
+      }
+
       // Try to parse attributes before the declaration
       // Save position before attributes so we can pass it to the parser
       const beforeAttributes = stream.checkpoint();

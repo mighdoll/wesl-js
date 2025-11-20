@@ -547,6 +547,7 @@ function findExport(
 ): FoundDecl | undefined {
   const fqPathParts = absoluteModulePath(modulePathParts, srcModule);
   const modulePath = fqPathParts.slice(0, -1).join("::");
+
   const moduleAst =
     resolver.resolveModule(modulePath) ??
     virtualModule(modulePathParts[0], conditions, virtuals);

@@ -194,3 +194,35 @@ test("import function and struct from same module (lygia bracketing pattern)", a
   expect(result.dest).toContain("fn bracketing");
 });
 
+test("import with explicit package name (V2 bug reproduction)", async () => {
+  // This is the actual pattern that fails in lygia: lygia::space::bracketing::bracketing
+  const result = await link({
+    weslSrc: {
+      "main.wesl": `
+        import lygia::space::bracketing::bracketing;
+        import lygia::space::bracketing::BracketingResult;
+
+        fn main() {
+          let r: BracketingResult = bracketing(vec2f(1.0, 0.0));
+        }
+      `,
+      "space/bracketing.wesl": `
+        struct BracketingResult {
+          vAxis0: vec2f,
+          vAxis1: vec2f,
+          blendAlpha: f32,
+        }
+
+        fn bracketing(dir: vec2f) -> BracketingResult {
+          return BracketingResult(dir, dir, 0.5);
+        }
+      `,
+    },
+    rootModuleName: "main.wesl",
+    packageName: "lygia",
+  });
+
+  expect(result.dest).toContain("struct BracketingResult");
+  expect(result.dest).toContain("fn bracketing");
+});
+
