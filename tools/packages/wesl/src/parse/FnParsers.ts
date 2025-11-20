@@ -15,43 +15,18 @@ import type {
 } from "../AbstractElems.ts";
 import { parseAttributeList } from "./AttributeParsers.ts";
 import type { ParseContext } from "./ParseContext.ts";
-import { checkpoint, consume, expect } from "./ParseUtil.ts";
+import {
+  attachAttributes,
+  checkpoint,
+  consume,
+  expect,
+  linkDeclIdent,
+  linkDeclIdentElem,
+} from "./ParseUtil.ts";
 import { parseFunctionBody } from "./StatementParsers.ts";
 import { parseSimpleTypeRef } from "./TypeParsers.ts";
 import { closeElem, openElem } from "./v2/ContentsHelpers.ts";
 import type { WeslStream } from "./WeslStream.ts";
-
-// Import helper functions from ConstParsers
-// (We'll use the same attachment and linking patterns)
-
-/**
- * Attach attributes to an element if present
- */
-function attachAttributes<T extends { attributes?: AttributeElem[] }>(
-  elem: T,
-  attributes?: AttributeElem[],
-): void {
-  if (attributes && attributes.length > 0) {
-    elem.attributes = attributes;
-  }
-}
-
-/**
- * Link a DeclIdent back to its declaration element
- */
-function linkDeclIdent(typedDecl: TypedDeclElem, declElem: FnParamElem): void {
-  typedDecl.decl.ident.declElem = declElem;
-}
-
-/**
- * Link a DeclIdentElem back to its declaration element (for fn name)
- */
-function linkDeclIdentElem(
-  declIdentElem: DeclIdentElem,
-  declElem: FnElem,
-): void {
-  declIdentElem.ident.declElem = declElem;
-}
 
 /**
  * Parse function parameter

@@ -9,7 +9,47 @@ import {
   type Stream,
   type Token,
 } from "mini-parse";
+import type {
+  AttributeElem,
+  DeclarationElem,
+  DeclIdentElem,
+  TypedDeclElem,
+} from "../AbstractElems.ts";
 import type { WeslStream, WeslToken, WeslTokenKind } from "./WeslStream.ts";
+
+// ============================================================================
+// Shared Helper Functions
+// ============================================================================
+
+/** Attach attributes to an element if present */
+export function attachAttributes<T extends { attributes?: AttributeElem[] }>(
+  elem: T,
+  attributes?: AttributeElem[],
+): void {
+  if (attributes && attributes.length > 0) {
+    elem.attributes = attributes;
+  }
+}
+
+/** Link a DeclIdent back to its declaration element */
+export function linkDeclIdent(
+  typedDecl: TypedDeclElem,
+  declElem: DeclarationElem,
+): void {
+  typedDecl.decl.ident.declElem = declElem;
+}
+
+/** Link a DeclIdentElem back to its declaration element */
+export function linkDeclIdentElem(
+  declIdentElem: DeclIdentElem,
+  declElem: DeclarationElem,
+): void {
+  declIdentElem.ident.declElem = declElem;
+}
+
+// ============================================================================
+// Token Consumption Utilities
+// ============================================================================
 
 /** Try to consume a token by text only */
 export function consume<T extends Token>(

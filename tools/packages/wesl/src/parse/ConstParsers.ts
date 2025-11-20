@@ -10,7 +10,6 @@ import type {
   AttributeElem,
   ConstAssertElem,
   ConstElem,
-  DeclarationElem,
   DeclIdentElem,
   GlobalVarElem,
   LetElem,
@@ -27,49 +26,18 @@ import { parseAttributeList } from "./AttributeParsers.ts";
 import { parseSimpleExpression } from "./ExpressionParsers.ts";
 import type { ParseContext } from "./ParseContext.ts";
 import {
+  attachAttributes,
   checkpoint,
   consume,
   expect,
+  linkDeclIdent,
+  linkDeclIdentElem,
   reset,
   throwParseError,
 } from "./ParseUtil.ts";
 import { parseSimpleTypeRef } from "./TypeParsers.ts";
 import { closeElem, openElem } from "./v2/ContentsHelpers.ts";
 import type { WeslStream } from "./WeslStream.ts";
-
-// Helper functions to reduce duplication
-
-/**
- * Attach attributes to an element if present
- */
-function attachAttributes<T extends { attributes?: AttributeElem[] }>(
-  elem: T,
-  attributes?: AttributeElem[],
-): void {
-  if (attributes && attributes.length > 0) {
-    elem.attributes = attributes;
-  }
-}
-
-/**
- * Link a DeclIdent back to its declaration element
- */
-function linkDeclIdent(
-  typedDecl: TypedDeclElem,
-  declElem: DeclarationElem,
-): void {
-  typedDecl.decl.ident.declElem = declElem;
-}
-
-/**
- * Link a DeclIdentElem back to its declaration element (for alias)
- */
-function linkDeclIdentElem(
-  declIdentElem: DeclIdentElem,
-  declElem: DeclarationElem,
-): void {
-  declIdentElem.ident.declElem = declElem;
-}
 
 /**
  * Parse optionally typed identifier

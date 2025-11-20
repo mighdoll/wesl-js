@@ -4,7 +4,6 @@
  */
 
 import type {
-  AttributeElem,
   DiagnosticDirective,
   DirectiveElem,
   EnableDirective,
@@ -13,20 +12,14 @@ import type {
 } from "../AbstractElems.ts";
 import { parseAttributeList } from "./AttributeParsers.ts";
 import type { ParseContext } from "./ParseContext.ts";
-import { checkpoint, consume, expect, reset } from "./ParseUtil.ts";
+import {
+  attachAttributes,
+  checkpoint,
+  consume,
+  expect,
+  reset,
+} from "./ParseUtil.ts";
 import type { WeslStream } from "./WeslStream.ts";
-
-/**
- * Attach attributes to an element if present
- */
-function attachAttributes<T extends { attributes?: AttributeElem[] }>(
-  elem: T,
-  attributes?: AttributeElem[],
-): void {
-  if (attributes && attributes.length > 0) {
-    elem.attributes = attributes;
-  }
-}
 
 /**
  * Parse a comma-separated list of names

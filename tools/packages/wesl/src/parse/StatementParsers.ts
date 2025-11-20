@@ -23,21 +23,15 @@ import {
 } from "./ConstParsers.ts";
 import { parseExpression } from "./ExpressionParsers.ts";
 import type { ParseContext } from "./ParseContext.ts";
-import { checkpoint, consume, expect, reset } from "./ParseUtil.ts";
+import {
+  attachAttributes,
+  checkpoint,
+  consume,
+  expect,
+  reset,
+} from "./ParseUtil.ts";
 import { closeElem, openElem } from "./v2/ContentsHelpers.ts";
 import type { WeslStream } from "./WeslStream.ts";
-
-/**
- * Attach attributes to an element if present
- */
-function attachAttributes<T extends { attributes?: AttributeElem[] }>(
-  elem: T,
-  attributes?: AttributeElem[],
-): void {
-  if (attributes && attributes.length > 0) {
-    elem.attributes = attributes;
-  }
-}
 
 /**
  * Parse an optional expression followed by semicolon
