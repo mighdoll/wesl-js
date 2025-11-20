@@ -120,6 +120,44 @@ function parseFnParam(
   return paramElem;
 }
 
+/** Parse comma-separated parameter list */
+function parseFnParams(
+  stream: WeslStream,
+  ctx: ParseContext,
+): FnParamElem[] {
+  const params: FnParamElem[] = [];
+
+  while (true) {
+    if (consume(stream, ")")) break;
+
+    const param = parseFnParam(stream, ctx);
+    if (!param) throw new Error("Expected function parameter or ')'");
+
+    params.push(param);
+
+    if (!consume(stream, ",")) {
+      expect(stream, ")", "Expected ',' or ')' after function parameter");
+      break;
+    }
+  }
+
+  return params;
+}
+
+/** Parse optional return type: -> [attributes]? type */
+function parseFnReturnType(
+  stream: WeslStream,
+  ctx: ParseContext,
+): { typeRef?: TypeRefElem; attrs?: AttributeElem[] } {
+  if (!consume(stream, "->")) return {};
+
+  const attrs = parseAttributeList(stream);
+  const typeRef = parseSimpleTypeRef(stream, ctx);
+  if (!typeRef) throw new Error("Expected type after '->'");
+
+  return { typeRef, attrs: attrs.length > 0 ? attrs : undefined };
+}
+
 /**
  * Parse function declaration
  *
@@ -175,59 +213,16 @@ export function parseFnDecl(
   // NOTE: FnElem does NOT use openElem/closeElem - build contents manually
   // See TEXT_ELEMENT_RULES.md: contents = [decl, ...params, returnType?, body]
 
-  // Expect "("
+  // Expect "(" and parse parameters
   expect(stream, "(", "Expected '(' after function name");
-
-  // Parse parameters
-  const params: FnParamElem[] = [];
-
-  // Push a new scope for function parameters
   ctx.pushScope();
+  const params = parseFnParams(stream, ctx);
 
-  // Parse parameter list (comma-separated)
-  while (true) {
-    // Check for closing paren
-    if (consume(stream, ")")) {
-      break;
-    }
-
-    // Parse a parameter
-    const param = parseFnParam(stream, ctx);
-    if (!param) {
-      throw new Error("Expected function parameter or ')'");
-    }
-
-    params.push(param);
-
-    // Check for comma separator
-    const hasComma = consume(stream, ",");
-
-    // If there's no comma, we should see a closing paren next
-    if (!hasComma) {
-      expect(stream, ")", "Expected ',' or ')' after function parameter");
-      break;
-    }
-  }
-
-  // Parse optional return type: -> [attributes]? type
-  let returnType: TypeRefElem | undefined;
-  let returnAttributes: AttributeElem[] | undefined;
-
-  if (consume(stream, "->")) {
-    // Parse optional return attributes before type
-    const attrs = parseAttributeList(stream);
-    if (attrs.length > 0) {
-      returnAttributes = attrs;
-    }
-
-    // Parse return type
-    const parsedReturnType = parseSimpleTypeRef(stream, ctx);
-    if (!parsedReturnType) {
-      throw new Error("Expected type after '->' and attributes");
-    }
-
-    returnType = parsedReturnType;
-  }
+  // Parse optional return type
+  const { typeRef: returnType, attrs: returnAttributes } = parseFnReturnType(
+    stream,
+    ctx,
+  );
 
   // Parse function body
   const body = parseFunctionBody(stream, ctx);
