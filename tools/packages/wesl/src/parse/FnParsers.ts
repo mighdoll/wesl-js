@@ -54,9 +54,9 @@ function linkDeclIdentElem(
 }
 
 /**
- * Parse a function parameter: [@attrs] [name] [: type]?
- * Week 5: Similar to parseTypedDecl but for function parameters
- * Week 7: Attribute support
+ * Parse function parameter
+ *
+ * Grammar: param : attribute * ident ':' type_specifier
  */
 function parseFnParam(
   stream: WeslStream,
@@ -146,9 +146,11 @@ function parseFnParam(
 }
 
 /**
- * Parse a function declaration: fn <name>(<params>) [-> <return_type>]? <body>
- * Week 5: Full signature parsing
- * Week 10: Real statement parsing for function bodies
+ * Parse function declaration
+ *
+ * Grammar: function_decl : attribute * function_header compound_statement
+ * Grammar: function_header : 'fn' ident '(' param_list ? ')' ( '->' attribute * template_elaborated_ident ) ?
+ * Grammar: param_list : param ( ',' param ) * ',' ?
  */
 export function parseFnDecl(
   stream: WeslStream,

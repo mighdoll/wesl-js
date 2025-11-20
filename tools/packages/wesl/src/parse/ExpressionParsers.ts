@@ -30,7 +30,10 @@ import {
 import type { WeslStream, WeslToken } from "./WeslStream.ts";
 
 /**
- * Parse a numeric or boolean literal
+ * Parse literal
+ *
+ * Grammar: literal : int_literal | float_literal | bool_literal
+ * Grammar: bool_literal : 'true' | 'false'
  */
 export function parseSimpleLiteral(stream: WeslStream): Literal | null {
   const pos = checkpoint(stream);
@@ -54,8 +57,10 @@ export function parseSimpleLiteral(stream: WeslStream): Literal | null {
 }
 
 /**
- * Parse a simple identifier reference, including qualified names with ::
- * Examples: foo, package::bar, super::baz, mod::sub::name
+ * Parse identifier reference (including qualified names with ::)
+ *
+ * Grammar: ident : ident_pattern_token _disambiguate_template
+ * WESL extension: qualified names with :: (e.g., package::bar, super::baz)
  */
 export function parseSimpleIdentifier(
   stream: WeslStream,
@@ -124,8 +129,10 @@ export function parseSimpleIdentifier(
 }
 
 /**
- * Parse function call arguments: (expr1, expr2, ...)
- * Returns full parsed ExpressionElem for each argument and end position
+ * Parse function call arguments
+ *
+ * Grammar: argument_expression_list : '(' expression_comma_list ? ')'
+ * Grammar: expression_comma_list : expression ( ',' expression ) * ',' ?
  */
 function parseFunctionCallArgs(
   stream: WeslStream,
@@ -192,8 +199,14 @@ function parseFunctionCallArgs(
 }
 
 /**
- * Parse postfix operations: .member, [index], (args)
- * Week 11: Supports member access, array indexing, function calls
+ * Parse postfix operations (component/swizzle specifiers and function calls)
+ *
+ * Grammar: component_or_swizzle_specifier :
+ *   '[' expression ']' component_or_swizzle_specifier ?
+ *   | '.' member_ident component_or_swizzle_specifier ?
+ *   | '.' swizzle_name component_or_swizzle_specifier ?
+ *
+ * Grammar: call_phrase : template_elaborated_ident argument_expression_list
  */
 function parsePostfixExpression(
   stream: WeslStream,
@@ -342,8 +355,11 @@ function parsePostfixExpression(
 }
 
 /**
- * Parse unary expression: -expr, !expr, &expr, *expr, ~expr
- * Week 11: Full unary operator support
+ * Parse unary expression
+ *
+ * Grammar: unary_expression :
+ *   singular_expression | '-' unary_expression | '!' unary_expression
+ *   | '~' unary_expression | '*' unary_expression | '&' unary_expression
  */
 function parseUnaryExpression(
   stream: WeslStream,
@@ -392,8 +408,13 @@ function parseUnaryExpression(
 }
 
 /**
- * Parse primary expression: literal, identifier, (expr)
- * Week 11: With postfix operations
+ * Parse primary expression
+ *
+ * Grammar: primary_expression :
+ *   template_elaborated_ident | call_expression | literal | paren_expression
+ *
+ * Grammar: paren_expression : '(' expression ')'
+ * Grammar: singular_expression : primary_expression component_or_swizzle_specifier ?
  */
 function parsePrimaryExpression(
   stream: WeslStream,
@@ -479,7 +500,14 @@ function getPrecedence(op: string): number {
 
 /**
  * Parse binary expression with precedence climbing
- * Week 11: Full binary operator support
+ *
+ * Grammar: multiplicative_expression : unary_expression | multiplicative_expression ('*'|'/'|'%') unary_expression
+ * Grammar: additive_expression : multiplicative_expression | additive_expression ('+'|'-') multiplicative_expression
+ * Grammar: shift_expression : additive_expression | unary_expression ('<<'|'>>') unary_expression
+ * Grammar: relational_expression : shift_expression | shift_expression ('<'|'>'|'<='|'>='|'=='|'!=') shift_expression
+ * Grammar: bitwise_expression : binary_and_expression '&' unary_expression | binary_or_expression '|' unary_expression | binary_xor_expression '^' unary_expression
+ * Grammar: short_circuit_and_expression : relational_expression | short_circuit_and_expression '&&' relational_expression
+ * Grammar: short_circuit_or_expression : relational_expression | short_circuit_or_expression '||' relational_expression
  */
 function parseBinaryExpression(
   stream: WeslStream,
@@ -541,9 +569,13 @@ function parseBinaryExpression(
 }
 
 /**
- * Parse a full expression with all operators
- * Week 2: Simple literals and identifiers
- * Week 11: Full expression support with operators, calls, member access
+ * Parse full expression
+ *
+ * Grammar: expression :
+ *   relational_expression
+ *   | short_circuit_or_expression '||' relational_expression
+ *   | short_circuit_and_expression '&&' relational_expression
+ *   | bitwise_expression
  */
 export function parseExpression(
   stream: WeslStream,

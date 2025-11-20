@@ -72,8 +72,9 @@ function linkDeclIdentElem(
 }
 
 /**
- * Parse a typed declaration: name [: type]?
- * Returns a TypedDeclElem with embedded DeclIdentElem
+ * Parse optionally typed identifier
+ *
+ * Grammar: optionally_typed_ident : ident ( ':' type_specifier ) ?
  */
 export function parseTypedDecl(
   stream: WeslStream,
@@ -159,7 +160,10 @@ export function parseTypedDecl(
 }
 
 /**
- * Parse a const declaration: const <name> [: <type>]? = <expr> ;
+ * Parse const declaration
+ *
+ * Grammar (global): global_value_decl : 'const' optionally_typed_ident '=' expression
+ * Grammar (local):  variable_or_value_statement : 'const' optionally_typed_ident '=' expression
  */
 export function parseConstDecl(
   stream: WeslStream,
@@ -254,8 +258,9 @@ export function parseConstDecl(
 }
 
 /**
- * Parse an override declaration: override <name> [: <type>]? [= <expr>]? ;
- * Week 3: Similar to const but with optional initialization
+ * Parse override declaration
+ *
+ * Grammar: global_value_decl : attribute * 'override' optionally_typed_ident ( '=' expression ) ?
  */
 export function parseOverrideDecl(
   stream: WeslStream,
@@ -335,9 +340,10 @@ export function parseOverrideDecl(
 }
 
 /**
- * Parse a global var declaration: var [<template>]? <name> [: <type>]? [= <expr>]? ;
- * Week 3: Minimal implementation without template support
- * TODO: Add support for address space templates like <storage, read_write>
+ * Parse global var declaration
+ *
+ * Grammar: global_variable_decl : attribute * variable_decl ( '=' expression ) ?
+ * Grammar: variable_decl : 'var' _disambiguate_template template_list ? optionally_typed_ident
  */
 export function parseVarDecl(
   stream: WeslStream,
@@ -433,8 +439,9 @@ export function parseVarDecl(
 }
 
 /**
- * Parse an alias declaration: alias <name> = <type> ;
- * Week 3: Minimal type support (simple identifiers only)
+ * Parse type alias declaration
+ *
+ * Grammar: type_alias_decl : 'alias' ident '=' type_specifier
  */
 export function parseAliasDecl(
   stream: WeslStream,
@@ -530,9 +537,9 @@ export function parseAliasDecl(
 }
 
 /**
- * Parse a struct member: [@attrs] <name>: <type>
- * Week 4: Simple members
- * Week 7: Attribute support (@location, @builtin, etc.)
+ * Parse struct member
+ *
+ * Grammar: struct_member : attribute * member_ident ':' type_specifier
  */
 function parseStructMember(
   stream: WeslStream,
@@ -599,8 +606,10 @@ function parseStructMember(
 }
 
 /**
- * Parse a struct declaration: struct <name> { <members> }
- * Week 4: Basic struct support
+ * Parse struct declaration
+ *
+ * Grammar: struct_decl : 'struct' ident struct_body_decl
+ * Grammar: struct_body_decl : '{' struct_member ( ',' struct_member ) * ',' ? '}'
  */
 export function parseStructDecl(
   stream: WeslStream,
@@ -715,8 +724,9 @@ export function parseStructDecl(
 }
 
 /**
- * Parse a const_assert statement: const_assert <expression>;
- * Week 9: Global const_assert support
+ * Parse const_assert
+ *
+ * Grammar: const_assert : 'const_assert' expression
  */
 export function parseConstAssert(
   stream: WeslStream,
@@ -764,8 +774,10 @@ export function parseConstAssert(
 }
 
 /**
- * Parse a local var declaration (inside function body): var <name> [: <type>]? [= <expr>]? ;
- * Week 10.5: Local variable declarations in function bodies
+ * Parse local var declaration (inside function body)
+ *
+ * Grammar: variable_or_value_statement : variable_decl | variable_decl '=' expression
+ * Grammar: variable_decl : 'var' _disambiguate_template template_list ? optionally_typed_ident
  */
 export function parseLocalVarDecl(
   stream: WeslStream,
@@ -826,8 +838,9 @@ export function parseLocalVarDecl(
 }
 
 /**
- * Parse a let declaration (inside function body): let <name> [: <type>]? = <expr> ;
- * Week 10.5: Local let declarations in function bodies
+ * Parse let declaration (inside function body)
+ *
+ * Grammar: variable_or_value_statement : 'let' optionally_typed_ident '=' expression
  */
 export function parseLetDecl(
   stream: WeslStream,

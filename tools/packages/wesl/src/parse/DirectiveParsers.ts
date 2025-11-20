@@ -65,7 +65,10 @@ function parseNameList(stream: WeslStream): NameElem[] {
 }
 
 /**
- * Parse an enable directive: enable name1, name2, ...;
+ * Parse enable directive
+ *
+ * Grammar: enable_directive : 'enable' enable_extension_list ';'
+ * Grammar: enable_extension_list : enable_extension_name ( ',' enable_extension_name ) * ',' ?
  */
 function parseEnableDirective(
   stream: WeslStream,
@@ -106,7 +109,10 @@ function parseEnableDirective(
 }
 
 /**
- * Parse a requires directive: requires name1, name2, ...;
+ * Parse requires directive
+ *
+ * Grammar: requires_directive : 'requires' language_extension_list ';'
+ * Grammar: language_extension_list : language_extension_name ( ',' language_extension_name ) * ',' ?
  */
 function parseRequiresDirective(
   stream: WeslStream,
@@ -147,7 +153,11 @@ function parseRequiresDirective(
 }
 
 /**
- * Parse a diagnostic directive: diagnostic(severity, rule_name[.subrule]);
+ * Parse diagnostic directive
+ *
+ * Grammar: diagnostic_directive : 'diagnostic' diagnostic_control ';'
+ * Grammar: diagnostic_control : '(' severity_control_name ',' diagnostic_rule_name ',' ? ')'
+ * Grammar: diagnostic_rule_name : diagnostic_name_token | diagnostic_name_token '.' diagnostic_name_token
  */
 function parseDiagnosticDirective(
   stream: WeslStream,

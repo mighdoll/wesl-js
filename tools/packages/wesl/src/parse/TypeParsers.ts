@@ -127,10 +127,14 @@ function parseStubTemplateExpression(
 }
 
 /**
- * Parse a type reference with optional template parameters
- * Week 3: Basic type references (identifiers only)
- * Week 6: Template support (array<f32, 10>, vec4<f32>, etc.)
- * Week 6: Qualified names (pkg::Type, package::MyStruct, etc.)
+ * Parse type reference
+ *
+ * Grammar: type_specifier : template_elaborated_ident
+ * Grammar: template_elaborated_ident : ident _disambiguate_template template_list ?
+ * Grammar: template_list : _template_args_start template_arg_comma_list _template_args_end
+ * Grammar: template_arg_comma_list : template_arg_expression ( ',' template_arg_expression ) * ',' ?
+ *
+ * WESL extension: qualified names with :: (e.g., pkg::Type)
  */
 export function parseSimpleTypeRef(
   stream: WeslStream,

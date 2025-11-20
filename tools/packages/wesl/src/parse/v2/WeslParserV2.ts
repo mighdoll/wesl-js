@@ -84,7 +84,11 @@ export class WeslParserV2 {
 
   /**
    * Parse module-level declarations
-   * Currently: imports, directives, and global declarations
+   *
+   * Grammar: translation_unit :
+   *   global_directive * ( global_decl | global_assert | ';' ) *
+   *
+   * Note: imports are a WESL extension, parsed before WGSL grammar elements
    */
   private parseModule(): void {
     // Week 1: Imports + Attributes
@@ -114,8 +118,10 @@ export class WeslParserV2 {
   }
 
   /**
-   * Parse global directives (enable, requires, diagnostic)
-   * Week 8: Directive support
+   * Parse global directives
+   *
+   * Grammar: global_directive :
+   *   diagnostic_directive | enable_directive | requires_directive
    */
   private parseDirectives(): void {
     const stream = this.ctx.stream;
@@ -136,11 +142,13 @@ export class WeslParserV2 {
   }
 
   /**
-   * Parse global declarations (const, alias, var, override, struct, fn)
-   * Week 2: const
-   * Week 3: override, var, alias
-   * Week 4: struct
-   * Week 5: fn (with stub body parsing)
+   * Parse global declarations
+   *
+   * Grammar: global_decl :
+   *   global_variable_decl ';' | global_value_decl ';' | type_alias_decl ';'
+   *   | struct_decl | function_decl
+   *
+   * Grammar: global_assert : const_assert ';'
    */
   private parseDeclarations(): void {
     const stream = this.ctx.stream;

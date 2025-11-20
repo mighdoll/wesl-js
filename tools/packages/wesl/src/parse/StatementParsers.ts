@@ -141,8 +141,9 @@ export function parseUnscopedCompoundStatement(
 }
 
 /**
- * Parse a compound statement (block): { statements }
- * Week 10: Recursive statement parsing
+ * Parse compound statement (block)
+ *
+ * Grammar: compound_statement : attribute * '{' statement * '}'
  */
 function parseCompoundStatement(
   stream: WeslStream,
@@ -226,8 +227,13 @@ function parseCompoundStatement(
 }
 
 /**
- * Parse a simple statement (return, break, continue, discard, or expression)
- * Week 11: Full expression parsing
+ * Parse simple statement
+ *
+ * Grammar: return_statement : 'return' expression ?
+ * Grammar: break_statement : 'break'
+ * Grammar: continue_statement : 'continue'
+ * Grammar: variable_updating_statement : assignment_statement | increment_statement | decrement_statement
+ * Grammar: func_call_statement : call_phrase
  */
 function parseSimpleStatement(
   stream: WeslStream,
@@ -505,8 +511,12 @@ function isAssignmentOperator(text: string): boolean {
 }
 
 /**
- * Parse an if statement: if condition { } [else if condition { }]* [else { }]
- * Week 11: Full expression parsing for conditions
+ * Parse if statement
+ *
+ * Grammar: if_statement : attribute * if_clause else_if_clause * else_clause ?
+ * Grammar: if_clause : 'if' expression compound_statement
+ * Grammar: else_if_clause : 'else' 'if' expression compound_statement
+ * Grammar: else_clause : 'else' compound_statement
  */
 function parseIfStatement(
   stream: WeslStream,
@@ -593,8 +603,12 @@ function parseIfStatement(
 }
 
 /**
- * Parse a for statement: for (init; condition; update) { }
- * Week 10: Structure parsing with stub expressions
+ * Parse for statement
+ *
+ * Grammar: for_statement : attribute * 'for' '(' for_header ')' compound_statement
+ * Grammar: for_header : for_init ? ';' expression ? ';' for_update ?
+ * Grammar: for_init : variable_or_value_statement | variable_updating_statement | func_call_statement
+ * Grammar: for_update : variable_updating_statement | func_call_statement
  */
 function parseForStatement(
   stream: WeslStream,
@@ -696,8 +710,9 @@ function parseForStatement(
 }
 
 /**
- * Parse a while statement: while condition { }
- * Week 11: Full expression parsing for conditions
+ * Parse while statement
+ *
+ * Grammar: while_statement : attribute * 'while' expression compound_statement
  */
 function parseWhileStatement(
   stream: WeslStream,
@@ -746,8 +761,9 @@ function parseWhileStatement(
 }
 
 /**
- * Parse a loop statement: loop { [continuing { }] }
- * Week 10: Structure parsing
+ * Parse loop statement
+ *
+ * Grammar: loop_statement : attribute * 'loop' attribute * '{' statement * continuing_statement ? '}'
  */
 function parseLoopStatement(
   stream: WeslStream,
@@ -790,8 +806,11 @@ function parseLoopStatement(
 }
 
 /**
- * Parse a continuing statement: continuing { }
- * Used inside loop statements
+ * Parse continuing statement (inside loop)
+ *
+ * Grammar: continuing_statement : 'continuing' continuing_compound_statement
+ * Grammar: continuing_compound_statement : attribute * '{' statement * break_if_statement ? '}'
+ * Grammar: break_if_statement : 'break' 'if' expression ';'
  */
 function parseContinuingStatement(
   stream: WeslStream,
@@ -834,7 +853,15 @@ function parseContinuingStatement(
 }
 
 /**
- * Parse a switch statement: switch expr { case expr: block, default: block }
+ * Parse switch statement
+ *
+ * Grammar: switch_statement : attribute * 'switch' expression switch_body
+ * Grammar: switch_body : attribute * '{' switch_clause + '}'
+ * Grammar: switch_clause : case_clause | default_alone_clause
+ * Grammar: case_clause : 'case' case_selectors ':' ? compound_statement
+ * Grammar: case_selectors : case_selector ( ',' case_selector ) * ',' ?
+ * Grammar: case_selector : 'default' | expression
+ * Grammar: default_alone_clause : 'default' ':' ? compound_statement
  */
 function parseSwitchStatement(
   stream: WeslStream,
@@ -988,9 +1015,14 @@ function getConditionalAttribute(
 }
 
 /**
- * Parse a single statement
- * Week 10: Handles all statement types with structural parsing
- * Week 10.5: Added local var/let/const declarations
+ * Parse any statement
+ *
+ * Grammar: statement :
+ *   ';' | return_statement ';' | if_statement | switch_statement | loop_statement
+ *   | for_statement | while_statement | func_call_statement ';'
+ *   | variable_or_value_statement ';' | break_statement ';' | continue_statement ';'
+ *   | 'discard' ';' | variable_updating_statement ';' | compound_statement
+ *   | assert_statement ';'
  */
 export function parseStatement(
   stream: WeslStream,

@@ -33,9 +33,9 @@ import {
 import type { WeslStream, WeslToken } from "./WeslStream.ts";
 
 /**
- * Parse a list of attributes: @attr1 @attr2(args) ...
- * Returns empty array if no attributes found.
- * Week 7: Support for standard WGSL attributes on struct members and function parameters
+ * Parse list of attributes
+ *
+ * Grammar: attribute * (zero or more attributes)
  */
 export function parseAttributeList(stream: WeslStream): AttributeElem[] {
   const attributes: AttributeElem[] = [];
@@ -50,8 +50,16 @@ export function parseAttributeList(stream: WeslStream): AttributeElem[] {
 }
 
 /**
- * Parse a single attribute: @name or @name(args)
- * Returns null if no attribute found at current position.
+ * Parse single attribute
+ *
+ * Grammar: attribute :
+ *   '@' ident_pattern_token argument_expression_list ?
+ *   | align_attr | binding_attr | blend_src_attr | builtin_attr | const_attr
+ *   | diagnostic_attr | group_attr | id_attr | interpolate_attr | invariant_attr
+ *   | location_attr | must_use_attr | size_attr | workgroup_size_attr
+ *   | vertex_attr | fragment_attr | compute_attr
+ *
+ * WESL extensions: @if, @elif, @else
  */
 function parseAttribute(stream: WeslStream): AttributeElem | null {
   const startPos = checkpoint(stream);
