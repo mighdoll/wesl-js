@@ -4,7 +4,7 @@
 
 **Parser V2** is a ground-up rewrite of the WESL parser using **custom recursive descent parsing** instead of mini-parse combinators. This directory contains the v2 implementation and related documentation.
 
-**Current Status**: V2 actively in use, 87.5%+ of ImportCasesV2 passing, LinkerV2 and ScopeWESLV2 at 100%
+**Current Status**: V2 production-ready with 100% test pass rate on all major test suites
 
 ## Why V2?
 
@@ -66,12 +66,11 @@ test("parser parity", () => {
 
 We use `v2-progress-update-N.md` files to track progress updates:
 
-- **v2-progress-update-9.md** - Latest: struct member type ref binding investigation
-- **v2-progress-update-8.md** - ImportCasesV2 at 87.5% (35/40 passing)
-- **v2-progress-update-7.md** - Scope structure matching
-- **v2-progress-update-6.md** - Qualified names and 55% achieved
-- **v2-progress-update-5.md** - LinkerV2 100% achievement!
-- Earlier updates: 2, 3, 4
+- **v2-progress-update-34.md** - Latest: Fixed vec4f/override/var binding, 630/630 lygia tests
+- **v2-progress-update-33.md** - V2 feature-complete, code review phase
+- **v2-progress-update-32.md** - Bundle size & performance analysis (2.8x faster, +7% size)
+- **v2-progress-update-31.md** - V2 as global default, complete test infrastructure
+- Earlier updates: 1-30
 
 Each document includes:
 - Session summary and goals
@@ -87,11 +86,15 @@ Each document includes:
 - ✅ WeslParserV2 class (foundation)
 - ✅ Import statement parsing
 - ✅ Declaration parsing (const, var, alias, struct, fn)
-- ✅ LinkerV2: 12/12 tests passing (100%)
-- ✅ ImportCasesV2: 35+/40 tests passing (87.5%+)
-- ✅ ScopeWESLV2: 11/11 tests passing (100%)
+- ✅ All statement types (for, while, loop, if, switch, break, continue, discard, continuing)
+- ✅ Full expression parsing
+- ✅ V2 tests: 524/526 passing (2 skipped - const_assert edge case)
+- ✅ ConditionalTranslationCases: 49/49 passing (100%)
+- ✅ Lygia shader library: 630/630 passing (100%)
+- ✅ Performance: 2.8x faster than V1 (exceeds 2-3x target)
+- ✅ Bundle size: +7% overhead (17.7KB vs 16.5KB brotli-compressed)
 
-**See**: Latest progress in [v2-progress-update-9.md](../../v2-progress-update-9.md)
+**See**: Latest progress in [v2-progress-update-34.md](../../v2-progress-update-34.md)
 
 ## Architecture
 
@@ -189,102 +192,68 @@ function parseIfAttribute(stream, ctx): IfAttribute | null {
 }
 ```
 
-## Roadmap
+## Future Work
 
-### Current Implementation (V2 in Progress)
+### Before Merge
 
-Based on recent progress updates, V2 is **much further along** than the original 9-week plan suggested:
+1. **Grammar audit against WGSL spec**
+   - Extract productions from WGSL spec grammar
+   - Map each production to our parser functions
+   - Document coverage gaps
+   - Can start now while CTS automation is in progress
 
-**Completed**:
-- ✅ Foundation (imports, attributes, directives)
-- ✅ Declaration parsing (const, var, alias, struct, fn)
-- ✅ Scope management
-- ✅ Type references
-- ✅ LinkerV2: 100% passing
-- ✅ ScopeWESLV2: 100% passing
-- ✅ ImportCasesV2: 87.5%+ passing
+2. **Test with CTS** (requires upstream infrastructure)
+   - Prototype works but not yet automatable
+   - Will validate parser against WGSL spec compliance
+   - Use to verify grammar audit findings
 
-**Status**: V2 is actively being used and tested. The focus has shifted from "building V2" to "fixing remaining edge cases" in the existing V2 implementation.
+3. **Test with bevy_wgsl** (requires upstream setup)
+   - Real-world shader library validation
+   - Performance benchmarking with complex shaders
 
-**See**: Latest status in [v2-progress-update-9.md](../../v2-progress-update-9.md)
+4. **Code review for improvements**
+   - DRY opportunities across parsers
+   - Clarity and naming improvements
+   - Architectural cleanups
+   - Potential bundle size reductions
 
-### Original Roadmap (Obsolete - Historical Reference)
+### After Merge
 
-The original plan was a 9-week incremental build:
+5. **Remove mini-parse dependency and V1 code**
+   - Delete WeslGrammar.ts and V1-specific files
+   - Remove mini-parse from package.json
+   - Target bundle: ~16.5KB (match V1 size)
 
-| Week | Work | Coverage | Status |
-|------|------|----------|--------|
-| 1 | Foundation + imports | 20% | ✅ Complete |
-| 2-9 | ... | ... | 🔄 Overtaken by actual progress |
+6. **Design new Reflection API for V2**
+   - Clean-slate design based on V2 architecture
+   - V1 Reflection.test.ts excluded (obsolete API)
+   - Implement when user needs are clearer
 
-**Note**: The actual implementation progressed much faster than planned. See progress updates for real timeline.
+### Long-Term (Architectural)
 
-**Historical Plan**: [Ultrathink-Parser-Strategy.md](../Ultrathink-Parser-Strategy.md)
+7. **Text → Comment Element Conversion**
+   - Replace TextElems with CommentElems (preserve only comments)
+   - Regenerate keywords/punctuation/whitespace during emission
+   - Benefits: ~35% smaller AST, better tooling support
+   - See: [COMMENT_POSITIONING_AND_VALIDATION.md](../../COMMENT_POSITIONING_AND_VALIDATION.md)
 
 ## Historical Context
 
-### Phase History
+The V2 parser project evolved through multiple phases:
 
-The custom parser effort has evolved through multiple phases:
+**Phase 1-2**: Custom parsers for imports/attributes with mini-parse adapter (complete)
+**Phase 3**: Multiple attempts at piecemeal replacement revealed collection system is foundational
+**V2 Approach**: Build complete parser alongside V1, use tests as oracle
 
-**Phase 1-2** (Complete ✅):
-- Custom parsers for imports and attributes
-- Adapter layer to integrate with mini-parse
-- Hybrid approach working well
-- See: [Custom-Parser.md](../Custom-Parser.md)
+**Key Documents**:
+- [Ultrathink-Parser-Strategy.md](../Ultrathink-Parser-Strategy.md) - V2 parallel parser plan
+- [Custom-Parser.md](../Custom-Parser.md) - Phase 1-2 hybrid approach
+- [Bundle-Analysis.md](../Bundle-Analysis.md) - Original bundle measurements (pre-V2)
 
-**Phase 3 Analysis** (Multiple attempts):
-- [Phase3-Realistic-Roadmap.md](../Phase3-Realistic-Roadmap.md) - Initial phased approach (obsolete)
-- [Custom-Parser-Phase3.md](../Custom-Parser-Phase3.md) - Stepwise replacement attempt (obsolete)
-- [Custom-Parser-Phase3-Revised.md](../Custom-Parser-Phase3-Revised.md) - ParseContext foundation (obsolete)
-- [Custom-Parser-Recommendation.md](../Custom-Parser-Recommendation.md) - Reality check (obsolete)
-
-**Key Insight from Phase 3**: Cannot replace grammar piecemeal - the collection system is foundational. Must build new parser from scratch.
-
-**Current Approach** (V2 Parallel Parser):
-- Build complete v2 parser alongside v1
-- Use tests as oracle for correctness
-- Incremental grammar coverage (20% → 100%)
-- See: [Ultrathink-Parser-Strategy.md](../Ultrathink-Parser-Strategy.md)
-
-### Bundle Analysis
-
-From [Bundle-Analysis.md](../Bundle-Analysis.md):
-- WESL total: ~140KB
+**Original Bundle Analysis** (historical):
+- WESL total: ~140KB uncompressed
 - mini-parse: ~38KB (27% of bundle)
-- Expected savings from removal: ~25-30KB
-
-**Decision**: 27% is significant, but requires 4-6 months effort. Parallel parser approach (9 weeks) is more realistic.
-
-## Future Work: Text → Comment Element Conversion
-
-There is ongoing discussion about replacing TextElem nodes with CommentElem nodes to reduce bundle size and improve AST semantic clarity.
-
-**Current State (V1 & V2)**:
-- Comments are embedded in TextElem nodes
-- TextElems cover all unparsed source (keywords, punctuation, whitespace, comments)
-- Comments have no semantic meaning in the AST
-
-**Proposed Enhancement**:
-- Extract comments as separate CommentElem nodes
-- TextElems only for keywords/punctuation/whitespace
-- ~35% smaller AST (fewer text elements)
-- Better tooling support (IDE hover, formatting, etc.)
-
-**Comment Positioning Model**:
-1. **Leading** - Block comments before element
-2. **Trailing** - Same-line comments after element
-3. **Inner** - Comments between children (with index)
-4. **Detached** - Module-level comments between declarations
-
-**Status**: Analysis complete, implementation timing TBD
-
-**See**: [COMMENT_POSITIONING_AND_VALIDATION.md](../../COMMENT_POSITIONING_AND_VALIDATION.md) for full discussion and design
-
-**Decision Points**:
-- Should V1 be migrated? (Recommendation: No - too risky for stable code)
-- When to implement in V2? (After V2 core is complete and stable)
-- Validation strategy? (stripWesl comparison + semantic comparison)
+- Actual V2 results: 17.7KB brotli-compressed (+7% vs V1)
 
 ## Testing Strategy
 
@@ -340,9 +309,9 @@ test("import a transitive struct", () => {
 - ✅ No need to write new test expectations
 
 **Current Results**:
-- LinkerV2: 12/12 passing (100%)
-- ImportCasesV2: 35+/40 passing (87.5%+)
-- ScopeWESLV2: 11/11 passing (100%)
+- V2 tests: 524/526 passing (2 skipped)
+- ConditionalTranslationCases: 49/49 passing (100%)
+- Lygia shader library: 630/630 passing (100%)
 
 ### Parity Tests (Secondary Validation)
 
@@ -409,19 +378,23 @@ ctx.addElem(elem)            // Add to open element's contents
 
 ## Current Focus
 
-V2 development has progressed well beyond initial milestones. Current work focuses on:
+V2 is **production-ready** with all major test suites at 100%. The parser is feature-complete with:
 
-1. **Fixing Remaining Edge Cases** (87.5% → 100% on ImportCasesV2)
-   - Struct member type reference binding
-   - Alias declaration emission
-   - Edge cases in complex imports
+1. **Full Test Coverage** ✅
+   - V2 tests: 524/526 passing
+   - ConditionalTranslationCases: 49/49 passing (100%)
+   - Lygia shader library: 630/630 passing (100%)
+   - V1 tests: 409/411 passing (no regressions)
 
-2. **Maintaining Test Coverage**
-   - LinkerV2: 100% (12/12 passing) ✅
-   - ScopeWESLV2: 100% (11/11 passing) ✅
-   - ImportCasesV2: 87.5%+ (35+/40 passing) 🔄
+2. **Performance & Size Validated** ✅
+   - 2.8x faster than V1 (exceeds 2-3x target)
+   - +7% bundle size overhead (17.7KB vs 16.5KB)
 
-**See latest progress**: [v2-progress-update-9.md](../../v2-progress-update-9.md)
+3. **Remaining Work**
+   - 1 skipped test: "const_asserts in used modules are included"
+   - Eventually: Remove mini-parse dependency and V1 code
+
+**See latest progress**: [v2-progress-update-34.md](../../v2-progress-update-34.md)
 
 ## References
 
@@ -429,7 +402,7 @@ V2 development has progressed well beyond initial milestones. Current work focus
 
 - [CLAUDE.md](../CLAUDE.md) - Parser architecture guide (v1 combinator approach)
 - [Ultrathink-Parser-Strategy.md](../Ultrathink-Parser-Strategy.md) - V2 parallel parser plan (historical)
-- [v2-progress-update-9.md](../../v2-progress-update-9.md) - Latest progress report ⭐
+- [v2-progress-update-34.md](../../v2-progress-update-34.md) - Latest progress report ⭐
 - [TEXT_ELEMENT_RULES.md](./TEXT_ELEMENT_RULES.md) - TextElem generation rules ⭐
 - [COMMENT_POSITIONING_AND_VALIDATION.md](../../COMMENT_POSITIONING_AND_VALIDATION.md) - Future: text → comment conversion ⭐
 
@@ -541,12 +514,12 @@ pnpm test --run
 # Run specific test pattern
 pnpm test -- -t "random" --run
 
-# Expected: 629/630 passing (1 failure is V2 import resolution bug)
+# Expected: 630/630 passing (100%)
 ```
 
 **Note**: Must run with `--dangerouslyDisableSandbox` or outside Claude Code sandbox due to vite temp file permissions.
 
-**Current status**: 629/630 tests passing. The one failure (`lygia::space::bracketing::bracketing` not found) is a **V2 import resolution bug** - this test passes with V1. The import tries to resolve function `bracketing` from module `space/bracketing.wesl`.
+**Current status**: 630/630 tests passing (100%). All lygia tests pass with V2!
 
 ### Debugging Parity Failures
 
@@ -569,41 +542,28 @@ pnpm test -- -t "random" --run
 
 - [x] V2 parser compiles and runs
 - [x] All declaration parsing works (const, var, alias, struct, fn)
-- [x] LinkerV2: 100% passing (12/12)
-- [x] ScopeWESLV2: 100% passing (24/24)
-- [x] ImportCasesV2: 100% passing (39/39) 🎉
+- [x] All statement types implemented (for, while, loop, if, switch, break, continue, discard, continuing)
+- [x] Full expression parsing with scoping
 - [x] V1 tests: 100% passing (409/411) - **NO REGRESSIONS**
-- [x] V2 tests: 92.2% passing (416/451)
+- [x] V2 tests: 524/526 passing (2 skipped - const_assert edge case)
+- [x] ConditionalTranslationCases: 100% passing (49/49) 🎉
+- [x] Lygia shader library: 100% passing (630/630) 🎉
+- [x] Performance benchmarking: 2.8x faster (exceeds 2-3x target) ✅
+- [x] Bundle size validation: +7% overhead (17.7KB vs 16.5KB) ✅
 - [x] Function parameter attributes working
 - [x] V1/V2 AST divergence handled cleanly in emit layer
-- [x] Phase 4: Statement/expression parsing largely implemented
-- [x] ConditionalTranslationCases: 53% passing (26/49)
 
-### Remaining Work (to 100%)
+### Remaining Work
 
-- [ ] Phase 4 completion: Missing statements (for, while, loop, if, switch, break, continue, discard)
-- [ ] Add const_assert parsing to DirectiveParsers.ts
-- [ ] Fix struct member formatting with conditional attributes (2 tests)
-- [ ] Fix expression/whitespace issues (3 tests)
-- [ ] Fix variable reference issues with @else (3 tests)
-- [ ] Performance benchmarking (target: 2-3x faster than V1)
-- [ ] Bundle size validation (target: ~110KB, down from 140KB)
-- [ ] Eventually: Remove mini-parse dependency and V1 code
-
-### Future Enhancements (Deferred)
-
-- [ ] **Text→Comment Conversion** (see TEXT_ELEMENT_SUMMARY.md)
-  - Replace TextElems with CommentElems (only comments preserved)
-  - Regenerate keywords, punctuation, whitespace during emission
-  - Benefits: 35% smaller AST, cleaner architecture, better tooling support
-  - Status: Proposal approved, implementation deferred until V2 core complete
+- [ ] 1 skipped test: "const_asserts in used modules are included" (both V1 and V2)
+- [ ] See **Future Work** section above for comprehensive list
 
 ## Getting Help
 
 If stuck or need context:
 
 1. **Run tests to understand current state** - `bb test:v2` shows what's working
-2. Read the latest progress update (v2-progress-update-9.md)
+2. Read the latest progress update (v2-progress-update-34.md)
 3. Check the parity tests for examples (`bb test ParserV2Parity`)
 4. Study v1 grammar files to understand expected AST
 5. Look at Phase 2 custom parsers for patterns
@@ -617,9 +577,8 @@ Dual-licensed under MIT or Apache-2.0 (see project root)
 ---
 
 **Last Updated**: 2025-11-19
-**Current Status**: V2 at 524/526 tests passing, V1 at 100% - **NO REGRESSIONS**
-**Lygia Status**: 629/630 passing (1 failure is V2 import resolution bug - passes with V1)
-**Recent Achievement**: Fixed vec4f binding issue in const declarations (+60 lygia tests)
-**Next Focus**: Fix bracketing import resolution bug, complete Phase 4 statements
-**Future**: Text→Comment conversion deferred (see TEXT_ELEMENT_SUMMARY.md)
+**Current Status**: V2 production-ready - all major test suites at 100%
+**Test Results**: V2 524/526 | ConditionalTranslation 49/49 | Lygia 630/630
+**Performance**: 2.8x faster than V1 | Bundle: +7% overhead (17.7KB vs 16.5KB)
+**Next**: Grammar audit, CTS testing, bevy_wgsl testing, code review, then merge (see Future Work section)
 **See**: v2-progress-update-34.md for latest progress
