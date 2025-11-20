@@ -71,10 +71,7 @@ function parseEnableDirective(
   const startPos = checkpoint(stream);
 
   // Expect "enable" keyword
-  if (!consume(stream, "enable")) {
-    reset(stream, startPos);
-    return null;
-  }
+  if (!consume(stream, "enable")) return null;
 
   // Parse comma-separated extension names
   const extensions = parseNameList(stream);
@@ -115,10 +112,7 @@ function parseRequiresDirective(
   const startPos = checkpoint(stream);
 
   // Expect "requires" keyword
-  if (!consume(stream, "requires")) {
-    reset(stream, startPos);
-    return null;
-  }
+  if (!consume(stream, "requires")) return null;
 
   // Parse comma-separated extension names
   const extensions = parseNameList(stream);
@@ -160,10 +154,7 @@ function parseDiagnosticDirective(
   const startPos = checkpoint(stream);
 
   // Expect "diagnostic" keyword
-  if (!consume(stream, "diagnostic")) {
-    reset(stream, startPos);
-    return null;
-  }
+  if (!consume(stream, "diagnostic")) return null;
 
   // Expect "("
   expect(stream, "(", "Expected '(' after diagnostic");

@@ -141,10 +141,7 @@ export function parseConstDecl(
   const startPos = checkpoint(stream);
 
   // Expect "const" keyword
-  if (!consume(stream, "const")) {
-    reset(stream, startPos);
-    return null;
-  }
+  if (!consume(stream, "const")) return null;
 
   // Determine if this is a global const by checking if we're at module level
   // A global const is one whose containing scope is the module root scope
@@ -238,10 +235,7 @@ export function parseOverrideDecl(
   const startPos = checkpoint(stream);
 
   // Expect "override" keyword
-  if (!consume(stream, "override")) {
-    reset(stream, startPos);
-    return null;
-  }
+  if (!consume(stream, "override")) return null;
 
   // Push a partial scope for the entire override declaration (matches V1 behavior)
   ctx.pushScope("partial");
@@ -712,10 +706,7 @@ export function parseConstAssert(
   const startPos = checkpoint(stream);
 
   // Expect "const_assert" keyword
-  if (!consume(stream, "const_assert")) {
-    reset(stream, startPos);
-    return null;
-  }
+  if (!consume(stream, "const_assert")) return null;
 
   // Open element to collect contents
   openElem(ctx, { kind: "assert", contents: [] });
@@ -763,10 +754,7 @@ export function parseLocalVarDecl(
   const startPos = checkpoint(stream);
 
   // Expect "var" keyword
-  if (!consume(stream, "var")) {
-    reset(stream, startPos);
-    return null;
-  }
+  if (!consume(stream, "var")) return null;
 
   // Open element to collect contents
   openElem(ctx, { kind: "var", contents: [] });
@@ -826,10 +814,7 @@ export function parseLetDecl(
   const startPos = checkpoint(stream);
 
   // Expect "let" keyword
-  if (!consume(stream, "let")) {
-    reset(stream, startPos);
-    return null;
-  }
+  if (!consume(stream, "let")) return null;
 
   // Open element to collect contents
   openElem(ctx, { kind: "let", contents: [] });

@@ -520,10 +520,7 @@ function parseIfStatement(
   const startPos = checkpoint(stream);
 
   // Expect "if"
-  if (!consume(stream, "if")) {
-    reset(stream, startPos);
-    return null;
-  }
+  if (!consume(stream, "if")) return null;
 
   // Open statement to collect contents including "if" keyword and condition
   const initialContents: AttributeElem[] = attributes ? [...attributes] : [];
@@ -612,10 +609,7 @@ function parseForStatement(
   const startPos = checkpoint(stream);
 
   // Expect "for"
-  if (!consume(stream, "for")) {
-    reset(stream, startPos);
-    return null;
-  }
+  if (!consume(stream, "for")) return null;
 
   // Open statement to collect contents
   const initialContents: AttributeElem[] = attributes ? [...attributes] : [];
@@ -716,10 +710,7 @@ function parseWhileStatement(
   const startPos = checkpoint(stream);
 
   // Expect "while"
-  if (!consume(stream, "while")) {
-    reset(stream, startPos);
-    return null;
-  }
+  if (!consume(stream, "while")) return null;
 
   // Open statement to collect contents including "while" keyword and condition
   const initialContents: AttributeElem[] = attributes ? [...attributes] : [];
@@ -767,10 +758,7 @@ function parseLoopStatement(
   const startPos = checkpoint(stream);
 
   // Expect "loop"
-  if (!consume(stream, "loop")) {
-    reset(stream, startPos);
-    return null;
-  }
+  if (!consume(stream, "loop")) return null;
 
   // Open statement to collect contents including "loop" keyword
   const initialContents: AttributeElem[] = attributes ? [...attributes] : [];
@@ -814,10 +802,7 @@ function parseContinuingStatement(
   const startPos = checkpoint(stream);
 
   // Expect "continuing"
-  if (!consume(stream, "continuing")) {
-    reset(stream, startPos);
-    return null;
-  }
+  if (!consume(stream, "continuing")) return null;
 
   // Open statement to collect contents including "continuing" keyword
   const initialContents: AttributeElem[] = attributes ? [...attributes] : [];
@@ -865,10 +850,7 @@ function parseSwitchStatement(
   const startPos = checkpoint(stream);
 
   // Expect "switch"
-  if (!consume(stream, "switch")) {
-    reset(stream, startPos);
-    return null;
-  }
+  if (!consume(stream, "switch")) return null;
 
   // Open statement to collect contents
   const initialContents: AttributeElem[] = attributes ? [...attributes] : [];
