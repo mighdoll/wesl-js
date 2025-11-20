@@ -37,10 +37,10 @@ typedDecl.decl.ident.dependentScope = constScope;
 This ensures all RefIdents (both type annotation AND initializer) get processed.
 
 ## Current Status - RESOLVED ✓
-- wesl package: 520 passed ✓
+- wesl package: 524 passed ✓
 - lygia: 629/630 passed (was 569/630) - **60 tests fixed!** ✓
 
-The remaining lygia failure is about a missing module `lygia::space::bracketing::bracketing` (unrelated).
+The remaining lygia failure (`lygia::space::bracketing::bracketing` module not found) is a **V2 import resolution bug** - this test passes with V1.
 
 ## Files Modified
 - `tools/packages/wesl/src/BindIdents.ts` - Recursive partial scope processing
@@ -64,10 +64,12 @@ Both approaches work because binding traverses recursively. No need to match V1'
 ## Next Steps
 
 1. **Verify override/var declarations** - They still use `typedDecl.typeScope || scope` pattern (ConstParsers.ts lines 316, 414)
-   - Create test cases in BindStdTypes.test.ts for override/var with type annotations + initializer type refs
-   - If tests fail, apply the same fix (use full scope instead of typeScope)
+   - Test cases added to BindStdTypes.test.ts ✓
+   - All tests pass with V2 (9/9) - current code works correctly ✓
 
-2. **Remaining lygia failure** - `lygia::space::bracketing::bracketing` module not found
-   - This is unrelated to the binding fix (likely missing file in lygia repo)
+2. **Investigate bracketing V2 bug** - `lygia::space::bracketing::bracketing` module not found
+   - This is a V2 import resolution bug (passes with V1)
+   - Import path: `lygia::space::bracketing::bracketing` (function from module)
+   - Module file: `space/bracketing.wesl`
 
-3. **Update CLAUDE.md** - Add lygia testing instructions for future agents
+3. **Documentation updated** - Lygia testing instructions in v2/CLAUDE.md ✓

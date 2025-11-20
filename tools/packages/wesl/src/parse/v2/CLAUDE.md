@@ -541,12 +541,12 @@ pnpm test --run
 # Run specific test pattern
 pnpm test -- -t "random" --run
 
-# Expected: 629/630 passing (1 failure is missing module, unrelated to V2)
+# Expected: 629/630 passing (1 failure is V2 import resolution bug)
 ```
 
 **Note**: Must run with `--dangerouslyDisableSandbox` or outside Claude Code sandbox due to vite temp file permissions.
 
-**Current status**: 629/630 tests passing. The one failure (`lygia::space::bracketing::bracketing` not found) is a missing module in lygia, not a V2 parser issue.
+**Current status**: 629/630 tests passing. The one failure (`lygia::space::bracketing::bracketing` not found) is a **V2 import resolution bug** - this test passes with V1. The import tries to resolve function `bracketing` from module `space/bracketing.wesl`.
 
 ### Debugging Parity Failures
 
@@ -616,9 +616,10 @@ Dual-licensed under MIT or Apache-2.0 (see project root)
 
 ---
 
-**Last Updated**: 2025-11-18
-**Current Status**: V2 at 92.2% (416/451), V1 at 100% (409/411) - **NO REGRESSIONS**
-**Recent Achievement**: Fixed @else attribute filtering (+3 tests), ConditionalTranslationCases 53% passing
-**Next Focus**: Complete Phase 4 (missing statements: for, while, loop, if, switch, break, continue, discard)
+**Last Updated**: 2025-11-19
+**Current Status**: V2 at 524/526 tests passing, V1 at 100% - **NO REGRESSIONS**
+**Lygia Status**: 629/630 passing (1 failure is V2 import resolution bug - passes with V1)
+**Recent Achievement**: Fixed vec4f binding issue in const declarations (+60 lygia tests)
+**Next Focus**: Fix bracketing import resolution bug, complete Phase 4 statements
 **Future**: Text→Comment conversion deferred (see TEXT_ELEMENT_SUMMARY.md)
-**See**: Latest commit for progress details
+**See**: v2-progress-update-34.md for latest progress

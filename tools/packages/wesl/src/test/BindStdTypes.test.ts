@@ -116,3 +116,82 @@ test("bind types in const declarations - like lygia", async () => {
   expect(result.dest).toContain("const SCALE");
   expect(result.dest).toContain("fn random");
 });
+
+test("bind types in override declarations with type annotation and initializer", async () => {
+  const result = await link({
+    weslSrc: {
+      "main.wesl": `
+        override SCALE: vec4f = vec4f(0.1, 0.2, 0.3, 0.4);
+
+        fn main() {
+          let s = SCALE.x;
+        }
+      `,
+    },
+    rootModuleName: "main.wesl",
+  });
+
+  expect(result.dest).toContain("vec4f");
+  expect(result.dest).toContain("override SCALE");
+});
+
+test("bind types in global var declarations with type annotation and initializer", async () => {
+  const result = await link({
+    weslSrc: {
+      "main.wesl": `
+        var<private> color: vec4f = vec4f(1.0, 0.0, 0.0, 1.0);
+
+        fn main() {
+          let c = color.rgb;
+        }
+      `,
+    },
+    rootModuleName: "main.wesl",
+  });
+
+  expect(result.dest).toContain("vec4f");
+  expect(result.dest).toContain("var<private> color");
+});
+
+test("bind mat4x4f constructor in override initializer (tests initializer scope binding)", async () => {
+  // This tests that the initializer expression's type refs are bound
+  // If only typeScope is used for dependentScope, mat4x4f in initializer won't be bound
+  const result = await link({
+    weslSrc: {
+      "main.wesl": `
+        override MATRIX: mat4x4f = mat4x4f(1.0, 0.0, 0.0, 0.0,
+                                           0.0, 1.0, 0.0, 0.0,
+                                           0.0, 0.0, 1.0, 0.0,
+                                           0.0, 0.0, 0.0, 1.0);
+
+        fn main() {
+          let m = MATRIX;
+        }
+      `,
+    },
+    rootModuleName: "main.wesl",
+  });
+
+  expect(result.dest).toContain("mat4x4f");
+  expect(result.dest).toContain("override MATRIX");
+});
+
+test("bind vec3f constructor in global var initializer (tests initializer scope binding)", async () => {
+  // This tests that the initializer expression's type refs are bound
+  // If only typeScope is used for dependentScope, vec3f in initializer won't be bound
+  const result = await link({
+    weslSrc: {
+      "main.wesl": `
+        var<private> position: vec3f = vec3f(1.0, 2.0, 3.0);
+
+        fn main() {
+          let p = position;
+        }
+      `,
+    },
+    rootModuleName: "main.wesl",
+  });
+
+  expect(result.dest).toContain("vec3f");
+  expect(result.dest).toContain("var<private> position");
+});
