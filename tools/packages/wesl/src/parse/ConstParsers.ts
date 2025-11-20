@@ -367,16 +367,24 @@ export function parseVarDecl(
   // Open element to start collecting contents
   openElem(ctx, { kind: "gvar", contents: [] });
 
-  // TODO Week 3: Skip template list for now (e.g., <storage, read_write>)
-  // We'll add this in a future iteration
-  if (consume(stream, "<")) {
-    // Skip until we find the closing >
-    let depth = 1;
-    while (depth > 0) {
-      const token = stream.nextToken();
-      if (!token) throw new Error("Unclosed template in var declaration");
-      if (token.text === "<") depth++;
-      if (token.text === ">") depth--;
+  // Parse optional template list (e.g., <storage, read_write>)
+  // Uses nextTemplateStartToken for proper disambiguation per WGSL spec
+  const templateStart = stream.nextTemplateStartToken();
+  if (templateStart) {
+    // Var templates contain address space/access mode keywords
+    // Skip contents since we don't need AST representation for these
+    while (true) {
+      const next = stream.peek();
+      if (!next) throw new Error("Unclosed template in var declaration");
+
+      // Check for closing >
+      if (next.text.startsWith(">")) {
+        stream.nextTemplateEndToken();
+        break;
+      }
+
+      // Consume identifier or comma
+      stream.nextToken();
     }
   }
 

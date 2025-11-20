@@ -365,7 +365,6 @@ function parseUnaryExpression(
   stream: WeslStream,
   ctx: ParseContext,
 ): ExpressionElem | null {
-  const _startPos = checkpoint(stream);
   const token = stream.peek();
 
   if (!token) return null;
