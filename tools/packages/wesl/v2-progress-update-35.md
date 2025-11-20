@@ -91,19 +91,23 @@ All tests pass:
 2. Hex float literals
 3. Compound assignment operators
 
-## Recommendations for Next Steps
+## Future Work
 
-### Immediate (High Value, Low Effort)
-1. **Use CTS as oracle** - When infrastructure is ready, run against WGSL conformance tests
-2. **Spot-check precedence table** - Verify BINARY_PRECEDENCE matches spec exactly
+### Next Session: Deeper Review & Spot Checks
+While awaiting CTS and bevy_wgsl test readiness:
 
-### Short-term
-3. **Grammar audit for lexer** - Audit WeslStream against spec's lexical grammar
-4. **Test with bevy_wgsl** - Real-world shader validation
+1. **Precedence table verification** - Cross-check BINARY_PRECEDENCE against current WGSL spec
+2. **Template disambiguation spot-check** - Verify `WeslStream.isTemplateStart()` edge cases
+3. **Lexer grammar audit** - Audit WeslStream against spec's lexical grammar (numeric literals, Unicode identifiers)
+4. **Confirm Tint/Naga parity** - Our approach matches theirs (token-level disambiguation, not grammar backtracking)
 
-### Long-term (Before Merge)
-5. **Remove mini-parse dependency** - Delete V1 code, reduce bundle size
-6. **Design new Reflection API** - Clean-slate design based on V2 architecture
+### Awaiting Infrastructure
+5. **CTS integration** - Run against WGSL conformance test suite when infrastructure is ready
+6. **bevy_wgsl testing** - Real-world shader validation with Bevy's shader library
+
+### Before Merge
+7. **Remove mini-parse dependency** - Delete V1 code, reduce bundle size
+8. **Design new Reflection API** - Clean-slate design based on V2 architecture
 
 ## Files Modified This Session
 
@@ -127,4 +131,4 @@ This separation is spec-compliant and maintainable. No changes to this architect
 
 ---
 
-**Next Session Focus**: CTS integration or precedence verification
+**Next Session Focus**: Deeper review & spot checks (precedence, template disambiguation, lexer audit) while awaiting CTS/bevy_wgsl readiness
