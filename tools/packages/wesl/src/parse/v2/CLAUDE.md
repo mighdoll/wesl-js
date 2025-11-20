@@ -422,6 +422,12 @@ V2 is **production-ready** with all major test suites at 100%. The parser is fea
 - [../../Scope.ts](../../Scope.ts) - Scope and identifier types
 - [../WeslGrammar.ts](../WeslGrammar.ts) - V1 mini-parse grammar (to be replaced)
 
+### Reference Implementations (for Tint/Naga parity checks)
+
+- **Tint (Dawn)**: `~/wesl/dawn` - Google's WGSL compiler
+- **Naga (wgpu)**: `~/wesl/wgpu` - Rust WGSL compiler in wgpu
+- Use for verifying template disambiguation, precedence, and lexer behavior matches spec implementations
+
 ## Tips for Future Agents
 
 ### Understanding the Codebase
