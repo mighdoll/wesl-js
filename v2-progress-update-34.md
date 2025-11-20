@@ -63,9 +63,11 @@ Both approaches work because binding traverses recursively. No need to match V1'
 
 ## Next Steps
 
-1. **Verify override/var declarations** - They still use `typedDecl.typeScope || scope` pattern (ConstParsers.ts lines 316, 414)
-   - Test cases added to BindStdTypes.test.ts ✓
-   - All tests pass with V2 (9/9) - current code works correctly ✓
+1. **Verify override/var declarations** - FIXED ✓
+   - Cross-module tests revealed the bug (single-module tests pass because scope tree traversal processes all scopes)
+   - Applied same fix as const: use full scope instead of typeScope
+   - V2 tests: 526 passed (+2 from this fix)
+   - Commit: `4b68e4ff`
 
 2. **Investigate bracketing V2 bug** - `lygia::space::bracketing::bracketing` module not found
    - This is a V2 import resolution bug (passes with V1)
