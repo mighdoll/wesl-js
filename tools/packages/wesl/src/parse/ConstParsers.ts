@@ -309,11 +309,11 @@ export function parseOverrideDecl(
   const contents = closeElem(ctx, startPos, endPos);
 
   // Save the scope as the dependentScope for binding
-  // Prefer typeScope (for type references) over partial scope (for initializers)
-  // This matches V1 behavior and allows binding to recursively process references
+  // Use overrideScope (the partial scope) which contains both typeScope and initializer scope
+  // This allows binding to recursively process all references (same fix as const)
   if (typedDecl?.decl?.ident) {
     const overrideScope = ctx.currentScope();
-    typedDecl.decl.ident.dependentScope = typedDecl.typeScope || overrideScope;
+    typedDecl.decl.ident.dependentScope = overrideScope;
   }
 
   // Pop the partial scope for the override declaration
@@ -407,11 +407,11 @@ export function parseVarDecl(
   const contents = closeElem(ctx, startPos, endPos);
 
   // Save the scope as the dependentScope for binding
-  // Prefer typeScope (for type references) over partial scope (for initializers)
-  // This matches V1 behavior and allows binding to recursively process references
+  // Use varScope (the partial scope) which contains both typeScope and initializer scope
+  // This allows binding to recursively process all references (same fix as const)
   if (typedDecl?.decl?.ident) {
     const varScope = ctx.currentScope();
-    typedDecl.decl.ident.dependentScope = typedDecl.typeScope || varScope;
+    typedDecl.decl.ident.dependentScope = varScope;
   }
 
   // Pop the partial scope for the var declaration

@@ -195,3 +195,49 @@ test("bind vec3f constructor in global var initializer (tests initializer scope 
   expect(result.dest).toContain("vec3f");
   expect(result.dest).toContain("var<private> position");
 });
+
+test("bind initializer types in imported override (cross-module)", async () => {
+  // This test exposes the bug: when override is imported from another module,
+  // only dependentScope is processed. If dependentScope = typeScope (not full scope),
+  // the initializer's vec4f won't be bound.
+  const result = await link({
+    weslSrc: {
+      "main.wesl": `
+        import package::lib::SCALE;
+
+        fn main() {
+          let s = SCALE.x;
+        }
+      `,
+      "lib.wesl": `
+        override SCALE: vec4f = vec4f(0.1, 0.2, 0.3, 0.4);
+      `,
+    },
+    rootModuleName: "main.wesl",
+  });
+
+  expect(result.dest).toContain("vec4f");
+  expect(result.dest).toContain("override SCALE");
+});
+
+test("bind initializer types in imported global var (cross-module)", async () => {
+  // Same bug for global var: dependentScope = typeScope means initializer not bound
+  const result = await link({
+    weslSrc: {
+      "main.wesl": `
+        import package::lib::color;
+
+        fn main() {
+          let c = color.rgb;
+        }
+      `,
+      "lib.wesl": `
+        var<private> color: vec4f = vec4f(1.0, 0.0, 0.0, 1.0);
+      `,
+    },
+    rootModuleName: "main.wesl",
+  });
+
+  expect(result.dest).toContain("vec4f");
+  expect(result.dest).toContain("var<private> color");
+});
