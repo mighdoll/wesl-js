@@ -162,3 +162,35 @@ test("bind initializer types in imported global var (cross-module)", async () =>
   expect(result.dest).toContain("vec4f");
   expect(result.dest).toContain("var<private> color");
 });
+
+test("import function and struct from same module (lygia bracketing pattern)", async () => {
+  // Reproduces lygia bracketing failure: import package::space::bracketing::bracketing
+  const result = await link({
+    weslSrc: {
+      "main.wesl": `
+        import package::space::bracketing::bracketing;
+        import package::space::bracketing::BracketingResult;
+
+        fn main() {
+          let r: BracketingResult = bracketing(vec2f(1.0, 0.0));
+        }
+      `,
+      "space/bracketing.wesl": `
+        struct BracketingResult {
+          vAxis0: vec2f,
+          vAxis1: vec2f,
+          blendAlpha: f32,
+        }
+
+        fn bracketing(dir: vec2f) -> BracketingResult {
+          return BracketingResult(dir, dir, 0.5);
+        }
+      `,
+    },
+    rootModuleName: "main.wesl",
+  });
+
+  expect(result.dest).toContain("struct BracketingResult");
+  expect(result.dest).toContain("fn bracketing");
+});
+

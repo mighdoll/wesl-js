@@ -73,5 +73,13 @@ Both approaches work because binding traverses recursively. No need to match V1'
    - This is a V2 import resolution bug (passes with V1)
    - Import path: `lygia::space::bracketing::bracketing` (function from module)
    - Module file: `space/bracketing.wesl`
+   - **Investigation findings**:
+     - Import parsing and flattening are IDENTICAL for V1 and V2 ✓
+     - The issue is NOT in parsing or FlattenTreeImport
+     - Bug occurs when resolver tries to find module `lygia::space::bracketing`
+     - Involves FileModuleResolver and package name configuration in wesl-test
+     - The pattern `import package::space::bracketing::bracketing` works (tested)
+     - The pattern `import lygia::space::bracketing::bracketing` fails when lygia is the package name
+   - **Next step**: Debug FileModuleResolver in wesl-test to see why it can't find the module with explicit package name
 
 3. **Documentation updated** - Lygia testing instructions in v2/CLAUDE.md ✓
