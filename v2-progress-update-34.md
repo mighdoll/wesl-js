@@ -53,3 +53,21 @@ The remaining lygia failure is about a missing module `lygia::space::bracketing:
 
 ## Key Insight
 The BindIdents fix was necessary but not sufficient. The real issue was in the V2 parser itself - it was preferring `typeScope` over `constScope`, which meant RefIdents in initializer expressions were never attached to any scope that would be processed during binding.
+
+## V1 vs V2 Architecture Note
+
+V1 uses `mergeScope(typeScope, decl_scope)` to combine type and initializer into ONE scope.
+V2 uses a parent scope (constScope) with two children (typeScope, initializerScope).
+
+Both approaches work because binding traverses recursively. No need to match V1's mergeScope approach unless issues arise.
+
+## Next Steps
+
+1. **Verify override/var declarations** - They still use `typedDecl.typeScope || scope` pattern (ConstParsers.ts lines 316, 414)
+   - Create test cases in BindStdTypes.test.ts for override/var with type annotations + initializer type refs
+   - If tests fail, apply the same fix (use full scope instead of typeScope)
+
+2. **Remaining lygia failure** - `lygia::space::bracketing::bracketing` module not found
+   - This is unrelated to the binding fix (likely missing file in lygia repo)
+
+3. **Update CLAUDE.md** - Add lygia testing instructions for future agents

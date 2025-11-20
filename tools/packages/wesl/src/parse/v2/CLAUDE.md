@@ -514,6 +514,40 @@ V1_ONLY=true bb test --dangerouslyDisableSandbox
 # Expected V2 baseline: See latest v2-progress-update-*.md
 ```
 
+### Testing with Lygia
+
+The [lygia](https://lygia.xyz) shader library provides real-world validation of the V2 parser. It's located at `~/wesl/lygia` (sibling to the wesl-js repo).
+
+**Setup**: Lygia's `package.json` uses pnpm overrides to link directly to our wesl-js sources:
+```json
+"pnpm": {
+  "overrides": {
+    "wesl-link": "link:../worktrees/custom-parser/tools/packages/wesl-link",
+    "wesl-packager": "link:../worktrees/custom-parser/tools/packages/wesl-packager",
+    "wesl-test": "link:../worktrees/custom-parser/tools/packages/wesl-test"
+  }
+}
+```
+
+**No build needed**: Changes to wesl source files are picked up immediately - no `pnpm install` or build step required.
+
+**Running tests**:
+```bash
+cd ~/wesl/lygia
+
+# Run all lygia tests (must run outside sandbox)
+pnpm test --run
+
+# Run specific test pattern
+pnpm test -- -t "random" --run
+
+# Expected: 629/630 passing (1 failure is missing module, unrelated to V2)
+```
+
+**Note**: Must run with `--dangerouslyDisableSandbox` or outside Claude Code sandbox due to vite temp file permissions.
+
+**Current status**: 629/630 tests passing. The one failure (`lygia::space::bracketing::bracketing` not found) is a missing module in lygia, not a V2 parser issue.
+
 ### Debugging Parity Failures
 
 1. **Check TextElems first** - Filter them out, compare semantic only
