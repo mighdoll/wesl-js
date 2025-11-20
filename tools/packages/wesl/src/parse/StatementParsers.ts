@@ -1008,6 +1008,18 @@ function getConditionalAttribute(
     | undefined;
 }
 
+/** Helper to finalize statement with conditional scope handling */
+function finalizeConditional(
+  ctx: ParseContext,
+  hasConditional: boolean,
+  attributes: AttributeElem[],
+): void {
+  if (hasConditional) {
+    const partialScope = ctx.popScope();
+    partialScope.condAttribute = getConditionalAttribute(attributes);
+  }
+}
+
 /**
  * Parse any statement
  *
@@ -1041,121 +1053,33 @@ export function parseStatement(
     ctx.pushScope("partial");
   }
 
-  let stmt: StatementElem | null = null;
-
-  // Try local variable declarations (var, let, const)
   const attrsOrUndef = attributes.length > 0 ? attributes : undefined;
 
-  stmt = parseLocalVarDecl(stream, ctx, attrsOrUndef) as any;
-  if (stmt) {
-    if (hasConditional) {
-      const partialScope = ctx.popScope();
-      partialScope.condAttribute = getConditionalAttribute(attributes);
+  // Try each parser in order
+  const parsers = [
+    parseLocalVarDecl,
+    parseLetDecl,
+    parseConstDecl,
+    parseConstAssert,
+    parseCompoundStatement,
+    parseIfStatement,
+    parseSwitchStatement,
+    parseForStatement,
+    parseWhileStatement,
+    parseLoopStatement,
+    parseContinuingStatement,
+    parseSimpleStatement,
+  ];
+
+  for (const parser of parsers) {
+    const stmt = parser(stream, ctx, attrsOrUndef);
+    if (stmt) {
+      finalizeConditional(ctx, hasConditional, attributes);
+      return stmt as StatementElem;
     }
-    return stmt as unknown as StatementElem;
   }
 
-  stmt = parseLetDecl(stream, ctx, attrsOrUndef) as any;
-  if (stmt) {
-    if (hasConditional) {
-      const partialScope = ctx.popScope();
-      partialScope.condAttribute = getConditionalAttribute(attributes);
-    }
-    return stmt as unknown as StatementElem;
-  }
-
-  stmt = parseConstDecl(stream, ctx, attrsOrUndef) as any;
-  if (stmt) {
-    if (hasConditional) {
-      const partialScope = ctx.popScope();
-      partialScope.condAttribute = getConditionalAttribute(attributes);
-    }
-    return stmt as unknown as StatementElem;
-  }
-
-  // Try const_assert statement
-  stmt = parseConstAssert(stream, ctx, attrsOrUndef) as any;
-  if (stmt) {
-    if (hasConditional) {
-      const partialScope = ctx.popScope();
-      partialScope.condAttribute = getConditionalAttribute(attributes);
-    }
-    return stmt as unknown as StatementElem;
-  }
-
-  // Try compound statement (block)
-  stmt = parseCompoundStatement(stream, ctx, attrsOrUndef);
-  if (stmt) {
-    if (hasConditional) {
-      const partialScope = ctx.popScope();
-      partialScope.condAttribute = getConditionalAttribute(attributes);
-    }
-    return stmt;
-  }
-
-  // Try control flow statements
-  stmt = parseIfStatement(stream, ctx, attrsOrUndef);
-  if (stmt) {
-    if (hasConditional) {
-      const partialScope = ctx.popScope();
-      partialScope.condAttribute = getConditionalAttribute(attributes);
-    }
-    return stmt;
-  }
-
-  stmt = parseSwitchStatement(stream, ctx, attrsOrUndef);
-  if (stmt) {
-    if (hasConditional) {
-      const partialScope = ctx.popScope();
-      partialScope.condAttribute = getConditionalAttribute(attributes);
-    }
-    return stmt;
-  }
-
-  stmt = parseForStatement(stream, ctx, attrsOrUndef);
-  if (stmt) {
-    if (hasConditional) {
-      const partialScope = ctx.popScope();
-      partialScope.condAttribute = getConditionalAttribute(attributes);
-    }
-    return stmt;
-  }
-
-  stmt = parseWhileStatement(stream, ctx, attrsOrUndef);
-  if (stmt) {
-    if (hasConditional) {
-      const partialScope = ctx.popScope();
-      partialScope.condAttribute = getConditionalAttribute(attributes);
-    }
-    return stmt;
-  }
-
-  stmt = parseLoopStatement(stream, ctx, attrsOrUndef);
-  if (stmt) {
-    if (hasConditional) {
-      const partialScope = ctx.popScope();
-      partialScope.condAttribute = getConditionalAttribute(attributes);
-    }
-    return stmt;
-  }
-
-  stmt = parseContinuingStatement(stream, ctx, attrsOrUndef);
-  if (stmt) {
-    if (hasConditional) {
-      const partialScope = ctx.popScope();
-      partialScope.condAttribute = getConditionalAttribute(attributes);
-    }
-    return stmt;
-  }
-
-  // Fall back to simple statement
-  stmt = parseSimpleStatement(stream, ctx, attrsOrUndef);
-  if (stmt && hasConditional) {
-    const partialScope = ctx.popScope();
-    partialScope.condAttribute = getConditionalAttribute(attributes);
-  }
-
-  return stmt;
+  return null;
 }
 
 /**
