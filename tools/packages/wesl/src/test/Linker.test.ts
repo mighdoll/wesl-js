@@ -1,5 +1,6 @@
 import { expectTrimmedMatch } from "mini-parse/vitest-util";
 import { expect, test } from "vitest";
+import { stripWesl } from "./StripWesl.ts";
 import { linkTest } from "./TestUtil.ts";
 
 test("link global var", async () => {
@@ -17,9 +18,7 @@ test("global diagnostic directive", async () => {
 test("@diagnostic attribute on statement", async () => {
   const src = `fn foo() { @diagnostic(info, derivative_uniformity) if true { } }`;
   const result = await linkTest(src);
-  // V2 has minor whitespace differences but should not duplicate attributes
-  expect(result).not.toContain("@diagnostic(info, derivative_uniformity)@diagnostic");
-  expect(result).toContain("@diagnostic(info, derivative_uniformity) if true { }");
+  expect(stripWesl(result)).toBe(stripWesl(src));
 });
 
 test("link an alias", async () => {
