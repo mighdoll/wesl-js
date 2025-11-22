@@ -43,3 +43,13 @@ test("error highlight", () => {
   expect(errorHighlight("foo", [1, 2]).join("\n")).toBe(`foo
  ^`);
 });
+
+test("@must_use with empty parens", () => {
+  const src = `@must_use() fn foo() -> u32 { return 0; }`;
+  expect(() => parseTest(src)).toThrow();
+});
+
+test("semicolon after continuing", () => {
+  const src = `fn f() { loop { break; continuing{}; } }`;
+  expect(() => parseTest(src)).toThrow();
+});

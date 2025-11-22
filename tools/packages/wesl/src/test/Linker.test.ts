@@ -8,6 +8,12 @@ test("link global var", async () => {
   expectTrimmedMatch(result, src);
 });
 
+test("global diagnostic directive", async () => {
+  const src = `diagnostic(info, derivative_uniformity);`;
+  const result = await linkTest(src);
+  expectTrimmedMatch(result, src);
+});
+
 test("link an alias", async () => {
   const src = /* wgsl */ `
     alias Num = f32;

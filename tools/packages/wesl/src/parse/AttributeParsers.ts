@@ -7,7 +7,6 @@ import type {
   BinaryExpression,
   BinaryOperator,
   BuiltinAttribute,
-  DiagnosticAttribute,
   ElifAttribute,
   ElseAttribute,
   ExpressionElem,
@@ -23,6 +22,7 @@ import type {
   UnaryOperator,
   UnknownExpressionElem,
 } from "../AbstractElems.ts";
+import { ParseError } from "mini-parse";
 import {
   checkpoint,
   consume,
@@ -109,9 +109,8 @@ function parseAttribute(stream: WeslStream): AttributeElem | null {
     return parseInterpolateAttribute(stream, startPos);
   }
 
-  if (name === "diagnostic") {
-    return parseDiagnosticAttribute(stream, startPos);
-  }
+  // @diagnostic is handled as a standard attribute with params
+  // (the structured DiagnosticAttribute caused duplication issues)
 
   // Standard attribute with optional parameters
   let params: UnknownExpressionElem[] | undefined;
@@ -283,40 +282,6 @@ function parseInterpolateAttribute(
   };
 
   return wrapAttribute(interpolateAttr, startPos, endPos);
-}
-
-/**
- * Parse @diagnostic(...) attribute
- * Stub implementation - just consume the tokens
- */
-function parseDiagnosticAttribute(
-  stream: WeslStream,
-  startPos: number,
-): AttributeElem {
-  expect(stream, "(", "Expected '(' after @diagnostic");
-
-  // For now, just consume tokens until closing paren
-  let depth = 1;
-  while (depth > 0) {
-    const token = stream.nextToken();
-    if (!token) {
-      throw new Error("Unexpected end of input in @diagnostic attribute");
-    }
-    if (token.text === "(") depth++;
-    if (token.text === ")") depth--;
-  }
-
-  const endPos = checkpoint(stream);
-
-  // Create a stub diagnostic attribute
-  // TODO: Parse the actual severity and rule name
-  const diagnosticAttr: DiagnosticAttribute = {
-    kind: "@diagnostic",
-    severity: { kind: "name", name: "error", start: startPos, end: endPos },
-    rule: [{ kind: "name", name: "rule", start: startPos, end: endPos }, null],
-  };
-
-  return wrapAttribute(diagnosticAttr, startPos, endPos);
 }
 
 /**
