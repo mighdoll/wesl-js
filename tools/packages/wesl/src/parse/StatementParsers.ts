@@ -152,8 +152,9 @@ function parseCompoundStatement(
     return null;
   }
 
-  // Capture start position at the '{' token, not before it
-  const startPos = peeked.span[0];
+  // Capture position at the '{' token
+  const bracePos = peeked.span[0];
+  const startPos = getStartWithAttributes(attributes, bracePos);
 
   // Consume "{"
   const consumed = consume(stream, "{");
@@ -245,7 +246,8 @@ function parseSimpleStatement(
   ctx: ParseContext,
   attributes?: AttributeElem[],
 ): StatementElem | null {
-  const startPos = checkpoint(stream);
+  const keywordPos = checkpoint(stream);
+  const startPos = getStartWithAttributes(attributes, keywordPos);
 
   // Check for simple keywords
   const token = stream.peek();
@@ -528,10 +530,12 @@ function parseIfStatement(
   ctx: ParseContext,
   attributes?: AttributeElem[],
 ): StatementElem | null {
-  const startPos = checkpoint(stream);
+  const keywordPos = checkpoint(stream);
 
   // Expect "if"
   if (!consume(stream, "if")) return null;
+
+  const startPos = getStartWithAttributes(attributes, keywordPos);
 
   // Open statement to collect contents including "if" keyword and condition
   const initialContents: AttributeElem[] = attributes ? [...attributes] : [];
@@ -620,10 +624,12 @@ function parseForStatement(
   ctx: ParseContext,
   attributes?: AttributeElem[],
 ): StatementElem | null {
-  const startPos = checkpoint(stream);
+  const keywordPos = checkpoint(stream);
 
   // Expect "for"
   if (!consume(stream, "for")) return null;
+
+  const startPos = getStartWithAttributes(attributes, keywordPos);
 
   // Open statement to collect contents
   const initialContents: AttributeElem[] = attributes ? [...attributes] : [];
@@ -722,10 +728,12 @@ function parseWhileStatement(
   ctx: ParseContext,
   attributes?: AttributeElem[],
 ): StatementElem | null {
-  const startPos = checkpoint(stream);
+  const keywordPos = checkpoint(stream);
 
   // Expect "while"
   if (!consume(stream, "while")) return null;
+
+  const startPos = getStartWithAttributes(attributes, keywordPos);
 
   // Open statement to collect contents including "while" keyword and condition
   const initialContents: AttributeElem[] = attributes ? [...attributes] : [];
@@ -771,10 +779,12 @@ function parseLoopStatement(
   ctx: ParseContext,
   attributes?: AttributeElem[],
 ): StatementElem | null {
-  const startPos = checkpoint(stream);
+  const keywordPos = checkpoint(stream);
 
   // Expect "loop"
   if (!consume(stream, "loop")) return null;
+
+  const startPos = getStartWithAttributes(attributes, keywordPos);
 
   // Open statement to collect contents including "loop" keyword
   const initialContents: AttributeElem[] = attributes ? [...attributes] : [];
@@ -865,10 +875,12 @@ function parseSwitchStatement(
   ctx: ParseContext,
   attributes?: AttributeElem[],
 ): StatementElem | null {
-  const startPos = checkpoint(stream);
+  const keywordPos = checkpoint(stream);
 
   // Expect "switch"
   if (!consume(stream, "switch")) return null;
+
+  const startPos = getStartWithAttributes(attributes, keywordPos);
 
   // Open statement to collect contents
   const initialContents: AttributeElem[] = attributes ? [...attributes] : [];
@@ -1000,6 +1012,25 @@ function hasConditionalAttribute(attributes: AttributeElem[]): boolean {
         attr.attribute.kind === "@elif" ||
         attr.attribute.kind === "@else"),
   );
+}
+
+/**
+ * Get adjusted start position that includes emitted attributes.
+ * Only non-conditional attributes (not @if/@else/@elif) affect the span,
+ * since conditional attributes are dropped during emission.
+ */
+function getStartWithAttributes(
+  attributes: AttributeElem[] | undefined,
+  keywordPos: number,
+): number {
+  const firstEmitted = attributes?.find(
+    attr =>
+      attr.kind === "attribute" &&
+      attr.attribute.kind !== "@if" &&
+      attr.attribute.kind !== "@elif" &&
+      attr.attribute.kind !== "@else",
+  );
+  return firstEmitted ? firstEmitted.start : keywordPos;
 }
 
 /** Get the conditional attribute from a list */
