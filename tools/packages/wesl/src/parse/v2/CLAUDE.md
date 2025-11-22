@@ -493,6 +493,59 @@ V1_ONLY=true bb test --dangerouslyDisableSandbox
 # Expected V2 baseline: See latest v2-progress-update-*.md
 ```
 
+### Testing with CTS (Conformance Test Suite)
+
+The WebGPU CTS provides comprehensive WGSL validation testing. It's located at `~/wesl/cts` (sibling to wesl-js).
+
+**Setup**: The CTS transpiler points to our wesl-js worktree via `transpiler/wesl/package.json`:
+```json
+{
+  "dependencies": {
+    "wesl": "file:/Users/lee/wesl/worktrees/custom-parser/tools/packages/wesl"
+  }
+}
+```
+
+**Running tests**:
+```bash
+cd ~/wesl/cts
+
+# Build wesl first (from wesl package directory)
+pnpm build
+
+# Run single test
+tools/run_node --gpu-provider $PWD/transpiler/gpu_provider.ts \
+  --shader-transpiler $PWD/transpiler/wesl/wesl_transpiler.ts \
+  --verbose 'webgpu:shader,validation,parse,diagnostic:valid_locations:*'
+
+# Run all parse validation tests with JSON output
+tools/run_node --gpu-provider $PWD/transpiler/gpu_provider.ts \
+  --print-json --quiet 'webgpu:shader,validation,parse,*' > /tmp/baseline.json
+
+# Run with transpiler
+tools/run_node --gpu-provider $PWD/transpiler/gpu_provider.ts \
+  --shader-transpiler $PWD/transpiler/wesl/wesl_transpiler.ts \
+  --print-json --quiet 'webgpu:shader,validation,parse,*' > /tmp/transpiled.json
+
+# Compare results
+transpiler/tools/compare_results.ts /tmp/baseline.json /tmp/transpiled.json
+```
+
+**Comparison output categories**:
+- **Both pass**: Tests pass with and without transpiler
+- **Parse errors**: WESL can't parse valid WGSL
+- **Mistranslations**: WESL produces invalid output from valid input
+- **Too permissive**: WESL accepts what Dawn rejects
+
+**Current status** (v2-progress-update-38):
+- 3287/3310 tests pass (99.3%)
+- 1 parse error (empty source)
+- 22 mistranslations (semantic validation issues)
+
+**Note**: CTS tests require GPU hardware. Must run with `--dangerouslyDisableSandbox` or outside Claude Code sandbox.
+
+See also: [README-Transpiler.md](~/wesl/cts/transpiler/README-Transpiler.md)
+
 ### Testing with Lygia
 
 The [lygia](https://lygia.xyz) shader library provides real-world validation of the V2 parser. It's located at `~/wesl/lygia` (sibling to the wesl-js repo).
