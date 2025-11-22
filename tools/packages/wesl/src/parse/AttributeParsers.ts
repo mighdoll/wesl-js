@@ -90,9 +90,9 @@ function parseAttribute(stream: WeslStream): AttributeElem | null {
   reset(stream, startPos);
   consume(stream, "@"); // Re-consume the @
 
-  // Parse attribute name
+  // Parse attribute name (can be a word or keyword like "diagnostic")
   const nameToken = stream.peek();
-  if (!nameToken || nameToken.kind !== "word") {
+  if (!nameToken || (nameToken.kind !== "word" && nameToken.kind !== "keyword")) {
     reset(stream, startPos);
     return null;
   }
@@ -120,6 +120,11 @@ function parseAttribute(stream: WeslStream): AttributeElem | null {
   if (consume(stream, "(")) {
     params = parseAttributeParams(stream);
     expect(stream, ")", "Expected ')' after attribute parameters");
+  }
+
+  // Validate @must_use has no parameters
+  if (name === "must_use" && params !== undefined) {
+    throw new ParseError("@must_use does not accept parameters", [startPos, checkpoint(stream)]);
   }
 
   const endPos = checkpoint(stream);

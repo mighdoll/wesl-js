@@ -532,8 +532,9 @@ function parseIfStatement(
     throw new Error("Expected condition expression after 'if'");
   }
 
-  // Parse then block
-  const thenBlock = parseCompoundStatement(stream, ctx);
+  // Parse then block with optional attributes
+  const thenAttrs = parseAttributeList(stream);
+  const thenBlock = parseCompoundStatement(stream, ctx, thenAttrs.length > 0 ? thenAttrs : undefined);
   if (!thenBlock) {
     throw new Error("Expected '{' after if condition");
   }
@@ -561,14 +562,16 @@ function parseIfStatement(
         throw new Error("Expected condition expression after 'else if'");
       }
 
-      const elseIfBlock = parseCompoundStatement(stream, ctx);
+      const elseIfAttrs = parseAttributeList(stream);
+      const elseIfBlock = parseCompoundStatement(stream, ctx, elseIfAttrs.length > 0 ? elseIfAttrs : undefined);
       if (!elseIfBlock) {
         throw new Error("Expected '{' after else if condition");
       }
       ctx.addElem(elseIfBlock);
     } else {
-      // Final else branch
-      const elseBlock = parseCompoundStatement(stream, ctx);
+      // Final else branch with optional attributes
+      const elseAttrs = parseAttributeList(stream);
+      const elseBlock = parseCompoundStatement(stream, ctx, elseAttrs.length > 0 ? elseAttrs : undefined);
       if (!elseBlock) {
         throw new Error("Expected '{' after else");
       }
@@ -672,8 +675,9 @@ function parseForStatement(
   }
   expect(stream, ")", "Expected ')' after for loop header");
 
-  // Parse body
-  const body = parseCompoundStatement(stream, ctx);
+  // Parse body with optional attributes
+  const bodyAttrs = parseAttributeList(stream);
+  const body = parseCompoundStatement(stream, ctx, bodyAttrs.length > 0 ? bodyAttrs : undefined);
   if (!body) {
     throw new Error("Expected '{' after for loop header");
   }
@@ -722,8 +726,9 @@ function parseWhileStatement(
     throw new Error("Expected condition expression after 'while'");
   }
 
-  // Parse body
-  const body = parseCompoundStatement(stream, ctx);
+  // Parse body with optional attributes
+  const bodyAttrs = parseAttributeList(stream);
+  const body = parseCompoundStatement(stream, ctx, bodyAttrs.length > 0 ? bodyAttrs : undefined);
   if (!body) {
     throw new Error("Expected '{' after while condition");
   }
@@ -764,8 +769,8 @@ function parseLoopStatement(
   const initialContents: AttributeElem[] = attributes ? [...attributes] : [];
   openElem(ctx, { kind: "statement", contents: initialContents });
 
-  // Parse loop body (continuing blocks are now parsed as regular statements)
-  const body = parseCompoundStatement(stream, ctx);
+  // Parse loop body with special continuing handling
+  const body = parseLoopBody(stream, ctx);
   if (!body) {
     throw new Error("Expected '{' after 'loop'");
   }
@@ -785,6 +790,136 @@ function parseLoopStatement(
 
   attachAttributes(loopStmt, attributes);
   return loopStmt;
+}
+
+/**
+ * Parse loop body with special continuing handling
+ * Grammar: attribute * '{' statement * continuing_statement ? '}'
+ */
+function parseLoopBody(
+  stream: WeslStream,
+  ctx: ParseContext,
+): StatementElem | null {
+  // Parse optional attributes for loop body
+  const bodyAttrs = parseAttributeList(stream);
+
+  const peeked = stream.peek();
+  if (!peeked || peeked.text !== "{") {
+    return null;
+  }
+
+  const startPos = peeked.span[0];
+  consume(stream, "{");
+
+  // Store attributes in initial contents
+  const initialContents: AttributeElem[] = bodyAttrs.length > 0 ? [...bodyAttrs] : [];
+
+  openElem(ctx, { kind: "statement", contents: initialContents });
+  ctx.pushScope();
+
+  // Parse statements until we hit continuing or closing brace
+  while (true) {
+    const token = stream.peek();
+    if (!token) {
+      throw new Error("Unexpected end of input in loop body");
+    }
+
+    if (token.text === "}") {
+      stream.nextToken();
+      break;
+    }
+
+    // Parse optional attributes (for both statements and continuing)
+    const attrs = parseAttributeList(stream);
+    const attrsOrUndef = attrs.length > 0 ? attrs : undefined;
+
+    // Check for continuing - it must be the last thing before }
+    const nextToken = stream.peek();
+    if (nextToken && nextToken.text === "continuing") {
+      const contStmt = parseContinuingStatement(stream, ctx, attrsOrUndef);
+      if (contStmt) {
+        ctx.addElem(contStmt);
+        // After continuing, only } is allowed
+        expect(stream, "}", "Expected '}' after continuing block");
+        break;
+      }
+    }
+
+    // Parse regular statement (pass any attributes we already parsed)
+    // We need to reset and let parseStatement handle the attributes
+    if (attrs.length > 0) {
+      // We already parsed attributes, but parseStatement also parses them
+      // So we handle this by manually parsing the statement with the attributes
+      const hasConditional = attrs.some(
+        attr =>
+          attr.kind === "attribute" &&
+          (attr.attribute.kind === "@if" ||
+            attr.attribute.kind === "@elif" ||
+            attr.attribute.kind === "@else"),
+      );
+      if (hasConditional) {
+        ctx.pushScope("partial");
+      }
+
+      // Try each statement parser
+      let stmt: StatementElem | null = null;
+      for (const parser of [
+        parseLocalVarDecl,
+        parseLetDecl,
+        parseConstDecl,
+        parseConstAssert,
+        parseCompoundStatement,
+        parseIfStatement,
+        parseSwitchStatement,
+        parseForStatement,
+        parseWhileStatement,
+        parseLoopStatement,
+        parseSimpleStatement,
+      ]) {
+        stmt = parser(stream, ctx, attrsOrUndef);
+        if (stmt) {
+          if (hasConditional) {
+            const partialScope = ctx.popScope();
+            const condAttr = attrs.find(
+              attr =>
+                attr.kind === "attribute" &&
+                (attr.attribute.kind === "@if" ||
+                  attr.attribute.kind === "@elif" ||
+                  attr.attribute.kind === "@else"),
+            );
+            if (condAttr) {
+              partialScope.condAttribute = condAttr.attribute as any;
+            }
+          }
+          break;
+        }
+      }
+
+      if (!stmt) {
+        throw new Error("Expected statement or '}'");
+      }
+      ctx.addElem(stmt);
+    } else {
+      // No attributes, use regular parseStatement
+      const stmt = parseStatement(stream, ctx);
+      if (!stmt) {
+        throw new Error("Expected statement or '}'");
+      }
+      ctx.addElem(stmt);
+    }
+  }
+
+  ctx.popScope();
+
+  const endPos = checkpoint(stream);
+  const contents = closeElem(ctx, startPos, endPos);
+
+  return {
+    kind: "statement",
+    start: startPos,
+    end: endPos,
+    contents,
+  };
 }
 
 /**
@@ -808,8 +943,9 @@ function parseContinuingStatement(
   const initialContents: AttributeElem[] = attributes ? [...attributes] : [];
   openElem(ctx, { kind: "statement", contents: initialContents });
 
-  // Parse body
-  const body = parseCompoundStatement(stream, ctx);
+  // Parse body with optional attributes
+  const bodyAttrs = parseAttributeList(stream);
+  const body = parseCompoundStatement(stream, ctx, bodyAttrs.length > 0 ? bodyAttrs : undefined);
   if (!body) {
     throw new Error("Expected '{' after 'continuing'");
   }
@@ -862,7 +998,10 @@ function parseSwitchStatement(
     throw new Error("Expected expression after 'switch'");
   }
 
-  // Expect opening brace
+  // Parse optional attributes for switch body, then opening brace
+  const switchBodyAttrs = parseAttributeList(stream);
+  // Note: switchBodyAttrs are for the switch body itself, but we don't have a separate body element
+  // For now, we just consume them to allow parsing to proceed
   expect(stream, "{", "Expected '{' after switch expression");
 
   // Parse case clauses
@@ -911,11 +1050,16 @@ function parseSwitchStatement(
         stream.nextToken(); // consume ":"
       }
 
+      // Parse body attributes (for the compound statement)
+      const bodyAttrs = parseAttributeList(stream);
+      // Merge clause attrs with body attrs
+      const allAttrs = [...clauseAttrs, ...bodyAttrs];
+
       // Parse case body (compound statement)
       const caseBody = parseCompoundStatement(
         stream,
         ctx,
-        clauseAttrs.length > 0 ? clauseAttrs : undefined,
+        allAttrs.length > 0 ? allAttrs : undefined,
       );
       if (!caseBody) {
         throw new Error("Expected '{' after case value");
@@ -930,11 +1074,16 @@ function parseSwitchStatement(
         stream.nextToken(); // consume ":"
       }
 
+      // Parse body attributes (for the compound statement)
+      const defaultBodyAttrs = parseAttributeList(stream);
+      // Merge clause attrs with body attrs
+      const allDefaultAttrs = [...clauseAttrs, ...defaultBodyAttrs];
+
       // Parse default body (compound statement)
       const defaultBody = parseCompoundStatement(
         stream,
         ctx,
-        clauseAttrs.length > 0 ? clauseAttrs : undefined,
+        allDefaultAttrs.length > 0 ? allDefaultAttrs : undefined,
       );
       if (!defaultBody) {
         throw new Error("Expected '{' after 'default'");
@@ -1038,6 +1187,7 @@ export function parseStatement(
   const attrsOrUndef = attributes.length > 0 ? attributes : undefined;
 
   // Try each parser in order
+  // Note: parseContinuingStatement is NOT here - it's handled specially in parseLoopBody
   const parsers = [
     parseLocalVarDecl,
     parseLetDecl,
@@ -1049,7 +1199,6 @@ export function parseStatement(
     parseForStatement,
     parseWhileStatement,
     parseLoopStatement,
-    parseContinuingStatement,
     parseSimpleStatement,
   ];
 
