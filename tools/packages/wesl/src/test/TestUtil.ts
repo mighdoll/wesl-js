@@ -5,6 +5,7 @@ import {
   type TestParseResult,
   testParseWithStream,
 } from "mini-parse/test-util";
+import { expect } from "vitest";
 import { type BoundAndTransformed, RecordResolver, type SrcModule } from "wesl";
 import { bindAndTransform, type LinkParams, link } from "../Linker.ts";
 import {
@@ -14,6 +15,12 @@ import {
 } from "../ParseWESL.ts";
 import { WeslStream, type WeslToken } from "../parse/WeslStream.ts";
 import { resetScopeIds } from "../Scope.ts";
+import { stripWesl } from "./StripWesl.ts";
+
+/** Compare WGSL/WESL by token sequence, ignoring whitespace differences */
+export function expectTokenMatch(actual: string, expected: string): void {
+  expect(stripWesl(actual)).toBe(stripWesl(expected));
+}
 
 /** Parse a single wesl file */
 export function parseWESL(src: string): WeslAST {
