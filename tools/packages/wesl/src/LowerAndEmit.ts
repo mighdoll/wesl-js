@@ -287,7 +287,7 @@ function emitAttributes(
 
 /** emit structs explicitly so we can control commas between conditional members */
 export function emitStruct(e: StructElem, ctx: EmitContext): void {
-  const { name, members, start } = e;
+  const { attributes, name, members, start } = e;
   const { srcBuilder, conditions } = ctx;
 
   const validMembers = filterValidElements(members, conditions);
@@ -298,6 +298,7 @@ export function emitStruct(e: StructElem, ctx: EmitContext): void {
     return;
   }
 
+  emitAttributes(attributes, ctx);
   srcBuilder.add("struct ", start, name.start);
   emitDeclIdent(name, ctx);
 
