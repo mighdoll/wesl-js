@@ -57,7 +57,7 @@ export class RecordResolver implements BatchModuleResolver {
     if (cached) return cached;
 
     const source = this.findSource(modulePath);
-    if (!source) return undefined;
+    if (source === undefined) return undefined;
 
     const debugFilePath = this.modulePathToDebugPath(modulePath);
 
@@ -71,7 +71,7 @@ export class RecordResolver implements BatchModuleResolver {
   }
 
   private findSource(modulePath: string): string | undefined {
-    if (this.sources[modulePath]) return this.sources[modulePath];
+    if (this.sources[modulePath] !== undefined) return this.sources[modulePath];
 
     const filePath = this.moduleToFilePath(modulePath);
     return findInVariants(this.sources, filePath);
@@ -221,11 +221,11 @@ function findInVariants(
 
   for (const prefix of prefixes) {
     const path = prefix + basePath;
-    if (sources[path]) return sources[path];
+    if (sources[path] !== undefined) return sources[path];
 
     for (const ext of extensions) {
       const withExt = `${path}.${ext}`;
-      if (sources[withExt]) return sources[withExt];
+      if (sources[withExt] !== undefined) return sources[withExt];
     }
   }
 

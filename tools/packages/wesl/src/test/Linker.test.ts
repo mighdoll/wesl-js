@@ -135,3 +135,9 @@ test("struct member ref with extra component_or_swizzle", async () => {
   const result = await linkTest(src);
   expectTrimmedMatch(result, src);
 });
+
+test("empty string", async () => {
+  const src = "";
+  const result = await linkTest(src);
+  expectTrimmedMatch(result, src);
+});
