@@ -4,8 +4,8 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 
-const ctsDir = path.resolve(process.env.HOME || "", "wesl/cts");
 const weslDir = path.dirname(import.meta.dirname);
+const ctsDir = path.resolve(weslDir, "../../../../../wesl-js/cts");
 
 if (!existsSync(ctsDir)) {
   console.error(`CTS directory not found: ${ctsDir}`);
@@ -45,4 +45,5 @@ console.log("\nComparing results...");
 run(
   `transpiler/tools/compare_results.ts /tmp/baseline-cts.json /tmp/transpiled-cts.json`,
   ctsDir,
+  true,
 );
