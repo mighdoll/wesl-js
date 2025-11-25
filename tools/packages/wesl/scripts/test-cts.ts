@@ -5,7 +5,7 @@ import path from "node:path";
 import process from "node:process";
 
 const weslDir = path.dirname(import.meta.dirname);
-const ctsDir = path.resolve(weslDir, "../../../../../wesl-js/cts");
+const ctsDir = path.resolve(weslDir, "../../../cts");
 
 if (!existsSync(ctsDir)) {
   console.error(`CTS directory not found: ${ctsDir}`);
