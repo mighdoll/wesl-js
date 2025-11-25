@@ -17,14 +17,12 @@ import type {
 } from "../AbstractElems.ts";
 import type { WeslStream, WeslToken, WeslTokenKind } from "./WeslStream.ts";
 
+const conditionalKinds: readonly string[] = ["@if", "@elif", "@else"];
+
 /** Check if attributes contain @if/@elif/@else */
 export function hasConditionalAttribute(attributes: AttributeElem[]): boolean {
-  return attributes.some(
-    attr =>
-      attr.kind === "attribute" &&
-      (attr.attribute.kind === "@if" ||
-        attr.attribute.kind === "@elif" ||
-        attr.attribute.kind === "@else"),
+  return attributes.some(attr =>
+    conditionalKinds.includes(attr.attribute.kind),
   );
 }
 
