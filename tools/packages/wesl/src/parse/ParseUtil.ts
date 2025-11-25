@@ -17,10 +17,6 @@ import type {
 } from "../AbstractElems.ts";
 import type { WeslStream, WeslToken, WeslTokenKind } from "./WeslStream.ts";
 
-// ============================================================================
-// Shared Helper Functions
-// ============================================================================
-
 /** Attach attributes to an element if present */
 export function attachAttributes<T extends { attributes?: AttributeElem[] }>(
   elem: T,
@@ -46,10 +42,6 @@ export function linkDeclIdentElem(
 ): void {
   declIdentElem.ident.declElem = declElem;
 }
-
-// ============================================================================
-// Token Consumption Utilities
-// ============================================================================
 
 /** Try to consume a token by text only */
 export function consume<T extends Token>(
@@ -169,10 +161,6 @@ export function reset<T extends Token>(stream: Stream<T>, pos: number): void {
   (stream as WeslStream).reset(pos);
 }
 
-// ============================================================================
-// Example: Parse attribute_if_expression
-// ============================================================================
-
 export function parseAttributeIfExpression(context: ParserContext): any {
   const { stream } = context;
 
@@ -231,10 +219,6 @@ export function parseAttributeIfExpression(context: ParserContext): any {
 
   return parseExpression();
 }
-
-// ============================================================================
-// API Documentation
-// ============================================================================
 
 /**
  * Expect-Oriented Parser API

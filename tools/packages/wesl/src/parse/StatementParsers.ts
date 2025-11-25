@@ -1,11 +1,4 @@
-/**
- * Custom parsers for WESL statements
- * Week 10: Basic statement parsing for function bodies
- * Week 11: Full expression integration
- *
- * Strategy: Parse statement structure (blocks, control flow) with
- * full expression support for conditions and assignments.
- */
+/** Custom parsers for WESL statements */
 
 import type {
   AttributeElem,
@@ -255,7 +248,7 @@ function parseSimpleStatement(
 
   // Handle return statement with optional expression
   if (token.text === "return") {
-    stream.nextToken(); // consume "return"
+    stream.nextToken();
 
     // Open statement to collect contents including "return" keyword
     const initialContents: AttributeElem[] = attributes ? [...attributes] : [];
@@ -289,13 +282,13 @@ function parseSimpleStatement(
     token.text === "continue" ||
     token.text === "discard"
   ) {
-    stream.nextToken(); // consume keyword
+    stream.nextToken();
 
     // Check for "break if" statement
     if (token.text === "break") {
       const nextToken = stream.peek();
       if (nextToken && nextToken.text === "if") {
-        stream.nextToken(); // consume "if"
+        stream.nextToken();
 
         // Open statement to collect contents including "break if" keywords
         const initialContents: AttributeElem[] = attributes
@@ -370,14 +363,14 @@ function parseSimpleStatement(
 
   // Handle underscore assignment: _ = expr;
   if (token.text === "_") {
-    stream.nextToken(); // consume "_"
+    stream.nextToken();
 
     // Expect assignment operator
     const assignOp = stream.peek();
     if (!assignOp || !isAssignmentOperator(assignOp.text)) {
       throw new Error("Expected assignment operator after '_'");
     }
-    stream.nextToken(); // consume assignment operator
+    stream.nextToken();
 
     // Open statement to collect contents
     openElem(ctx, { kind: "statement", contents: [] });
@@ -421,7 +414,7 @@ function parseSimpleStatement(
       postfixToken &&
       (postfixToken.text === "++" || postfixToken.text === "--")
     ) {
-      stream.nextToken(); // consume postfix operator
+      stream.nextToken();
 
       // Expect semicolon
       expect(stream, ";", "Expected ';' after postfix operator");
@@ -445,7 +438,7 @@ function parseSimpleStatement(
     // Check for assignment operators after the expression
     const assignToken = stream.peek();
     if (assignToken && isAssignmentOperator(assignToken.text)) {
-      stream.nextToken(); // consume assignment operator
+      stream.nextToken();
 
       // Parse right-hand side expression
       const rhs = parseExpression(stream, ctx);
@@ -560,7 +553,7 @@ function parseIfStatement(
     const elseToken = stream.peek();
     if (!elseToken || elseToken.text !== "else") break;
 
-    stream.nextToken(); // consume "else"
+    stream.nextToken();
 
     const nextToken = stream.peek();
     if (!nextToken) {
@@ -569,8 +562,7 @@ function parseIfStatement(
 
     if (nextToken.text === "if") {
       // else if branch
-      stream.nextToken(); // consume "if"
-
+      stream.nextToken();
       // Parse else if condition
       const elseIfCondition = parseExpression(stream, ctx);
       if (!elseIfCondition) {
@@ -674,7 +666,7 @@ function parseForStatement(
     // Check for assignment operators after the expression (e.g., i += 1, i = i + 1)
     const assignToken = stream.peek();
     if (assignToken && isAssignmentOperator(assignToken.text)) {
-      stream.nextToken(); // consume assignment operator
+      stream.nextToken();
 
       // Parse right-hand side expression
       const _rhs = parseExpression(stream, ctx);
@@ -686,7 +678,7 @@ function parseForStatement(
         postfixToken &&
         (postfixToken.text === "++" || postfixToken.text === "--")
       ) {
-        stream.nextToken(); // consume the postfix operator (will be covered by text)
+        stream.nextToken();
       }
     }
   }
@@ -915,7 +907,7 @@ function parseSwitchStatement(
 
     // Parse case or default
     if (token.text === "case") {
-      stream.nextToken(); // consume "case"
+      stream.nextToken();
 
       // Parse case value expression(s) - can be comma-separated (e.g., case 1u, 2u, 3u:)
       const caseExpr = parseExpression(stream, ctx);
@@ -928,7 +920,7 @@ function parseSwitchStatement(
         const commaToken = stream.peek();
         if (!commaToken || commaToken.text !== ",") break;
 
-        stream.nextToken(); // consume ","
+        stream.nextToken();
 
         // Parse next case value
         const nextExpr = parseExpression(stream, ctx);
@@ -940,7 +932,7 @@ function parseSwitchStatement(
       // Check for optional colon (WGSL allows both `case 0:` and `case 0 { }`)
       const colonToken = stream.peek();
       if (colonToken && colonToken.text === ":") {
-        stream.nextToken(); // consume ":"
+        stream.nextToken();
       }
 
       // Parse body attributes (for the compound statement)
@@ -959,12 +951,12 @@ function parseSwitchStatement(
       }
       ctx.addElem(caseBody);
     } else if (token.text === "default") {
-      stream.nextToken(); // consume "default"
+      stream.nextToken();
 
       // Check for optional colon (WGSL allows both `default:` and `default { }`)
       const colonToken = stream.peek();
       if (colonToken && colonToken.text === ":") {
-        stream.nextToken(); // consume ":"
+        stream.nextToken();
       }
 
       // Parse body attributes (for the compound statement)

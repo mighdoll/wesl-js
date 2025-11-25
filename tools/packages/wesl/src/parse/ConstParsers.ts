@@ -1,9 +1,4 @@
-/**
- * Custom parsers for WESL declarations
- * Week 2: const declarations
- * Week 3: override, var, alias declarations
- * Week 4: struct declarations
- */
+/** Custom parsers for WESL declarations */
 
 import type {
   AliasElem,
@@ -312,15 +307,10 @@ export function parseVarDecl(
   ctx: ParseContext,
   attributes?: AttributeElem[],
 ): GlobalVarElem | null {
-  // Peek at "var" keyword to get its position
   const varToken = stream.peek();
-  if (!varToken || varToken.text !== "var") {
-    return null;
-  }
+  if (varToken?.text !== "var") return null;
 
   const startPos = varToken.span[0];
-
-  // Consume "var" keyword
   stream.nextToken();
 
   // Push a partial scope for the entire var declaration (matches V1 behavior)
@@ -418,15 +408,10 @@ export function parseAliasDecl(
   ctx: ParseContext,
   attributes?: AttributeElem[],
 ): AliasElem | null {
-  // Peek at "alias" keyword to get its position (don't use checkpoint to avoid including leading whitespace)
   const aliasToken = stream.peek();
-  if (!aliasToken || aliasToken.text !== "alias") {
-    return null;
-  }
+  if (aliasToken?.text !== "alias") return null;
 
   const startPos = aliasToken.span[0];
-
-  // Consume "alias" keyword
   stream.nextToken();
 
   // Open element to collect contents
@@ -586,22 +571,14 @@ export function parseStructDecl(
   ctx: ParseContext,
   attributes?: AttributeElem[],
 ): StructElem | null {
-  // Peek at "struct" keyword to get its position
   const structToken = stream.peek();
-  if (!structToken || structToken.text !== "struct") {
-    return null;
-  }
+  if (structToken?.text !== "struct") return null;
 
   const startPos = structToken.span[0];
-
-  // Consume "struct" keyword
   stream.nextToken();
 
-  // Parse struct name
   const nameToken = stream.nextToken();
-  if (!nameToken || nameToken.kind !== "word") {
-    throwParseError(stream, "Expected identifier after 'struct'");
-  }
+  if (nameToken?.kind !== "word") throwParseError(stream, "Expected identifier after 'struct'");
 
   // Create DeclIdent for this struct
   const declIdent = ctx.createDeclIdent(

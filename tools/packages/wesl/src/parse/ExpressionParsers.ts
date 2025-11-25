@@ -1,9 +1,4 @@
-/**
- * Full expression parsers for WESL v2
- *
- * Week 2: Basic literals and identifiers for const declarations
- * Week 11: Full expression support with operators, precedence, function calls
- */
+/** Full expression parsers for WESL v2 */
 
 import type {
   BinaryExpression,
@@ -98,7 +93,7 @@ export function parseSimpleIdentifier(
     ) {
       throw new Error(`Expected identifier after '::'`);
     }
-    stream.nextToken(); // consume the word/keyword
+    stream.nextToken();
     fullName += "::" + nextToken.text;
     nameEnd = nextToken.span[1];
   }
@@ -221,13 +216,13 @@ function parsePostfixExpression(
 
     // Member access: .member
     if (token.text === ".") {
-      stream.nextToken(); // consume "."
+      stream.nextToken();
 
       const memberToken = stream.peek();
       if (!memberToken || memberToken.kind !== "word") {
         throw new Error("Expected identifier after '.'");
       }
-      stream.nextToken(); // consume member name
+      stream.nextToken();
 
       const memberName: NameElem = {
         kind: "name",
@@ -251,7 +246,7 @@ function parsePostfixExpression(
 
     // Array indexing: [expr]
     if (token.text === "[") {
-      stream.nextToken(); // consume "["
+      stream.nextToken();
 
       // Parse index expression
       const indexExpr = parseExpression(stream, ctx);
@@ -292,7 +287,7 @@ function parsePostfixExpression(
         const checkpointPos = checkpoint(stream);
 
         // Skip template parameters (simple bracket matching)
-        stream.nextToken(); // consume <
+        stream.nextToken();
         let depth = 1;
         let success = true;
 
@@ -377,7 +372,7 @@ function parseUnaryExpression(
     token.text === "*" ||
     token.text === "~"
   ) {
-    stream.nextToken(); // consume operator
+    stream.nextToken();
 
     const operator: UnaryOperator = {
       value: token.text as UnaryOperator["value"],
@@ -526,7 +521,7 @@ function parseBinaryExpression(
     if (precedence < minPrecedence) break;
 
     const opToken = token;
-    stream.nextToken(); // consume operator
+    stream.nextToken();
 
     const operator: BinaryOperator = {
       value: opToken.text as BinaryOperator["value"],

@@ -91,13 +91,8 @@ export class WeslParserV2 {
    * Note: imports are a WESL extension, parsed before WGSL grammar elements
    */
   private parseModule(): void {
-    // Week 1: Imports + Attributes
     this.parseImports();
-
-    // Week 8: Global directives (enable, requires, diagnostic)
     this.parseDirectives();
-
-    // Week 2-5: Global declarations (const, override, var, alias, struct, fn)
     this.parseDeclarations();
   }
 
@@ -153,15 +148,14 @@ export class WeslParserV2 {
   private parseDeclarations(): void {
     const stream = this.ctx.stream;
 
-    // Array of declaration parsers to try in order
     const parsers = [
-      parseConstDecl, // Week 2
-      parseOverrideDecl, // Week 3
-      parseVarDecl, // Week 3
-      parseAliasDecl, // Week 3
-      parseStructDecl, // Week 4
-      parseFnDecl, // Week 5
-      parseConstAssert, // Week 9
+      parseConstDecl,
+      parseOverrideDecl,
+      parseVarDecl,
+      parseAliasDecl,
+      parseStructDecl,
+      parseFnDecl,
+      parseConstAssert,
     ];
 
     // Keep parsing declarations until we can't parse any more

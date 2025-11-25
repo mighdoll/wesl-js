@@ -166,7 +166,7 @@ Consider: `createStatement(startPos, endPos, contents, attributes)` helper.
 
 ## 3. Bundle Size Opportunities
 
-### 3.1 Error Strings (Development Only Mode)
+### 3.1 Error Strings (Development Only Mode) - POST-MERGE
 
 Error messages add to bundle size. Consider:
 
@@ -191,6 +191,8 @@ Affected files (estimated error string bytes):
 
 **Total: ~2.8KB** of error strings that could be conditionally included.
 
+**Status: Save for post-merge optimization.**
+
 ### 3.2 Comment Block Headers
 
 ```typescript
@@ -199,7 +201,7 @@ Affected files (estimated error string bytes):
 // ============================================================================
 ```
 
-These ASCII-art headers in ParseUtil.ts add ~500B. Remove or simplify.
+These ASCII-art headers in ParseUtil.ts are not local style. **Remove entirely.**
 
 ### 3.3 Unused Exports
 
@@ -228,7 +230,7 @@ Trade-offs:
 
 **Recommendation**: Keep current approach. The scope collection is well-integrated and doesn't significantly complicate the parsing code. A separate pass would add overhead without clear benefit.
 
-### 4.2 V1/V2 Detection in Emit Layer
+### 4.2 V1/V2 Detection in Emit Layer - POST-MERGE
 
 LowerAndEmit.ts has multiple `if (weslParserConfig.useV2Parser)` checks:
 - Lines 105-109
@@ -236,7 +238,7 @@ LowerAndEmit.ts has multiple `if (weslParserConfig.useV2Parser)` checks:
 - Lines 163-167
 - Lines 199, 308
 
-**Recommendation**: Once V1 is removed, clean these up. For now, they're necessary.
+**Status: Save for post-merge cleanup.** These are necessary while both parsers exist.
 
 ---
 
@@ -340,41 +342,40 @@ No dedicated tests for error messages. When we change error strings (for bundle 
 
 ### 8.2 Edge Cases
 
-From CTS results (99.3% pass rate):
-- 1 parse error (empty source)
-- 22 mistranslations
+~~From CTS results (99.3% pass rate):~~
+~~- 1 parse error (empty source)~~
+~~- 22 mistranslations~~
 
-Document these known gaps.
+**Update: All CTS tests are now passing.**
 
 ---
 
 ## Summary: Priority Order
 
-### P1 - Quick Wins (Low Risk)
+### P1 - Quick Wins (Low Risk) - DO NOW
 1. Remove redundant `// consume "X"` comments (all parser files)
 2. Simplify `(!token || token.text !== "X")` to `(token?.text !== "X")`
 3. Remove stale "Week N" comments
 4. Remove stale TODO comments
 5. Remove ASCII-art section headers in ParseUtil.ts
 
-### P2 - DRY Improvements (Medium Effort)
+### P2 - DRY Improvements (Medium Effort) - DO NOW
 1. Create `tryConsumeKeyword()` utility
 2. Export `hasConditionalAttribute()` from shared location
 3. Create `createStatement()` helper
 
-### P3 - Bundle Size (Requires Design)
-1. Error string compression/codes (need to design approach)
-2. Remove unused exports
-
-### P4 - Post-Merge Cleanup
+### P3 - Post-Merge Cleanup
 1. Delete v2-progress-update-*.md files
 2. Remove V1/V2 detection code in LowerAndEmit.ts
 3. Consolidate documentation
+4. Error string compression/codes (bundle size optimization)
+5. Remove unused exports
 
 ---
 
 ## Action Items for This Session
 
-- [ ] Read through issues above with Lee
-- [ ] Prioritize which to fix now vs. later
-- [ ] Start with P1 quick wins if approved
+- [x] Read through issues above with Lee
+- [x] Prioritize which to fix now vs. later
+- [ ] P1: Quick wins - then test and commit
+- [ ] P2: DRY improvements - then test and commit

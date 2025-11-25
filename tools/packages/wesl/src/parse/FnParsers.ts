@@ -1,8 +1,4 @@
-/**
- * Custom parsers for WESL function declarations
- * Week 5: fn declarations with stub body parsing
- * TODO Week 6+: Implement full statement parsing for function bodies
- */
+/** Custom parsers for WESL function declarations */
 
 import type {
   AttributeElem,
@@ -37,31 +33,20 @@ function parseFnParam(
   stream: WeslStream,
   ctx: ParseContext,
 ): FnParamElem | null {
-  // Parse optional attributes
   const attributes = parseAttributeList(stream);
 
-  // Peek at parameter name to get position
   const nameToken = stream.peek();
-  if (!nameToken || nameToken.kind !== "word") {
-    return null;
-  }
+  if (nameToken?.kind !== "word") return null;
 
   const startPos = nameToken.span[0];
-
-  // Consume the name token
   stream.nextToken();
-
-  // Open param element for content collection
   openElem(ctx, { kind: "param", contents: [] });
-
-  // Create DeclIdent for this parameter
   const declIdent = ctx.createDeclIdent(
     nameToken.text,
     nameToken.span,
     false, // isGlobal = false for function parameters
   );
 
-  // Create DeclIdentElem
   const declIdentElem: DeclIdentElem = {
     kind: "decl",
     ident: declIdent,
@@ -69,15 +54,10 @@ function parseFnParam(
     start: nameToken.span[0],
     end: nameToken.span[1],
   };
-
-  // Save the identifier in the current scope
   ctx.saveIdent(declIdent);
 
-  // Check for optional type annotation `: type`
   let typeRef: TypeRefElem | undefined;
-
   if (consume(stream, ":")) {
-    // Parse the type reference
     const parsedTypeRef = parseSimpleTypeRef(stream, ctx);
     if (!parsedTypeRef) {
       throw new Error("Expected type after ':' in function parameter");
@@ -87,23 +67,17 @@ function parseFnParam(
   }
 
   const typeDeclEndPos = checkpoint(stream);
-
-  // Create TypedDeclElem for the parameter (no separate contents, covered by param)
   const typedDecl: TypedDeclElem = {
     kind: "typeDecl",
     decl: declIdentElem,
     typeRef,
     start: nameToken.span[0],
     end: typeDeclEndPos,
-    contents: [], // TypedDecl inside param doesn't need separate contents
+    contents: [],
   };
 
   const endPos = checkpoint(stream);
-
-  // Close param element and fill with text
   const contents = closeElem(ctx, startPos, endPos);
-
-  // Create FnParamElem
   const paramElem: FnParamElem = {
     kind: "param",
     name: typedDecl,
@@ -111,12 +85,8 @@ function parseFnParam(
     end: endPos,
     contents,
   };
-
-  // Link the typed decl back to the param elem
   linkDeclIdent(typedDecl, paramElem);
-
   attachAttributes(paramElem, attributes.length > 0 ? attributes : undefined);
-
   return paramElem;
 }
 
@@ -170,35 +140,22 @@ export function parseFnDecl(
   ctx: ParseContext,
   attributes?: AttributeElem[],
 ): FnElem | null {
-  // Peek at "fn" keyword to get its position (don't use checkpoint to avoid including leading whitespace)
   const fnToken = stream.peek();
-  if (!fnToken || fnToken.text !== "fn") {
-    return null;
-  }
+  if (fnToken?.text !== "fn") return null;
 
   const startPos = fnToken.span[0];
-
-  // Consume "fn" keyword
   stream.nextToken();
-
-  // Push a partial scope for the entire function (matches V1 behavior)
-  // This allows function body to see imports from parent scope
   ctx.pushScope("partial");
 
-  // Parse function name
   const nameToken = stream.nextToken();
-  if (!nameToken || nameToken.kind !== "word") {
-    throw new Error("Expected identifier after 'fn'");
-  }
+  if (nameToken?.kind !== "word") throw new Error("Expected identifier after 'fn'");
 
-  // Create DeclIdent for this function
   const declIdent = ctx.createDeclIdent(
     nameToken.text,
     nameToken.span,
     true, // isGlobal for functions
   );
 
-  // Create DeclIdentElem
   const declIdentElem: DeclIdentElem = {
     kind: "decl",
     ident: declIdent,
@@ -206,49 +163,29 @@ export function parseFnDecl(
     start: nameToken.span[0],
     end: nameToken.span[1],
   };
-
-  // Save the identifier in the current scope
   ctx.saveIdent(declIdent);
 
-  // NOTE: FnElem does NOT use openElem/closeElem - build contents manually
-  // See TEXT_ELEMENT_RULES.md: contents = [decl, ...params, returnType?, body]
-
-  // Expect "(" and parse parameters
+  // FnElem does NOT use openElem/closeElem - see TEXT_ELEMENT_RULES.md
   expect(stream, "(", "Expected '(' after function name");
   ctx.pushScope();
   const params = parseFnParams(stream, ctx);
-
-  // Parse optional return type
   const { typeRef: returnType, attrs: returnAttributes } = parseFnReturnType(
     stream,
     ctx,
   );
 
-  // Parse function body
   const body = parseFunctionBody(stream, ctx);
-  if (!body) {
-    throw new Error("Expected function body");
-  }
+  if (!body) throw new Error("Expected function body");
 
-  // Save the parameter scope as the dependentScope for binding
-  // This allows binding to recursively process references inside the function body
-  const paramScope = ctx.currentScope();
-  declIdent.dependentScope = paramScope;
-
-  // Pop the function parameter scope
+  declIdent.dependentScope = ctx.currentScope();
   ctx.popScope();
-
-  // Pop the partial scope for the function
   ctx.popScope();
 
   const endPos = checkpoint(stream);
-
-  // Build contents manually (no text coverage for FnElem)
   const contents: GrammarElem[] = [declIdentElem, ...params];
   if (returnType) contents.push(returnType);
   contents.push(body);
 
-  // Create FnElem
   const fnElem: FnElem = {
     kind: "fn",
     name: declIdentElem,
