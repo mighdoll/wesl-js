@@ -21,6 +21,7 @@ import {
   checkpoint,
   consume,
   expect,
+  hasConditionalAttribute,
   reset,
 } from "./ParseUtil.ts";
 import { closeElem, openElem } from "./v2/ContentsHelpers.ts";
@@ -993,17 +994,6 @@ function parseSwitchStatement(
 
   attachAttributes(switchStmt, attributes);
   return switchStmt;
-}
-
-/** Check if attributes contain @if/@elif/@else */
-function hasConditionalAttribute(attributes: AttributeElem[]): boolean {
-  return attributes.some(
-    attr =>
-      attr.kind === "attribute" &&
-      (attr.attribute.kind === "@if" ||
-        attr.attribute.kind === "@elif" ||
-        attr.attribute.kind === "@else"),
-  );
 }
 
 /**

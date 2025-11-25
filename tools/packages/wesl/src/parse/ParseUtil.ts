@@ -17,6 +17,17 @@ import type {
 } from "../AbstractElems.ts";
 import type { WeslStream, WeslToken, WeslTokenKind } from "./WeslStream.ts";
 
+/** Check if attributes contain @if/@elif/@else */
+export function hasConditionalAttribute(attributes: AttributeElem[]): boolean {
+  return attributes.some(
+    attr =>
+      attr.kind === "attribute" &&
+      (attr.attribute.kind === "@if" ||
+        attr.attribute.kind === "@elif" ||
+        attr.attribute.kind === "@else"),
+  );
+}
+
 /** Attach attributes to an element if present */
 export function attachAttributes<T extends { attributes?: AttributeElem[] }>(
   elem: T,
@@ -77,6 +88,22 @@ export function expect<T extends Token>(
     throw new ParseError(errorMsg || `Expected "${text}"`, [pos, pos]);
   }
   return token;
+}
+
+/**
+ * Peek and consume a keyword if it matches, returning the token.
+ * More efficient than consume() when you need the token's position.
+ */
+export function tryConsumeKeyword(
+  stream: WeslStream,
+  keyword: string,
+): WeslToken | null {
+  const token = stream.peek();
+  if (token?.text === keyword) {
+    stream.nextToken();
+    return token;
+  }
+  return null;
 }
 
 /** Consume any token of the given kind, optionally matching text */
@@ -197,7 +224,6 @@ export function parseAttributeIfExpression(context: ParserContext): any {
   }
 
   function parseExpression(): any {
-    const _pos = checkpoint(stream);
     let left = parseUnary();
     if (!left) return null;
 

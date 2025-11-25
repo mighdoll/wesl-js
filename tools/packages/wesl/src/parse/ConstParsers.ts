@@ -29,6 +29,7 @@ import {
   linkDeclIdentElem,
   reset,
   throwParseError,
+  tryConsumeKeyword,
 } from "./ParseUtil.ts";
 import { parseSimpleTypeRef } from "./TypeParsers.ts";
 import { closeElem, openElem } from "./v2/ContentsHelpers.ts";
@@ -307,11 +308,10 @@ export function parseVarDecl(
   ctx: ParseContext,
   attributes?: AttributeElem[],
 ): GlobalVarElem | null {
-  const varToken = stream.peek();
-  if (varToken?.text !== "var") return null;
+  const varToken = tryConsumeKeyword(stream, "var");
+  if (!varToken) return null;
 
   const startPos = varToken.span[0];
-  stream.nextToken();
 
   // Push a partial scope for the entire var declaration (matches V1 behavior)
   ctx.pushScope("partial");
@@ -408,11 +408,10 @@ export function parseAliasDecl(
   ctx: ParseContext,
   attributes?: AttributeElem[],
 ): AliasElem | null {
-  const aliasToken = stream.peek();
-  if (aliasToken?.text !== "alias") return null;
+  const aliasToken = tryConsumeKeyword(stream, "alias");
+  if (!aliasToken) return null;
 
   const startPos = aliasToken.span[0];
-  stream.nextToken();
 
   // Open element to collect contents
   openElem(ctx, { kind: "alias", contents: [] });
@@ -571,11 +570,10 @@ export function parseStructDecl(
   ctx: ParseContext,
   attributes?: AttributeElem[],
 ): StructElem | null {
-  const structToken = stream.peek();
-  if (structToken?.text !== "struct") return null;
+  const structToken = tryConsumeKeyword(stream, "struct");
+  if (!structToken) return null;
 
   const startPos = structToken.span[0];
-  stream.nextToken();
 
   const nameToken = stream.nextToken();
   if (nameToken?.kind !== "word") throwParseError(stream, "Expected identifier after 'struct'");

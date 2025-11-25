@@ -28,6 +28,7 @@ import { parseFnDecl } from "../FnParsers.ts";
 import { parseWeslImports } from "../ImportParsers.ts";
 import type { ParseContext } from "../ParseContext.ts";
 import { createParseContext } from "../ParseContext.ts";
+import { hasConditionalAttribute } from "../ParseUtil.ts";
 import { WeslStream } from "../WeslStream.ts";
 import { closeElem, openElem } from "./ContentsHelpers.ts";
 
@@ -175,14 +176,7 @@ export class WeslParserV2 {
       const beforeAttributes = stream.checkpoint();
       const attributes = parseAttributeList(stream);
 
-      // Check if attributes contain @if/@elif/@else
-      const hasConditional = attributes.some(
-        attr =>
-          attr.kind === "attribute" &&
-          (attr.attribute.kind === "@if" ||
-            attr.attribute.kind === "@elif" ||
-            attr.attribute.kind === "@else"),
-      );
+      const hasConditional = hasConditionalAttribute(attributes);
 
       // Create partial scope if conditional attributes present
       if (hasConditional) {

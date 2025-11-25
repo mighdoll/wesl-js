@@ -18,6 +18,7 @@ import {
   expect,
   linkDeclIdent,
   linkDeclIdentElem,
+  tryConsumeKeyword,
 } from "./ParseUtil.ts";
 import { parseFunctionBody } from "./StatementParsers.ts";
 import { parseSimpleTypeRef } from "./TypeParsers.ts";
@@ -140,11 +141,10 @@ export function parseFnDecl(
   ctx: ParseContext,
   attributes?: AttributeElem[],
 ): FnElem | null {
-  const fnToken = stream.peek();
-  if (fnToken?.text !== "fn") return null;
+  const fnToken = tryConsumeKeyword(stream, "fn");
+  if (!fnToken) return null;
 
   const startPos = fnToken.span[0];
-  stream.nextToken();
   ctx.pushScope("partial");
 
   const nameToken = stream.nextToken();
