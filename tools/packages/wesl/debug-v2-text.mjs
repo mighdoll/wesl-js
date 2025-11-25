@@ -21,7 +21,9 @@ function showTextElems(elem, depth = 0) {
       `${indent}${elem.kind}:` +
         (elem.attributes ? ` [@${elem.attributes[0]?.condition}]` : ""),
     );
-    elem.contents.forEach(child => showTextElems(child, depth + 1));
+    for (const child of elem.contents) {
+      showTextElems(child, depth + 1);
+    }
   }
 }
 

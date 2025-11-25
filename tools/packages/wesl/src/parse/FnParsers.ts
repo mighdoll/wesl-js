@@ -92,10 +92,7 @@ function parseFnParam(
 }
 
 /** Parse comma-separated parameter list */
-function parseFnParams(
-  stream: WeslStream,
-  ctx: ParseContext,
-): FnParamElem[] {
+function parseFnParams(stream: WeslStream, ctx: ParseContext): FnParamElem[] {
   const params: FnParamElem[] = [];
 
   while (true) {
@@ -148,7 +145,8 @@ export function parseFnDecl(
   ctx.pushScope("partial");
 
   const nameToken = stream.nextToken();
-  if (nameToken?.kind !== "word") throw new Error("Expected identifier after 'fn'");
+  if (nameToken?.kind !== "word")
+    throw new Error("Expected identifier after 'fn'");
 
   const declIdent = ctx.createDeclIdent(
     nameToken.text,

@@ -2,8 +2,8 @@ import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { withLogSpyAsync } from "mini-parse/test-util";
 import { expect, test } from "vitest";
-import { cli } from "../src/LinkCli.ts";
 import { weslParserConfig } from "wesl";
+import { cli } from "../src/LinkCli.ts";
 
 /** so vitest triggers when these files change */
 import("./shaders/main.wgsl?raw");

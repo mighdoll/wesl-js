@@ -4,6 +4,7 @@
  */
 
 import type {
+  AttributeElem,
   DiagnosticDirective,
   DirectiveElem,
   EnableDirective,

@@ -42,12 +42,9 @@ export interface WeslParserConfig {
  * Can be overridden by V1_ONLY or V2_ONLY environment variables
  */
 export const weslParserConfig: WeslParserConfig = {
-  useV2Parser:
+  useV2Parser: !(
     typeof process !== "undefined" && process.env?.V1_ONLY === "true"
-      ? false
-      : typeof process !== "undefined" && process.env?.V2_ONLY === "true"
-        ? true
-        : true, // V2 is default on feat/custom-parser branch
+  ), // V2 is default on feat/custom-parser branch
 };
 
 /** result of a parse for one wesl module (e.g. one .wesl file)

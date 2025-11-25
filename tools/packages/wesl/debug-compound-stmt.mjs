@@ -33,13 +33,15 @@ function showElem(elem, depth = 0, label = "") {
 
     // Show attributes separately
     if (elem.attributes) {
-      elem.attributes.forEach(attr => showElem(attr, depth + 1, "attr"));
+      for (const attr of elem.attributes) {
+        showElem(attr, depth + 1, "attr");
+      }
     }
 
     if (elem.contents) {
-      elem.contents.forEach((child, i) =>
-        showElem(child, depth + 1, `content[${i}]`),
-      );
+      for (const [i, child] of elem.contents.entries()) {
+        showElem(child, depth + 1, `content[${i}]`);
+      }
     }
   }
 }

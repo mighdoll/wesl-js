@@ -225,4 +225,3 @@ test("import with explicit package name (V2 bug reproduction)", async () => {
   expect(result.dest).toContain("struct BracketingResult");
   expect(result.dest).toContain("fn bracketing");
 });
-

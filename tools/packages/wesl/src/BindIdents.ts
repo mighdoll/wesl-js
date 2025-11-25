@@ -106,7 +106,6 @@ export function bindIdents(params: BindIdentsParams): BindResults {
   const { rootAst, resolver, virtuals, accumulateUnbound } = params;
   const { conditions = {}, mangler = minimalMangle } = params;
 
-
   const validRootDecls = findValidRootDecls(rootAst.rootScope, conditions);
   const { globalNames, knownDecls } = initializeRootDecls(validRootDecls);
 

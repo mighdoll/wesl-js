@@ -2,6 +2,8 @@
  * Direct token parsers for WESL attributes without mini-parse combinators.
  * These functions return null on parse failure for efficient backtracking.
  */
+
+import { ParseError } from "mini-parse";
 import type {
   AttributeElem,
   BinaryExpression,
@@ -22,7 +24,6 @@ import type {
   UnaryOperator,
   UnknownExpressionElem,
 } from "../AbstractElems.ts";
-import { ParseError } from "mini-parse";
 import {
   checkpoint,
   consume,
@@ -92,7 +93,10 @@ function parseAttribute(stream: WeslStream): AttributeElem | null {
 
   // Parse attribute name (can be a word or keyword like "diagnostic")
   const nameToken = stream.peek();
-  if (!nameToken || (nameToken.kind !== "word" && nameToken.kind !== "keyword")) {
+  if (
+    !nameToken ||
+    (nameToken.kind !== "word" && nameToken.kind !== "keyword")
+  ) {
     reset(stream, startPos);
     return null;
   }
@@ -123,7 +127,10 @@ function parseAttribute(stream: WeslStream): AttributeElem | null {
 
   // Validate @must_use has no parameters
   if (name === "must_use" && params !== undefined) {
-    throw new ParseError("@must_use does not accept parameters", [startPos, checkpoint(stream)]);
+    throw new ParseError("@must_use does not accept parameters", [
+      startPos,
+      checkpoint(stream),
+    ]);
   }
 
   const endPos = checkpoint(stream);

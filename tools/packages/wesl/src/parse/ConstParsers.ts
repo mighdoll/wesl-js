@@ -576,7 +576,8 @@ export function parseStructDecl(
   const startPos = structToken.span[0];
 
   const nameToken = stream.nextToken();
-  if (nameToken?.kind !== "word") throwParseError(stream, "Expected identifier after 'struct'");
+  if (nameToken?.kind !== "word")
+    throwParseError(stream, "Expected identifier after 'struct'");
 
   // Create DeclIdent for this struct
   const declIdent = ctx.createDeclIdent(

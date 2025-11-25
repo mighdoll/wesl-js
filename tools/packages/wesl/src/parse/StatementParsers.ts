@@ -543,7 +543,11 @@ function parseIfStatement(
 
   // Parse then block with optional attributes
   const thenAttrs = parseAttributeList(stream);
-  const thenBlock = parseCompoundStatement(stream, ctx, thenAttrs.length > 0 ? thenAttrs : undefined);
+  const thenBlock = parseCompoundStatement(
+    stream,
+    ctx,
+    thenAttrs.length > 0 ? thenAttrs : undefined,
+  );
   if (!thenBlock) {
     throw new Error("Expected '{' after if condition");
   }
@@ -571,7 +575,11 @@ function parseIfStatement(
       }
 
       const elseIfAttrs = parseAttributeList(stream);
-      const elseIfBlock = parseCompoundStatement(stream, ctx, elseIfAttrs.length > 0 ? elseIfAttrs : undefined);
+      const elseIfBlock = parseCompoundStatement(
+        stream,
+        ctx,
+        elseIfAttrs.length > 0 ? elseIfAttrs : undefined,
+      );
       if (!elseIfBlock) {
         throw new Error("Expected '{' after else if condition");
       }
@@ -579,7 +587,11 @@ function parseIfStatement(
     } else {
       // Final else branch with optional attributes
       const elseAttrs = parseAttributeList(stream);
-      const elseBlock = parseCompoundStatement(stream, ctx, elseAttrs.length > 0 ? elseAttrs : undefined);
+      const elseBlock = parseCompoundStatement(
+        stream,
+        ctx,
+        elseAttrs.length > 0 ? elseAttrs : undefined,
+      );
       if (!elseBlock) {
         throw new Error("Expected '{' after else");
       }
@@ -687,7 +699,11 @@ function parseForStatement(
 
   // Parse body with optional attributes
   const bodyAttrs = parseAttributeList(stream);
-  const body = parseCompoundStatement(stream, ctx, bodyAttrs.length > 0 ? bodyAttrs : undefined);
+  const body = parseCompoundStatement(
+    stream,
+    ctx,
+    bodyAttrs.length > 0 ? bodyAttrs : undefined,
+  );
   if (!body) {
     throw new Error("Expected '{' after for loop header");
   }
@@ -740,7 +756,11 @@ function parseWhileStatement(
 
   // Parse body with optional attributes
   const bodyAttrs = parseAttributeList(stream);
-  const body = parseCompoundStatement(stream, ctx, bodyAttrs.length > 0 ? bodyAttrs : undefined);
+  const body = parseCompoundStatement(
+    stream,
+    ctx,
+    bodyAttrs.length > 0 ? bodyAttrs : undefined,
+  );
   if (!body) {
     throw new Error("Expected '{' after while condition");
   }
@@ -785,7 +805,12 @@ function parseLoopStatement(
 
   // Parse loop body with optional attributes (loopBody=true for strict continuing handling)
   const bodyAttrs = parseAttributeList(stream);
-  const body = parseCompoundStatement(stream, ctx, bodyAttrs.length > 0 ? bodyAttrs : undefined, true);
+  const body = parseCompoundStatement(
+    stream,
+    ctx,
+    bodyAttrs.length > 0 ? bodyAttrs : undefined,
+    true,
+  );
   if (!body) {
     throw new Error("Expected '{' after 'loop'");
   }
@@ -830,7 +855,11 @@ function parseContinuingStatement(
 
   // Parse body with optional attributes
   const bodyAttrs = parseAttributeList(stream);
-  const body = parseCompoundStatement(stream, ctx, bodyAttrs.length > 0 ? bodyAttrs : undefined);
+  const body = parseCompoundStatement(
+    stream,
+    ctx,
+    bodyAttrs.length > 0 ? bodyAttrs : undefined,
+  );
   if (!body) {
     throw new Error("Expected '{' after 'continuing'");
   }

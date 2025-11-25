@@ -9,19 +9,22 @@ const exec = util.promisify((process as any).exec); // not sure why @types/node 
 
 const testDir = dirname(fileURLToPath(import.meta.url));
 
-test.skipIf(weslParserConfig.useV2Parser)("vite generates binding layout", { timeout: 30000 }, async () => {
-  // vite is configured to use the wesl plugin
-  // build a test program that imports using the '?bindingLayout' import pattern
-  await exec(`pnpm vite build`, {
-    cwd: testDir,
-  });
-  const outFile = path.join("dist", "testMain.cjs");
-  // the test program testMain.ts logs the layout entries to the console for verification
-  const result = await exec(`pnpm node ${outFile}`, {
-    cwd: testDir,
-  });
+test.skipIf(weslParserConfig.useV2Parser)(
+  "vite generates binding layout",
+  { timeout: 30000 },
+  async () => {
+    // vite is configured to use the wesl plugin
+    // build a test program that imports using the '?bindingLayout' import pattern
+    await exec(`pnpm vite build`, {
+      cwd: testDir,
+    });
+    const outFile = path.join("dist", "testMain.cjs");
+    // the test program testMain.ts logs the layout entries to the console for verification
+    const result = await exec(`pnpm node ${outFile}`, {
+      cwd: testDir,
+    });
 
-  expect(result.stdout).toMatchInlineSnapshot(`
+    expect(result.stdout).toMatchInlineSnapshot(`
     "{
       "myBindingsEntries": [
         {
@@ -65,4 +68,5 @@ test.skipIf(weslParserConfig.useV2Parser)("vite generates binding layout", { tim
     }
     "
   `);
-});
+  },
+);
