@@ -6,7 +6,7 @@ import type {
   ElseAttribute,
   IfAttribute,
   StatementElem,
-} from "../AbstractElems.ts";
+} from "../../AbstractElems.ts";
 import { parseAttributeList } from "./AttributeParsers.ts";
 import {
   parseConstAssert,
@@ -24,8 +24,8 @@ import {
   hasConditionalAttribute,
   reset,
 } from "./ParseUtil.ts";
-import { closeElem, openElem } from "./v2/ContentsHelpers.ts";
-import type { WeslStream } from "./WeslStream.ts";
+import { closeElem, openElem } from "./ContentsHelpers.ts";
+import type { WeslStream } from "../WeslStream.ts";
 
 /**
  * Parse an optional expression followed by semicolon

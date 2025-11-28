@@ -23,7 +23,7 @@ import type {
   UnaryExpression,
   UnaryOperator,
   UnknownExpressionElem,
-} from "../AbstractElems.ts";
+} from "../../AbstractElems.ts";
 import {
   checkpoint,
   consume,
@@ -31,7 +31,7 @@ import {
   expect,
   reset,
 } from "./ParseUtil.ts";
-import type { WeslStream, WeslToken } from "./WeslStream.ts";
+import type { WeslStream, WeslToken } from "../WeslStream.ts";
 
 /**
  * Parse list of attributes

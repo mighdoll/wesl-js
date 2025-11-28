@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import type { WeslParseState } from "../ParseWESL.ts";
-import { createParseContext } from "../parse/ParseContext.ts";
+import { createParseContext } from "../parse/v2/ParseContext.ts";
 import { WeslStream } from "../parse/WeslStream.ts";
 import { emptyScope, resetScopeIds } from "../Scope.ts";
 

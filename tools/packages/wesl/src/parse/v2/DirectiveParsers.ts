@@ -10,7 +10,7 @@ import type {
   EnableDirective,
   NameElem,
   RequiresDirective,
-} from "../AbstractElems.ts";
+} from "../../AbstractElems.ts";
 import { parseAttributeList } from "./AttributeParsers.ts";
 import type { ParseContext } from "./ParseContext.ts";
 import {
@@ -20,7 +20,7 @@ import {
   expect,
   reset,
 } from "./ParseUtil.ts";
-import type { WeslStream } from "./WeslStream.ts";
+import type { WeslStream } from "../WeslStream.ts";
 
 /**
  * Parse a comma-separated list of names

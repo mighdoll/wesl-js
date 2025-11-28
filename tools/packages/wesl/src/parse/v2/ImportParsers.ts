@@ -14,14 +14,14 @@ import type {
   ImportItem,
   ImportSegment,
   ImportStatement,
-} from "../AbstractElems.ts";
+} from "../../AbstractElems.ts";
 import {
   parseElifAttribute,
   parseElseAttribute,
   parseIfAttribute,
 } from "./AttributeParsers.ts";
 import { checkpoint, consume, consumeKind, reset } from "./ParseUtil.ts";
-import type { WeslStream } from "./WeslStream.ts";
+import type { WeslStream } from "../WeslStream.ts";
 
 // ============================================================================
 // Helper Functions

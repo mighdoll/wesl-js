@@ -17,7 +17,7 @@ import type {
   TextElem,
 } from "../../AbstractElems.ts";
 import type { WeslAST } from "../../ParseWESL.ts";
-import type { ParseContext } from "../ParseContext.ts";
+import type { ParseContext } from "./ParseContext.ts";
 
 /**
  * Open an element for content collection.

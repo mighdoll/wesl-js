@@ -14,8 +14,8 @@ import type {
   DeclarationElem,
   DeclIdentElem,
   TypedDeclElem,
-} from "../AbstractElems.ts";
-import type { WeslStream, WeslToken, WeslTokenKind } from "./WeslStream.ts";
+} from "../../AbstractElems.ts";
+import type { WeslStream, WeslToken, WeslTokenKind } from "../WeslStream.ts";
 
 const conditionalKinds: readonly string[] = ["@if", "@elif", "@else"];
 

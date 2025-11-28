@@ -14,7 +14,7 @@ import type { WeslAST, WeslParseState } from "../../ParseWESL.ts";
 import { WeslParseError } from "../../ParseWESL.ts";
 import type { SrcModule } from "../../Scope.ts";
 import { emptyScope } from "../../Scope.ts";
-import { parseAttributeList } from "../AttributeParsers.ts";
+import { parseAttributeList } from "./AttributeParsers.ts";
 import {
   parseAliasDecl,
   parseConstAssert,
@@ -22,13 +22,13 @@ import {
   parseOverrideDecl,
   parseStructDecl,
   parseVarDecl,
-} from "../ConstParsers.ts";
-import { parseDirective } from "../DirectiveParsers.ts";
-import { parseFnDecl } from "../FnParsers.ts";
-import { parseWeslImports } from "../ImportParsers.ts";
-import type { ParseContext } from "../ParseContext.ts";
-import { createParseContext } from "../ParseContext.ts";
-import { hasConditionalAttribute } from "../ParseUtil.ts";
+} from "./ConstParsers.ts";
+import { parseDirective } from "./DirectiveParsers.ts";
+import { parseFnDecl } from "./FnParsers.ts";
+import { parseWeslImports } from "./ImportParsers.ts";
+import type { ParseContext } from "./ParseContext.ts";
+import { createParseContext } from "./ParseContext.ts";
+import { hasConditionalAttribute } from "./ParseUtil.ts";
 import { WeslStream } from "../WeslStream.ts";
 import { closeElem, openElem } from "./ContentsHelpers.ts";
 
