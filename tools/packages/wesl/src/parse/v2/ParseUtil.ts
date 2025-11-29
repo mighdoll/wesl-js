@@ -14,37 +14,16 @@ import type { WeslStream, WeslToken, WeslTokenKind } from "../WeslStream.ts";
 
 const conditionalKinds: readonly string[] = ["@if", "@elif", "@else"];
 
-/** Check if attributes contain @if/@elif/@else */
-export function hasConditionalAttribute(attributes: AttributeElem[]): boolean {
-  return attributes.some(attr =>
-    conditionalKinds.includes(attr.attribute.kind),
-  );
+/**
+ * Manual backtracking helper - checkpoint and reset on null return.
+ * Use this instead of try/catch for performance.
+ */
+export function checkpoint<T extends Token>(stream: Stream<T>): number {
+  return (stream as WeslStream).checkpoint();
 }
 
-/** Attach attributes to an element if present */
-export function attachAttributes<T extends { attributes?: AttributeElem[] }>(
-  elem: T,
-  attributes?: AttributeElem[],
-): void {
-  if (attributes && attributes.length > 0) {
-    elem.attributes = attributes;
-  }
-}
-
-/** Link a DeclIdent back to its declaration element */
-export function linkDeclIdent(
-  typedDecl: TypedDeclElem,
-  declElem: DeclarationElem,
-): void {
-  typedDecl.decl.ident.declElem = declElem;
-}
-
-/** Link a DeclIdentElem back to its declaration element */
-export function linkDeclIdentElem(
-  declIdentElem: DeclIdentElem,
-  declElem: DeclarationElem,
-): void {
-  declIdentElem.ident.declElem = declElem;
+export function reset<T extends Token>(stream: Stream<T>, pos: number): void {
+  (stream as WeslStream).reset(pos);
 }
 
 /** Try to consume a token by text only */
@@ -156,16 +135,37 @@ export function throwParseError(stream: Stream<Token>, message: string): never {
   }
 }
 
-/**
- * Manual backtracking helper - checkpoint and reset on null return.
- * Use this instead of try/catch for performance.
- */
-export function checkpoint<T extends Token>(stream: Stream<T>): number {
-  return (stream as WeslStream).checkpoint();
+/** Check if attributes contain @if/@elif/@else */
+export function hasConditionalAttribute(attributes: AttributeElem[]): boolean {
+  return attributes.some(attr =>
+    conditionalKinds.includes(attr.attribute.kind),
+  );
 }
 
-export function reset<T extends Token>(stream: Stream<T>, pos: number): void {
-  (stream as WeslStream).reset(pos);
+/** Attach attributes to an element if present */
+export function attachAttributes<T extends { attributes?: AttributeElem[] }>(
+  elem: T,
+  attributes?: AttributeElem[],
+): void {
+  if (attributes && attributes.length > 0) {
+    elem.attributes = attributes;
+  }
+}
+
+/** Link a DeclIdent back to its declaration element */
+export function linkDeclIdent(
+  typedDecl: TypedDeclElem,
+  declElem: DeclarationElem,
+): void {
+  typedDecl.decl.ident.declElem = declElem;
+}
+
+/** Link a DeclIdentElem back to its declaration element */
+export function linkDeclIdentElem(
+  declIdentElem: DeclIdentElem,
+  declElem: DeclarationElem,
+): void {
+  declIdentElem.ident.declElem = declElem;
 }
 
 export function parseAttributeIfExpression(context: ParserContext): any {
