@@ -84,7 +84,6 @@ export class WeslStream implements Stream<WeslToken> {
   private stream: Stream<TypedToken<InternalTokenKind>>;
   /** New line */
   private eolPattern = /[\n\v\f\u{0085}\u{2028}\u{2029}]|\r\n?/gu;
-  /** Block comments */
   private blockCommentPattern = /\/\*|\*\//g;
   public src: string;
   constructor(src: string) {

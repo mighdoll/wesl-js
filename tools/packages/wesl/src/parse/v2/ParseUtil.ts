@@ -1,8 +1,3 @@
-/**
- * Parser utility functions for building WESL parsers.
- * Expect-Oriented API (Recursive Descent style)
- */
-
 import {
   ParseError,
   type ParserContext,
@@ -163,20 +158,7 @@ export function throwParseError(stream: Stream<Token>, message: string): never {
 
 /**
  * Manual backtracking helper - checkpoint and reset on null return.
- * Use this pattern instead of try/catch for performance.
- *
- * Example:
- * ```typescript
- * const pos = (stream as WeslStream).checkpoint();
- * if (consume(stream, "keyword")) {
- *   if (!consume(stream, "::")) {
- *     (stream as WeslStream).reset(pos);  // Backtrack
- *     return null;
- *   }
- *   return result;
- * }
- * return null;
- * ```
+ * Use this instead of try/catch for performance.
  */
 export function checkpoint<T extends Token>(stream: Stream<T>): number {
   return (stream as WeslStream).checkpoint();
@@ -272,40 +254,4 @@ export function parseAttributeIfExpression(context: ParserContext): any {
  * 1. Text-based matching: `consume(stream, "@")` - matches "@" regardless of kind
  * 2. Kind-based matching: `consumeKind(stream, "word")` - any word token
  *    - With optional text: `consumeKind(stream, "keyword", "true")` - specific keyword
- *
- * This makes parsers more readable since most tokens have unique text
- * (e.g., "@" is always a symbol, "else" is always a keyword).
- *
- * ## Example Usage
- * ```typescript
- * export function parseElseAttribute(context: ParserContext): ElseAttribute | null {
- *   const { stream } = context;
- *
- *   // Clean text-based matching
- *   if (!consume(stream, "@")) return null;
- *   if (!consume(stream, "else")) return null;
- *
- *   return makeElseAttribute();
- * }
- *
- * export function parseImportStatement(context: ParserContext): ImportStatement | null {
- *   const { stream } = context;
- *   const pos = checkpoint(stream);
- *
- *   // Not committed yet - return null if no import
- *   if (!consume(stream, "import")) return null;
- *
- *   // NOW we're committed - errors are real parse errors
- *   const body = parseImportBody(context);
- *   if (!body) {
- *     throw new ParseError("expected import body", [pos, checkpoint(stream)]);
- *   }
- *
- *   if (!consume(stream, ";")) {
- *     throw new ParseError("expected semicolon", [pos, checkpoint(stream)]);
- *   }
- *
- *   return { kind: "import", body };
- * }
- * ```
  */
