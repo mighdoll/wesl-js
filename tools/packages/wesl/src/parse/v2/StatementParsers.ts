@@ -7,6 +7,7 @@ import type {
   IfAttribute,
   StatementElem,
 } from "../../AbstractElems.ts";
+import type { WeslStream } from "../WeslStream.ts";
 import { parseAttributeList } from "./AttributeParsers.ts";
 import {
   parseConstAssert,
@@ -14,6 +15,7 @@ import {
   parseLetDecl,
   parseLocalVarDecl,
 } from "./ConstParsers.ts";
+import { closeElem, openElem } from "./ContentsHelpers.ts";
 import { parseExpression } from "./ExpressionParsers.ts";
 import type { ParseContext } from "./ParseContext.ts";
 import {
@@ -24,8 +26,6 @@ import {
   hasConditionalAttribute,
   reset,
 } from "./ParseUtil.ts";
-import { closeElem, openElem } from "./ContentsHelpers.ts";
-import type { WeslStream } from "../WeslStream.ts";
 
 /**
  * Parse an optional expression followed by semicolon

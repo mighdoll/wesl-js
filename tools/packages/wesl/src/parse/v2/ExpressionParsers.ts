@@ -14,6 +14,7 @@ import type {
   UnaryExpression,
   UnaryOperator,
 } from "../../AbstractElems.ts";
+import type { WeslStream, WeslToken } from "../WeslStream.ts";
 import type { ParseContext } from "./ParseContext.ts";
 import {
   checkpoint,
@@ -22,7 +23,6 @@ import {
   expect,
   reset,
 } from "./ParseUtil.ts";
-import type { WeslStream, WeslToken } from "../WeslStream.ts";
 
 /**
  * Parse literal

@@ -9,7 +9,9 @@ import type {
   TypedDeclElem,
   TypeRefElem,
 } from "../../AbstractElems.ts";
+import type { WeslStream } from "../WeslStream.ts";
 import { parseAttributeList } from "./AttributeParsers.ts";
+import { closeElem, openElem } from "./ContentsHelpers.ts";
 import type { ParseContext } from "./ParseContext.ts";
 import {
   attachAttributes,
@@ -22,8 +24,6 @@ import {
 } from "./ParseUtil.ts";
 import { parseFunctionBody } from "./StatementParsers.ts";
 import { parseSimpleTypeRef } from "./TypeParsers.ts";
-import { closeElem, openElem } from "./ContentsHelpers.ts";
-import type { WeslStream } from "../WeslStream.ts";
 
 /**
  * Parse function parameter

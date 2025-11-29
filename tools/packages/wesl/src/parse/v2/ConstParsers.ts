@@ -17,7 +17,9 @@ import type {
   VarElem,
 } from "../../AbstractElems.ts";
 import type { Scope } from "../../Scope.ts";
+import type { WeslStream } from "../WeslStream.ts";
 import { parseAttributeList } from "./AttributeParsers.ts";
+import { closeElem, openElem } from "./ContentsHelpers.ts";
 import { parseSimpleExpression } from "./ExpressionParsers.ts";
 import type { ParseContext } from "./ParseContext.ts";
 import {
@@ -32,8 +34,6 @@ import {
   tryConsumeKeyword,
 } from "./ParseUtil.ts";
 import { parseSimpleTypeRef } from "./TypeParsers.ts";
-import { closeElem, openElem } from "./ContentsHelpers.ts";
-import type { WeslStream } from "../WeslStream.ts";
 
 /**
  * Parse optionally typed identifier

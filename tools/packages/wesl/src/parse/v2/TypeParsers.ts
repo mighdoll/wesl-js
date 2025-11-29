@@ -11,10 +11,10 @@ import type {
   TypeTemplateParameter,
   UnknownExpressionElem,
 } from "../../AbstractElems.ts";
+import type { WeslStream } from "../WeslStream.ts";
+import { closeElem, openElem } from "./ContentsHelpers.ts";
 import type { ParseContext } from "./ParseContext.ts";
 import { checkpoint, reset } from "./ParseUtil.ts";
-import { closeElem, openElem } from "./ContentsHelpers.ts";
-import type { WeslStream } from "../WeslStream.ts";
 
 /**
  * Check if a type name is a built-in WGSL type
