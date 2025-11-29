@@ -17,10 +17,10 @@ import {
   attachAttributes,
   checkpoint,
   consume,
+  consumeKeyword,
   expect,
   linkDeclIdent,
   linkDeclIdentElem,
-  tryConsumeKeyword,
 } from "./ParseUtil.ts";
 import { parseFunctionBody } from "./StatementParsers.ts";
 import { parseSimpleTypeRef } from "./TypeParsers.ts";
@@ -138,7 +138,7 @@ export function parseFnDecl(
   ctx: ParseContext,
   attributes?: AttributeElem[],
 ): FnElem | null {
-  const fnToken = tryConsumeKeyword(stream, "fn");
+  const fnToken = consumeKeyword(stream, "fn");
   if (!fnToken) return null;
 
   const startPos = fnToken.span[0];

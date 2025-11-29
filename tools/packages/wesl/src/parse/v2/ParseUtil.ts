@@ -87,7 +87,7 @@ export function expect<T extends Token>(
  * Peek and consume a keyword if it matches, returning the token.
  * More efficient than consume() when you need the token's position.
  */
-export function tryConsumeKeyword(
+export function consumeKeyword(
   stream: WeslStream,
   keyword: string,
 ): WeslToken | null {

@@ -26,12 +26,12 @@ import {
   attachAttributes,
   checkpoint,
   consume,
+  consumeKeyword,
   expect,
   linkDeclIdent,
   linkDeclIdentElem,
   reset,
   throwParseError,
-  tryConsumeKeyword,
 } from "./ParseUtil.ts";
 import { parseSimpleTypeRef } from "./TypeParsers.ts";
 
@@ -308,7 +308,7 @@ export function parseVarDecl(
   ctx: ParseContext,
   attributes?: AttributeElem[],
 ): GlobalVarElem | null {
-  const varToken = tryConsumeKeyword(stream, "var");
+  const varToken = consumeKeyword(stream, "var");
   if (!varToken) return null;
 
   const startPos = varToken.span[0];
@@ -408,7 +408,7 @@ export function parseAliasDecl(
   ctx: ParseContext,
   attributes?: AttributeElem[],
 ): AliasElem | null {
-  const aliasToken = tryConsumeKeyword(stream, "alias");
+  const aliasToken = consumeKeyword(stream, "alias");
   if (!aliasToken) return null;
 
   const startPos = aliasToken.span[0];
@@ -570,7 +570,7 @@ export function parseStructDecl(
   ctx: ParseContext,
   attributes?: AttributeElem[],
 ): StructElem | null {
-  const structToken = tryConsumeKeyword(stream, "struct");
+  const structToken = consumeKeyword(stream, "struct");
   if (!structToken) return null;
 
   const startPos = structToken.span[0];
