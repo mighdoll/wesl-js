@@ -25,13 +25,7 @@ import type {
   UnknownExpressionElem,
 } from "../../AbstractElems.ts";
 import type { WeslStream, WeslToken } from "../WeslStream.ts";
-import {
-  checkpoint,
-  consume,
-  consumeKind,
-  expect,
-  reset,
-} from "./ParseUtil.ts";
+import { consume, consumeKind, expect } from "./ParseUtil.ts";
 
 /**
  * Parse list of attributes
@@ -63,32 +57,32 @@ export function parseAttributeList(stream: WeslStream): AttributeElem[] {
  * WESL extensions: @if, @elif, @else
  */
 function parseAttribute(stream: WeslStream): AttributeElem | null {
-  const startPos = checkpoint(stream);
+  const startPos = stream.checkpoint();
 
   // Expect "@"
   if (!consume(stream, "@")) {
-    reset(stream, startPos);
+    stream.reset(startPos);
     return null;
   }
 
   // Try special WESL attributes first
   // These need to be checked before consuming the name token
-  reset(stream, startPos);
+  stream.reset(startPos);
 
   // Try @if
   const ifAttr = parseIfAttribute(stream);
-  if (ifAttr) return wrapAttribute(ifAttr, startPos, checkpoint(stream));
+  if (ifAttr) return wrapAttribute(ifAttr, startPos, stream.checkpoint());
 
   // Try @elif
   const elifAttr = parseElifAttribute(stream);
-  if (elifAttr) return wrapAttribute(elifAttr, startPos, checkpoint(stream));
+  if (elifAttr) return wrapAttribute(elifAttr, startPos, stream.checkpoint());
 
   // Try @else
   const elseAttr = parseElseAttribute(stream);
-  if (elseAttr) return wrapAttribute(elseAttr, startPos, checkpoint(stream));
+  if (elseAttr) return wrapAttribute(elseAttr, startPos, stream.checkpoint());
 
   // Back to parsing standard attributes
-  reset(stream, startPos);
+  stream.reset(startPos);
   consume(stream, "@"); // Re-consume the @
 
   // Parse attribute name (can be a word or keyword like "diagnostic")
@@ -97,7 +91,7 @@ function parseAttribute(stream: WeslStream): AttributeElem | null {
     !nameToken ||
     (nameToken.kind !== "word" && nameToken.kind !== "keyword")
   ) {
-    reset(stream, startPos);
+    stream.reset(startPos);
     return null;
   }
 
@@ -129,11 +123,11 @@ function parseAttribute(stream: WeslStream): AttributeElem | null {
   if (name === "must_use" && params !== undefined) {
     throw new ParseError("@must_use does not accept parameters", [
       startPos,
-      checkpoint(stream),
+      stream.checkpoint(),
     ]);
   }
 
-  const endPos = checkpoint(stream);
+  const endPos = stream.checkpoint();
 
   const stdAttr: StandardAttribute = {
     kind: "@attribute",
@@ -153,7 +147,7 @@ function parseAttributeParams(stream: WeslStream): UnknownExpressionElem[] {
 
   // Parse comma-separated parameters
   while (true) {
-    const paramStart = checkpoint(stream);
+    const paramStart = stream.checkpoint();
 
     // Consume tokens until we hit comma or closing paren
     // This is a stub - doesn't parse the full expression structure
@@ -176,7 +170,7 @@ function parseAttributeParams(stream: WeslStream): UnknownExpressionElem[] {
       stream.nextToken();
     }
 
-    const paramEnd = checkpoint(stream);
+    const paramEnd = stream.checkpoint();
 
     // Create UnknownExpressionElem for this parameter
     if (paramEnd > paramStart) {
@@ -226,7 +220,7 @@ function parseBuiltinAttribute(
 
   expect(stream, ")", "Expected ')' after @builtin parameter");
 
-  const endPos = checkpoint(stream);
+  const endPos = stream.checkpoint();
 
   const builtinAttr: BuiltinAttribute = {
     kind: "@builtin",
@@ -281,7 +275,7 @@ function parseInterpolateAttribute(
 
   expect(stream, ")", "Expected ')' after @interpolate parameters");
 
-  const endPos = checkpoint(stream);
+  const endPos = stream.checkpoint();
 
   const interpolateAttr: InterpolateAttribute = {
     kind: "@interpolate",
@@ -426,13 +420,13 @@ export function parseAttributeIfExpression(
 }
 
 export function parseIfAttribute(stream: WeslStream): IfAttribute | null {
-  const pos = checkpoint(stream);
+  const pos = stream.checkpoint();
 
   // Capture position before @
-  const atPos = checkpoint(stream);
+  const atPos = stream.checkpoint();
   if (!consume(stream, "@")) return null;
   if (!consume(stream, "if")) {
-    reset(stream, pos);
+    stream.reset(pos);
     return null;
   }
 
@@ -444,7 +438,7 @@ export function parseIfAttribute(stream: WeslStream): IfAttribute | null {
 
   consume(stream, ","); // optional comma
   expect(stream, ")", "Expected ')' after @if expression");
-  const endPos = checkpoint(stream);
+  const endPos = stream.checkpoint();
 
   const translateTimeExpr = makeTranslateTimeExpressionElem({
     value: expr,
@@ -455,13 +449,13 @@ export function parseIfAttribute(stream: WeslStream): IfAttribute | null {
 }
 
 export function parseElifAttribute(stream: WeslStream): ElifAttribute | null {
-  const pos = checkpoint(stream);
+  const pos = stream.checkpoint();
 
   // Capture position before @
-  const atPos = checkpoint(stream);
+  const atPos = stream.checkpoint();
   if (!consume(stream, "@")) return null;
   if (!consume(stream, "elif")) {
-    reset(stream, pos);
+    stream.reset(pos);
     return null;
   }
 
@@ -473,7 +467,7 @@ export function parseElifAttribute(stream: WeslStream): ElifAttribute | null {
 
   consume(stream, ","); // optional comma
   expect(stream, ")", "Expected ')' after @elif expression");
-  const endPos = checkpoint(stream);
+  const endPos = stream.checkpoint();
 
   const translateTimeExpr = makeTranslateTimeExpressionElem({
     value: expr,

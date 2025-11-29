@@ -16,13 +16,7 @@ import type {
 } from "../../AbstractElems.ts";
 import type { WeslStream, WeslToken } from "../WeslStream.ts";
 import type { ParseContext } from "./ParseContext.ts";
-import {
-  checkpoint,
-  consume,
-  consumeKind,
-  expect,
-  reset,
-} from "./ParseUtil.ts";
+import { consume, consumeKind, expect } from "./ParseUtil.ts";
 
 /**
  * Parse literal
@@ -31,7 +25,7 @@ import {
  * Grammar: bool_literal : 'true' | 'false'
  */
 export function parseSimpleLiteral(stream: WeslStream): Literal | null {
-  const pos = checkpoint(stream);
+  const pos = stream.checkpoint();
 
   // Try numeric literal
   const numToken = consumeKind(stream, "number");
@@ -47,7 +41,7 @@ export function parseSimpleLiteral(stream: WeslStream): Literal | null {
     return makeLiteral(boolToken as WeslToken<"keyword">);
   }
 
-  reset(stream, pos);
+  stream.reset(pos);
   return null;
 }
 
@@ -61,7 +55,7 @@ export function parseSimpleIdentifier(
   stream: WeslStream,
   ctx: ParseContext,
 ): RefIdentElem | null {
-  const startPos = checkpoint(stream);
+  const startPos = stream.checkpoint();
 
   // Try to parse first part (word or keyword "package"/"super")
   let firstToken = consumeKind(stream, "word");
@@ -73,7 +67,7 @@ export function parseSimpleIdentifier(
   }
 
   if (!firstToken) {
-    reset(stream, startPos);
+    stream.reset(startPos);
     return null;
   }
 
@@ -284,7 +278,7 @@ function parsePostfixExpression(
       // Check for type constructor: identifier<template>(args)
       if (token.text === "<") {
         // Try to parse template parameters
-        const checkpointPos = checkpoint(stream);
+        const checkpointPos = stream.checkpoint();
 
         // Skip template parameters (simple bracket matching)
         stream.nextToken();
@@ -321,7 +315,7 @@ function parsePostfixExpression(
           continue;
         } else {
           // Not a type constructor, reset and let binary operator parsing handle it
-          reset(stream, checkpointPos);
+          stream.reset(checkpointPos);
           break;
         }
       }
@@ -414,7 +408,7 @@ function parsePrimaryExpression(
   stream: WeslStream,
   ctx: ParseContext,
 ): ExpressionElem | null {
-  const startPos = checkpoint(stream);
+  const startPos = stream.checkpoint();
 
   // Try parenthesized expression
   const openParen = consume(stream, "(");
@@ -450,7 +444,7 @@ function parsePrimaryExpression(
     return parsePostfixExpression(stream, ctx, ident);
   }
 
-  reset(stream, startPos);
+  stream.reset(startPos);
   return null;
 }
 

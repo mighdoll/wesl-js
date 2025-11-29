@@ -14,18 +14,6 @@ import type { WeslStream, WeslToken, WeslTokenKind } from "../WeslStream.ts";
 
 const conditionalKinds: readonly string[] = ["@if", "@elif", "@else"];
 
-/**
- * Manual backtracking helper - checkpoint and reset on null return.
- * Use this instead of try/catch for performance.
- */
-export function checkpoint<T extends Token>(stream: Stream<T>): number {
-  return (stream as WeslStream).checkpoint();
-}
-
-export function reset<T extends Token>(stream: Stream<T>, pos: number): void {
-  (stream as WeslStream).reset(pos);
-}
-
 /** Try to consume a token by text only */
 export function consume<T extends Token>(
   stream: Stream<T>,

@@ -15,7 +15,6 @@ import { closeElem, openElem } from "./ContentsHelpers.ts";
 import type { ParseContext } from "./ParseContext.ts";
 import {
   attachAttributes,
-  checkpoint,
   consume,
   consumeKeyword,
   expect,
@@ -67,7 +66,7 @@ function parseFnParam(
     typeRef = parsedTypeRef;
   }
 
-  const typeDeclEndPos = checkpoint(stream);
+  const typeDeclEndPos = stream.checkpoint();
   const typedDecl: TypedDeclElem = {
     kind: "typeDecl",
     decl: declIdentElem,
@@ -77,7 +76,7 @@ function parseFnParam(
     contents: [],
   };
 
-  const endPos = checkpoint(stream);
+  const endPos = stream.checkpoint();
   const contents = closeElem(ctx, startPos, endPos);
   const paramElem: FnParamElem = {
     kind: "param",
@@ -179,7 +178,7 @@ export function parseFnDecl(
   ctx.popScope();
   ctx.popScope();
 
-  const endPos = checkpoint(stream);
+  const endPos = stream.checkpoint();
   const contents: GrammarElem[] = [declIdentElem, ...params];
   if (returnType) contents.push(returnType);
   contents.push(body);

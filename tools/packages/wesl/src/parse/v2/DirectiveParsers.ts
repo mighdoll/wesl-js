@@ -14,13 +14,7 @@ import type {
 import type { WeslStream } from "../WeslStream.ts";
 import { parseAttributeList } from "./AttributeParsers.ts";
 import type { ParseContext } from "./ParseContext.ts";
-import {
-  attachAttributes,
-  checkpoint,
-  consume,
-  expect,
-  reset,
-} from "./ParseUtil.ts";
+import { attachAttributes, consume, expect } from "./ParseUtil.ts";
 
 /**
  * Parse a comma-separated list of names
@@ -69,7 +63,7 @@ function parseEnableDirective(
   _ctx: ParseContext,
   attributes?: AttributeElem[],
 ): DirectiveElem | null {
-  const startPos = checkpoint(stream);
+  const startPos = stream.checkpoint();
 
   // Expect "enable" keyword
   if (!consume(stream, "enable")) return null;
@@ -80,7 +74,7 @@ function parseEnableDirective(
   // Expect semicolon
   expect(stream, ";", "Expected ';' after enable directive");
 
-  const endPos = checkpoint(stream);
+  const endPos = stream.checkpoint();
 
   const enableDir: EnableDirective = {
     kind: "enable",
@@ -110,7 +104,7 @@ function parseRequiresDirective(
   _ctx: ParseContext,
   attributes?: AttributeElem[],
 ): DirectiveElem | null {
-  const startPos = checkpoint(stream);
+  const startPos = stream.checkpoint();
 
   // Expect "requires" keyword
   if (!consume(stream, "requires")) return null;
@@ -121,7 +115,7 @@ function parseRequiresDirective(
   // Expect semicolon
   expect(stream, ";", "Expected ';' after requires directive");
 
-  const endPos = checkpoint(stream);
+  const endPos = stream.checkpoint();
 
   const requiresDir: RequiresDirective = {
     kind: "requires",
@@ -152,7 +146,7 @@ function parseDiagnosticDirective(
   _ctx: ParseContext,
   attributes?: AttributeElem[],
 ): DirectiveElem | null {
-  const startPos = checkpoint(stream);
+  const startPos = stream.checkpoint();
 
   // Expect "diagnostic" keyword
   if (!consume(stream, "diagnostic")) return null;
@@ -223,7 +217,7 @@ function parseDiagnosticDirective(
   // Expect semicolon
   expect(stream, ";", "Expected ';' after diagnostic directive");
 
-  const endPos = checkpoint(stream);
+  const endPos = stream.checkpoint();
 
   const diagnosticDir: DiagnosticDirective = {
     kind: "diagnostic",
@@ -251,7 +245,7 @@ export function parseDirective(
   stream: WeslStream,
   ctx: ParseContext,
 ): DirectiveElem | null {
-  const startPos = checkpoint(stream);
+  const startPos = stream.checkpoint();
 
   // Parse optional attributes
   const attributes = parseAttributeList(stream);
@@ -279,6 +273,6 @@ export function parseDirective(
   if (diagnosticDir) return diagnosticDir;
 
   // No directive found
-  reset(stream, startPos);
+  stream.reset(startPos);
   return null;
 }

@@ -21,7 +21,7 @@ import {
   parseElseAttribute,
   parseIfAttribute,
 } from "./AttributeParsers.ts";
-import { checkpoint, consume, consumeKind, reset } from "./ParseUtil.ts";
+import { consume, consumeKind } from "./ParseUtil.ts";
 
 // ============================================================================
 // Helper Functions
@@ -105,13 +105,13 @@ export function parsePackageWord(stream: WeslStream): string | null {
 export function parseImportRelative(
   stream: WeslStream,
 ): ImportSegment[] | null {
-  const pos = checkpoint(stream);
+  const pos = stream.checkpoint();
 
   // Try "package::"
   if (consume(stream, "package")) {
     if (!consume(stream, "::")) {
       // Not a valid package prefix, backtrack
-      reset(stream, pos);
+      stream.reset(pos);
       return null;
     }
     return [makeSegment("package")];
@@ -122,7 +122,7 @@ export function parseImportRelative(
   while (consume(stream, "super")) {
     if (!consume(stream, "::")) {
       // Invalid super prefix, backtrack completely
-      reset(stream, pos);
+      stream.reset(pos);
       return null;
     }
     segments.push(makeSegment("super"));
@@ -156,7 +156,7 @@ parseImportCollection = (stream: WeslStream): ImportCollection | null => {
   // Parse first item (required - empty collections not allowed)
   const firstItem = parseImportPathOrItem(stream);
   if (!firstItem) {
-    const currentPos = checkpoint(stream);
+    const currentPos = stream.checkpoint();
     throw new ParseError("invalid import collection, expected name", [
       currentPos,
       currentPos,
@@ -176,7 +176,7 @@ parseImportCollection = (stream: WeslStream): ImportCollection | null => {
 
     const item = parseImportPathOrItem(stream);
     if (!item) {
-      const currentPos = checkpoint(stream);
+      const currentPos = stream.checkpoint();
       throw new ParseError(
         "invalid import collection, expected name after ','",
         [currentPos, currentPos],
@@ -186,7 +186,7 @@ parseImportCollection = (stream: WeslStream): ImportCollection | null => {
   }
 
   if (!consume(stream, "}")) {
-    const currentPos = checkpoint(stream);
+    const currentPos = stream.checkpoint();
     throw new ParseError("invalid import collection, expected }", [
       currentPos,
       currentPos,
@@ -222,7 +222,7 @@ parseImportPathOrItem = (stream: WeslStream): ImportStatement | null => {
       return prependSegments([makeSegment(name)], pathOrItem);
     }
 
-    const currentPos = checkpoint(stream);
+    const currentPos = stream.checkpoint();
     throw new ParseError("invalid import, expected '{' or name", [
       currentPos,
       currentPos,
@@ -232,7 +232,7 @@ parseImportPathOrItem = (stream: WeslStream): ImportStatement | null => {
 
     const alias = consumeKind(stream, "word");
     if (!alias) {
-      const currentPos = checkpoint(stream);
+      const currentPos = stream.checkpoint();
       throw new ParseError("invalid alias, expected name", [
         currentPos,
         currentPos,
@@ -276,13 +276,13 @@ export function parseImportStatementBase(
   const collectionOrStatement =
     parseImportCollection(stream) || parseImportPathOrItem(stream);
   if (!collectionOrStatement) {
-    const pos = checkpoint(stream);
+    const pos = stream.checkpoint();
     throw new ParseError("invalid import, expected { or name", [pos, pos]);
   }
 
   // Expect semicolon
   if (!consume(stream, ";")) {
-    const pos = checkpoint(stream);
+    const pos = stream.checkpoint();
     throw new ParseError("invalid import, expected ';'", [pos, pos]);
   }
 
@@ -371,7 +371,7 @@ function parseImportAttributes(stream: WeslStream): {
  * Returns an ImportElem which includes the statement and any attributes
  */
 export function parseImportStatement(stream: WeslStream): ImportElem | null {
-  const startCheckpoint = checkpoint(stream);
+  const startCheckpoint = stream.checkpoint();
 
   // Parse optional attributes
   const { attributes, startPos: actualStartPos } =
@@ -383,15 +383,15 @@ export function parseImportStatement(stream: WeslStream): ImportElem | null {
     // If we parsed attributes but no import, we need to reset
     // to allow parsing as a different statement type
     if (attributes.length > 0) {
-      reset(stream, actualStartPos!);
+      stream.reset(actualStartPos!);
     } else {
-      reset(stream, startCheckpoint);
+      stream.reset(startCheckpoint);
     }
     return null;
   }
 
   const { statement: imports, importPos } = parseResult;
-  const endPos = checkpoint(stream);
+  const endPos = stream.checkpoint();
 
   // Use the position of the first token we actually parsed
   const startPos = actualStartPos ?? importPos;

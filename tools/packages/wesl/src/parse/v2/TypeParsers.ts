@@ -14,7 +14,6 @@ import type {
 import type { WeslStream } from "../WeslStream.ts";
 import { closeElem, openElem } from "./ContentsHelpers.ts";
 import type { ParseContext } from "./ParseContext.ts";
-import { checkpoint, reset } from "./ParseUtil.ts";
 
 /**
  * Check if a type name is a built-in WGSL type
@@ -68,7 +67,7 @@ function parseStubTemplateExpression(
   stream: WeslStream,
   _ctx: ParseContext,
 ): UnknownExpressionElem | null {
-  const startPos = checkpoint(stream);
+  const startPos = stream.checkpoint();
 
   // Consume tokens until we hit a comma or closing >
   // This is a simplified approach - a real parser would handle nested templates
@@ -79,7 +78,7 @@ function parseStubTemplateExpression(
     const token = stream.peek();
     if (!token) {
       // Unexpected end of input
-      reset(stream, startPos);
+      stream.reset(startPos);
       return null;
     }
 
@@ -99,11 +98,11 @@ function parseStubTemplateExpression(
     stream.nextToken();
   }
 
-  const endPos = checkpoint(stream);
+  const endPos = stream.checkpoint();
 
   // Make sure we consumed at least one token
   if (endPos === expressionStart) {
-    reset(stream, startPos);
+    stream.reset(startPos);
     return null;
   }
 
@@ -140,7 +139,7 @@ export function parseSimpleTypeRef(
   stream: WeslStream,
   ctx: ParseContext,
 ): TypeRefElem | null {
-  const checkpointPos = checkpoint(stream);
+  const checkpointPos = stream.checkpoint();
 
   // Parse the type name (may be qualified: pkg::Type)
   // Qualified names are separated by "::"
@@ -149,7 +148,7 @@ export function parseSimpleTypeRef(
   // First part must be a word (or special keywords like "package", "super")
   const firstToken = stream.peek();
   if (!firstToken) {
-    reset(stream, checkpointPos);
+    stream.reset(checkpointPos);
     return null;
   }
 
@@ -162,7 +161,7 @@ export function parseSimpleTypeRef(
     stream.nextToken();
     nameParts.push(firstToken.text);
   } else {
-    reset(stream, checkpointPos);
+    stream.reset(checkpointPos);
     return null;
   }
 
@@ -196,7 +195,7 @@ export function parseSimpleTypeRef(
 
   // Create RefIdent with the full qualified name
   // The span should cover from the first token to current position
-  const nameEndPos = checkpoint(stream);
+  const nameEndPos = stream.checkpoint();
   // Use firstToken's start position for accurate span (not checkpoint which may include leading whitespace)
   const startPos = firstToken.span[0];
   const nameStartPos = startPos;
@@ -292,7 +291,7 @@ export function parseSimpleTypeRef(
     }
   }
 
-  const endPos = checkpoint(stream);
+  const endPos = stream.checkpoint();
 
   // Close and fill with text
   const contents = closeElem(ctx, startPos, endPos);

@@ -24,13 +24,11 @@ import { parseSimpleExpression } from "./ExpressionParsers.ts";
 import type { ParseContext } from "./ParseContext.ts";
 import {
   attachAttributes,
-  checkpoint,
   consume,
   consumeKeyword,
   expect,
   linkDeclIdent,
   linkDeclIdentElem,
-  reset,
   throwParseError,
 } from "./ParseUtil.ts";
 import { parseSimpleTypeRef } from "./TypeParsers.ts";
@@ -45,12 +43,12 @@ export function parseTypedDecl(
   ctx: ParseContext,
   isGlobal = true,
 ): TypedDeclElem | null {
-  const startPos = checkpoint(stream);
+  const startPos = stream.checkpoint();
 
   // Parse identifier name
   const nameToken = stream.nextToken();
   if (!nameToken || nameToken.kind !== "word") {
-    reset(stream, startPos);
+    stream.reset(startPos);
     return null;
   }
 
@@ -104,7 +102,7 @@ export function parseTypedDecl(
     ctx.popScope();
   }
 
-  const endPos = checkpoint(stream);
+  const endPos = stream.checkpoint();
 
   // Close and fill with text
   const contents = closeElem(ctx, startPos, endPos);
@@ -134,7 +132,7 @@ export function parseConstDecl(
   ctx: ParseContext,
   attributes?: AttributeElem[],
 ): ConstElem | null {
-  const startPos = checkpoint(stream);
+  const startPos = stream.checkpoint();
 
   // Expect "const" keyword
   if (!consume(stream, "const")) return null;
@@ -187,7 +185,7 @@ export function parseConstDecl(
   // Expect ";"
   expect(stream, ";", "Expected ';' after const declaration");
 
-  const endPos = checkpoint(stream);
+  const endPos = stream.checkpoint();
 
   // Close and fill with text
   const contents = closeElem(ctx, startPos, endPos);
@@ -228,7 +226,7 @@ export function parseOverrideDecl(
   ctx: ParseContext,
   attributes?: AttributeElem[],
 ): OverrideElem | null {
-  const startPos = checkpoint(stream);
+  const startPos = stream.checkpoint();
 
   // Expect "override" keyword
   if (!consume(stream, "override")) return null;
@@ -266,7 +264,7 @@ export function parseOverrideDecl(
   // Expect ";"
   expect(stream, ";", "Expected ';' after override declaration");
 
-  const endPos = checkpoint(stream);
+  const endPos = stream.checkpoint();
 
   // Close and fill with text
   const contents = closeElem(ctx, startPos, endPos);
@@ -367,7 +365,7 @@ export function parseVarDecl(
   // Expect ";"
   expect(stream, ";", "Expected ';' after var declaration");
 
-  const endPos = checkpoint(stream);
+  const endPos = stream.checkpoint();
 
   // Close element and fill gaps with text
   const contents = closeElem(ctx, startPos, endPos);
@@ -469,7 +467,7 @@ export function parseAliasDecl(
   // Expect ";"
   expect(stream, ";", "Expected ';' after alias declaration");
 
-  const endPos = checkpoint(stream);
+  const endPos = stream.checkpoint();
 
   // Close and fill with text
   const contents = closeElem(ctx, startPos, endPos);
@@ -499,7 +497,7 @@ function parseStructMember(
   stream: WeslStream,
   ctx: ParseContext,
 ): StructMemberElem | null {
-  const startPos = checkpoint(stream);
+  const startPos = stream.checkpoint();
 
   // Parse optional attributes
   const attributes = parseAttributeList(stream);
@@ -510,7 +508,7 @@ function parseStructMember(
   // Parse member name
   const nameToken = stream.nextToken();
   if (!nameToken || nameToken.kind !== "word") {
-    reset(stream, startPos);
+    stream.reset(startPos);
     return null;
   }
 
@@ -539,7 +537,7 @@ function parseStructMember(
   // Add typeRef to contents so coverWithText doesn't duplicate its range
   ctx.addElem(typeRef);
 
-  const endPos = checkpoint(stream);
+  const endPos = stream.checkpoint();
 
   // Close and fill with text
   const contents = closeElem(ctx, startPos, endPos);
@@ -648,7 +646,7 @@ export function parseStructDecl(
   // Pop the struct scope
   ctx.popScope();
 
-  const endPos = checkpoint(stream);
+  const endPos = stream.checkpoint();
 
   // Close and fill with text
   const contents = closeElem(ctx, startPos, endPos);
@@ -679,7 +677,7 @@ export function parseConstAssert(
   ctx: ParseContext,
   attributes?: AttributeElem[],
 ): ConstAssertElem | null {
-  const startPos = checkpoint(stream);
+  const startPos = stream.checkpoint();
 
   // Expect "const_assert" keyword
   if (!consume(stream, "const_assert")) return null;
@@ -698,7 +696,7 @@ export function parseConstAssert(
   // Expect semicolon
   expect(stream, ";", "Expected ';' after const_assert expression");
 
-  const endPos = checkpoint(stream);
+  const endPos = stream.checkpoint();
 
   // Close and fill with text
   const contents = closeElem(ctx, startPos, endPos);
@@ -727,7 +725,7 @@ export function parseLocalVarDecl(
   ctx: ParseContext,
   attributes?: AttributeElem[],
 ): VarElem | null {
-  const startPos = checkpoint(stream);
+  const startPos = stream.checkpoint();
 
   // Expect "var" keyword
   if (!consume(stream, "var")) return null;
@@ -757,7 +755,7 @@ export function parseLocalVarDecl(
   // Expect ";"
   expect(stream, ";", "Expected ';' after var declaration");
 
-  const endPos = checkpoint(stream);
+  const endPos = stream.checkpoint();
 
   // Close and fill with text
   const contents = closeElem(ctx, startPos, endPos);
@@ -787,7 +785,7 @@ export function parseLetDecl(
   ctx: ParseContext,
   attributes?: AttributeElem[],
 ): LetElem | null {
-  const startPos = checkpoint(stream);
+  const startPos = stream.checkpoint();
 
   // Expect "let" keyword
   if (!consume(stream, "let")) return null;
@@ -821,7 +819,7 @@ export function parseLetDecl(
   // Expect ";"
   expect(stream, ";", "Expected ';' after let declaration");
 
-  const endPos = checkpoint(stream);
+  const endPos = stream.checkpoint();
 
   // Close and fill with text
   const contents = closeElem(ctx, startPos, endPos);

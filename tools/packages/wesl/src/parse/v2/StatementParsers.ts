@@ -20,11 +20,9 @@ import { parseExpression } from "./ExpressionParsers.ts";
 import type { ParseContext } from "./ParseContext.ts";
 import {
   attachAttributes,
-  checkpoint,
   consume,
   expect,
   hasConditionalAttribute,
-  reset,
 } from "./ParseUtil.ts";
 
 /**
@@ -38,7 +36,7 @@ function _parseOptionalExpressionStatement(
   stream: WeslStream,
   ctx: ParseContext,
 ): StatementElem {
-  const startPos = checkpoint(stream);
+  const startPos = stream.checkpoint();
 
   // Open statement to collect contents
   openElem(ctx, { kind: "statement", contents: [] });
@@ -49,7 +47,7 @@ function _parseOptionalExpressionStatement(
   // Expect semicolon
   expect(stream, ";", "Expected ';' after statement");
 
-  const endPos = checkpoint(stream);
+  const endPos = stream.checkpoint();
 
   // Close and fill with text elements
   const contents = closeElem(ctx, startPos, endPos);
@@ -111,7 +109,7 @@ export function parseUnscopedCompoundStatement(
 
   // NOTE: No popScope() here
 
-  const endPos = checkpoint(stream);
+  const endPos = stream.checkpoint();
 
   // Close and fill with text
   const contents = closeElem(ctx, startPos, endPos);
@@ -209,7 +207,7 @@ function parseCompoundStatement(
     ctx.popScope();
   }
 
-  const endPos = checkpoint(stream);
+  const endPos = stream.checkpoint();
 
   // Close statement element and fill with text
   const contents = closeElem(ctx, startPos, endPos);
@@ -240,7 +238,7 @@ function parseSimpleStatement(
   ctx: ParseContext,
   attributes?: AttributeElem[],
 ): StatementElem | null {
-  const keywordPos = checkpoint(stream);
+  const keywordPos = stream.checkpoint();
   const startPos = getStartWithAttributes(attributes, keywordPos);
 
   // Check for simple keywords
@@ -261,7 +259,7 @@ function parseSimpleStatement(
     // Expect semicolon
     expect(stream, ";", "Expected ';' after return statement");
 
-    const endPos = checkpoint(stream);
+    const endPos = stream.checkpoint();
 
     // Close and fill with text elements
     const contents = closeElem(ctx, startPos, endPos);
@@ -306,7 +304,7 @@ function parseSimpleStatement(
         // Expect semicolon
         expect(stream, ";", "Expected ';' after break if statement");
 
-        const endPos = checkpoint(stream);
+        const endPos = stream.checkpoint();
 
         // Close and fill with text elements
         const contents = closeElem(ctx, startPos, endPos);
@@ -329,7 +327,7 @@ function parseSimpleStatement(
 
     expect(stream, ";", "Expected ';' after statement");
 
-    const endPos = checkpoint(stream);
+    const endPos = stream.checkpoint();
 
     // Close and fill with text elements
     const contents = closeElem(ctx, startPos, endPos);
@@ -349,7 +347,7 @@ function parseSimpleStatement(
   if (token.text === ";") {
     stream.nextToken();
 
-    const endPos = checkpoint(stream);
+    const endPos = stream.checkpoint();
 
     const stmt: StatementElem = {
       kind: "statement",
@@ -385,7 +383,7 @@ function parseSimpleStatement(
     // Expect semicolon
     expect(stream, ";", "Expected ';' after assignment");
 
-    const endPos = checkpoint(stream);
+    const endPos = stream.checkpoint();
 
     // Close and fill with text
     const contents = closeElem(ctx, startPos, endPos);
@@ -420,7 +418,7 @@ function parseSimpleStatement(
       // Expect semicolon
       expect(stream, ";", "Expected ';' after postfix operator");
 
-      const endPos = checkpoint(stream);
+      const endPos = stream.checkpoint();
 
       // Close and fill with text
       const contents = closeElem(ctx, startPos, endPos);
@@ -450,7 +448,7 @@ function parseSimpleStatement(
       // Expect semicolon
       expect(stream, ";", "Expected ';' after assignment");
 
-      const endPos = checkpoint(stream);
+      const endPos = stream.checkpoint();
 
       // Close and fill with text (don't add expression elements, just create text)
       const contents = closeElem(ctx, startPos, endPos);
@@ -469,7 +467,7 @@ function parseSimpleStatement(
     // Not an assignment, just an expression statement
     expect(stream, ";", "Expected ';' after expression");
 
-    const endPos = checkpoint(stream);
+    const endPos = stream.checkpoint();
 
     // Close and fill with text
     const contents = closeElem(ctx, startPos, endPos);
@@ -488,7 +486,7 @@ function parseSimpleStatement(
   // Failed to parse, close the element we opened
   closeElem(ctx, startPos, startPos);
 
-  reset(stream, startPos);
+  stream.reset(startPos);
   return null;
 }
 
@@ -524,7 +522,7 @@ function parseIfStatement(
   ctx: ParseContext,
   attributes?: AttributeElem[],
 ): StatementElem | null {
-  const keywordPos = checkpoint(stream);
+  const keywordPos = stream.checkpoint();
 
   // Expect "if"
   if (!consume(stream, "if")) return null;
@@ -600,7 +598,7 @@ function parseIfStatement(
     }
   }
 
-  const endPos = checkpoint(stream);
+  const endPos = stream.checkpoint();
 
   // Close and fill with text
   const contents = closeElem(ctx, startPos, endPos);
@@ -629,7 +627,7 @@ function parseForStatement(
   ctx: ParseContext,
   attributes?: AttributeElem[],
 ): StatementElem | null {
-  const keywordPos = checkpoint(stream);
+  const keywordPos = stream.checkpoint();
 
   // Expect "for"
   if (!consume(stream, "for")) return null;
@@ -711,7 +709,7 @@ function parseForStatement(
 
   ctx.popScope();
 
-  const endPos = checkpoint(stream);
+  const endPos = stream.checkpoint();
 
   // Close and fill with text
   const contents = closeElem(ctx, startPos, endPos);
@@ -737,7 +735,7 @@ function parseWhileStatement(
   ctx: ParseContext,
   attributes?: AttributeElem[],
 ): StatementElem | null {
-  const keywordPos = checkpoint(stream);
+  const keywordPos = stream.checkpoint();
 
   // Expect "while"
   if (!consume(stream, "while")) return null;
@@ -766,7 +764,7 @@ function parseWhileStatement(
   }
   ctx.addElem(body);
 
-  const endPos = checkpoint(stream);
+  const endPos = stream.checkpoint();
 
   // Close and fill with text
   const contents = closeElem(ctx, startPos, endPos);
@@ -792,7 +790,7 @@ function parseLoopStatement(
   ctx: ParseContext,
   attributes?: AttributeElem[],
 ): StatementElem | null {
-  const keywordPos = checkpoint(stream);
+  const keywordPos = stream.checkpoint();
 
   // Expect "loop"
   if (!consume(stream, "loop")) return null;
@@ -816,7 +814,7 @@ function parseLoopStatement(
   }
   ctx.addElem(body);
 
-  const endPos = checkpoint(stream);
+  const endPos = stream.checkpoint();
 
   // Close and fill with text
   const contents = closeElem(ctx, startPos, endPos);
@@ -844,7 +842,7 @@ function parseContinuingStatement(
   ctx: ParseContext,
   attributes?: AttributeElem[],
 ): StatementElem | null {
-  const startPos = checkpoint(stream);
+  const startPos = stream.checkpoint();
 
   // Expect "continuing"
   if (!consume(stream, "continuing")) return null;
@@ -865,7 +863,7 @@ function parseContinuingStatement(
   }
   ctx.addElem(body);
 
-  const endPos = checkpoint(stream);
+  const endPos = stream.checkpoint();
 
   // Close and fill with text
   const contents = closeElem(ctx, startPos, endPos);
@@ -897,7 +895,7 @@ function parseSwitchStatement(
   ctx: ParseContext,
   attributes?: AttributeElem[],
 ): StatementElem | null {
-  const keywordPos = checkpoint(stream);
+  const keywordPos = stream.checkpoint();
 
   // Expect "switch"
   if (!consume(stream, "switch")) return null;
@@ -1009,7 +1007,7 @@ function parseSwitchStatement(
     }
   }
 
-  const endPos = checkpoint(stream);
+  const endPos = stream.checkpoint();
 
   // Close and fill with text
   const contents = closeElem(ctx, startPos, endPos);
@@ -1088,7 +1086,7 @@ export function parseStatement(
   stream: WeslStream,
   ctx: ParseContext,
 ): StatementElem | null {
-  const startPos = checkpoint(stream);
+  const startPos = stream.checkpoint();
 
   // Parse optional attributes
   const attributes = parseAttributeList(stream);
@@ -1096,7 +1094,7 @@ export function parseStatement(
   // Check for end of block
   const token = stream.peek();
   if (!token || token.text === "}") {
-    reset(stream, startPos);
+    stream.reset(startPos);
     return null;
   }
 
