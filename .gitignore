@@ -21,9 +21,6 @@ _baseline
 /temp-packages/
 
 # don't clutter the repo with ai
-.claude
 copilot-instructions.md
-GEMINI.md
-agent-*.md
 .agent
 package-lock.json
