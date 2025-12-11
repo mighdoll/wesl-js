@@ -7,40 +7,104 @@ import {
   fetchBundleFilesFromUrl,
   lygiaTgzUrl,
 } from "./BundleLoader.ts";
+import { getConfig, type WgslPlayConfig } from "./Config.ts";
+import {
+  fetchPackagesFromHttp,
+  type SourcePackage,
+} from "./HttpPackageLoader.ts";
 
-/** Shader source with resolved dependency bundles. */
+/** Shader source with resolved dependency bundles or sources. */
 export interface ShaderWithDeps {
   source: string;
   bundles: WeslBundle[];
+  /** Additional sources for source mode (package sources merged with shader). */
+  libSources?: Record<string, string>;
 }
 
-/** Fetch bundles for external dependencies detected in shader source. */
+/** Result of fetching dependencies - bundles or sources depending on mode. */
+export interface DependencyResult {
+  bundles: WeslBundle[];
+  libSources?: Record<string, string>;
+}
+
+/** Fetch dependencies for shader source. Returns bundles or sources depending on mode. */
 export async function fetchDependenciesForSource(
   source: string,
-): Promise<WeslBundle[]> {
+  configOverrides?: Partial<WgslPlayConfig>,
+): Promise<DependencyResult> {
+  const config = getConfig(configOverrides);
   const packageNames = detectPackageDeps(source);
-  return fetchPackages(packageNames);
+
+  if (config.packageBase !== "npm") {
+    const result = await fetchPackagesFromHttp(
+      packageNames,
+      config.packageBase,
+      config.mode,
+    );
+    if (config.mode === "source") {
+      return { bundles: [], libSources: toLibSources(result as SourcePackage[]) };
+    }
+    return { bundles: result as WeslBundle[] };
+  }
+
+  const bundles = await fetchPackagesFromNpm(packageNames);
+  return { bundles };
 }
 
-/** Load shader text from a url and recursively fetch imported bundles */
-export async function loadShaderFromUrl(url: string): Promise<ShaderWithDeps> {
+/** Load shader from URL with full config support. */
+export async function loadShaderFromUrl(
+  url: string,
+  configOverrides?: Partial<WgslPlayConfig>,
+): Promise<ShaderWithDeps> {
+  const config = getConfig(configOverrides);
   const source = await fetchShaderSource(url);
   const packageNames = detectPackageDeps(source);
-  const bundles = await fetchPackages(packageNames);
+
+  if (config.packageBase !== "npm") {
+    const result = await fetchPackagesFromHttp(
+      packageNames,
+      config.packageBase,
+      config.mode,
+    );
+    if (config.mode === "source") {
+      return { source, bundles: [], libSources: toLibSources(result as SourcePackage[]) };
+    }
+    return { source, bundles: result as WeslBundle[] };
+  }
+
+  const bundles = await fetchPackagesFromNpm(packageNames);
   return { source, bundles };
+}
+
+/** Convert source packages to libSources record with WESL module path keys. */
+function toLibSources(sourcePackages: SourcePackage[]): Record<string, string> {
+  const libSources: Record<string, string> = {};
+  for (const pkg of sourcePackages) {
+    for (const [filePath, src] of Object.entries(pkg.sources)) {
+      const baseName = filePath.replace(/\.(wesl|wgsl)$/, "");
+      // lib.wgsl -> package root, others -> package::path::to::module
+      const modulePath =
+        baseName === "lib"
+          ? pkg.packageName
+          : `${pkg.packageName}::${baseName.replace(/\//g, "::")}`;
+      libSources[modulePath] = src;
+    }
+  }
+  return libSources;
 }
 
 /** Detect external package dependencies from shader source. */
 function detectPackageDeps(source: string): string[] {
   const resolver = new RecordResolver({ "./main.wesl": source });
   const unbound = findUnboundIdents(resolver);
-  const pkgRefs = unbound.filter(p => p[0] !== "constants" && p[0] !== "test"); // LATER make dynamic
+  // Exclude virtual modules: "constants" for @const, "test" for test::Uniforms
+  const pkgRefs = unbound.filter(p => p[0] !== "constants" && p[0] !== "test");
   const weslPackages = pkgRefs.map(p => p[0]);
   return [...new Set(weslPackages)];
 }
 
-/** Fetch WESL bundles for packages, auto-fetching dependencies recursively. */
-async function fetchPackages(pkgIds: string[]): Promise<WeslBundle[]> {
+/** Fetch WESL bundles from npm, auto-fetching dependencies recursively. */
+async function fetchPackagesFromNpm(pkgIds: string[]): Promise<WeslBundle[]> {
   const loaded = new Set<string>();
 
   const promisedBundles = pkgIds.map(id => fetchOnePackage(id, loaded));

@@ -1,7 +1,8 @@
 import type { LinkParams, WeslBundle } from "wesl";
-import { requestWeslDevice } from "wesl";
+import { RecordResolver, requestWeslDevice } from "wesl";
 import {
   linkAndCreatePipeline,
+  linkFragmentShader,
   renderFrame,
   updateRenderUniforms,
 } from "wesl-gpu";
@@ -74,7 +75,10 @@ export async function initWebGPU(
 export type LinkOptions = Pick<
   LinkParams,
   "packageName" | "conditions" | "constants"
->;
+> & {
+  /** Library sources for source mode (alternative to bundles). */
+  libSources?: Record<string, string>;
+};
 
 /** Compile WESL fragment shader and create render pipeline. */
 export async function createPipeline(
@@ -83,15 +87,45 @@ export async function createPipeline(
   bundles: WeslBundle[],
   options?: LinkOptions,
 ): Promise<void> {
-  state.pipeline = await linkAndCreatePipeline({
-    device: state.device,
-    fragmentSource,
-    bundles,
-    format: state.presentationFormat,
+  const { libSources, conditions, constants, packageName } = options ?? {};
+
+  if (libSources && Object.keys(libSources).length > 0) {
+    // Source mode: use resolver with fetched sources
+    const resolver = new RecordResolver(libSources);
+    const module = await linkFragmentShader({
+      device: state.device,
+      fragmentSource,
+      resolver,
+      conditions,
+      constants,
+      packageName,
+    });
+    state.pipeline = createPipelineFromModule(state, module);
+  } else {
+    // Bundle mode: use pre-loaded bundles
+    state.pipeline = await linkAndCreatePipeline({
+      device: state.device,
+      fragmentSource,
+      bundles,
+      format: state.presentationFormat,
+      layout: state.pipelineLayout,
+      conditions,
+      constants,
+      packageName,
+    });
+  }
+}
+
+/** Create render pipeline from a shader module. */
+function createPipelineFromModule(
+  state: RenderState,
+  module: GPUShaderModule,
+): GPURenderPipeline {
+  return state.device.createRenderPipeline({
     layout: state.pipelineLayout,
-    conditions: options?.conditions,
-    constants: options?.constants,
-    packageName: options?.packageName,
+    vertex: { module },
+    fragment: { module, targets: [{ format: state.presentationFormat }] },
+    primitive: { topology: "triangle-list" },
   });
 }
 

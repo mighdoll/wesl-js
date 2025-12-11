@@ -1,4 +1,5 @@
 import type { LinkParams, WeslBundle } from "wesl";
+import { type PackageMode, type WgslPlayConfig } from "./Config.ts";
 import { ErrorOverlay } from "./ErrorOverlay.ts";
 import {
   fetchDependenciesForSource,
@@ -13,6 +14,8 @@ import {
   startRenderLoop,
 } from "./Renderer.ts";
 import cssText from "./WgslPlay.css?inline";
+
+export { defaults, getConfig, resetConfig } from "./Config.ts";
 
 /** Project configuration for multi-file shaders (subset of wesl link() API). */
 export type WeslProject = Pick<
@@ -49,7 +52,7 @@ let template: HTMLTemplateElement | null = null;
  * </wgsl-play>
  */
 export class WgslPlay extends HTMLElement {
-  static observedAttributes = ["src"];
+  static observedAttributes = ["src", "mode", "package-base"];
 
   private canvas: HTMLCanvasElement;
   private errorOverlay: ErrorOverlay;
@@ -66,6 +69,19 @@ export class WgslPlay extends HTMLElement {
   private _source = "";
   private _linkOptions: LinkOptions = {};
   private _initialized = false;
+
+  /** Get config overrides from element attributes. */
+  private getConfigOverrides(): Partial<WgslPlayConfig> | undefined {
+    const mode = this.getAttribute("mode") as PackageMode | null;
+    const packageBase = this.getAttribute("package-base");
+
+    if (!mode && !packageBase) return undefined;
+
+    const overrides: Partial<WgslPlayConfig> = {};
+    if (mode) overrides.mode = mode;
+    if (packageBase) overrides.packageBase = packageBase;
+    return overrides;
+  }
 
   constructor() {
     super();
@@ -238,9 +254,13 @@ export class WgslPlay extends HTMLElement {
 
     try {
       this.errorOverlay.hide();
-      const { source, bundles } = await loadShaderFromUrl(url);
+      const configOverrides = this.getConfigOverrides();
+      const { source, bundles, libSources } = await loadShaderFromUrl(
+        url,
+        configOverrides,
+      );
       this._source = source;
-      await createPipeline(this.renderState, source, bundles);
+      await createPipeline(this.renderState, source, bundles, { libSources });
     } catch (error) {
       this.handleCompileError(error);
     }
@@ -252,13 +272,15 @@ export class WgslPlay extends HTMLElement {
 
     try {
       this.errorOverlay.hide();
-      const bundles = await fetchDependenciesForSource(source);
-      await createPipeline(
-        this.renderState,
+      const configOverrides = this.getConfigOverrides();
+      const { bundles, libSources } = await fetchDependenciesForSource(
         source,
-        bundles,
-        this._linkOptions,
+        configOverrides,
       );
+      await createPipeline(this.renderState, source, bundles, {
+        ...this._linkOptions,
+        libSources,
+      });
     } catch (error) {
       this.handleCompileError(error);
     }
