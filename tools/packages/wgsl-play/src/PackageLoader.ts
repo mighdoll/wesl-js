@@ -8,99 +8,188 @@ import {
   lygiaTgzUrl,
 } from "./BundleLoader.ts";
 import { getConfig, type WgslPlayConfig } from "./Config.ts";
-import {
-  fetchPackagesFromHttp,
-  type SourcePackage,
-} from "./HttpPackageLoader.ts";
 
-/** Shader source with resolved dependency bundles or sources. */
+/** Shader source with resolved dependency bundles and internal sources. */
 export interface ShaderWithDeps {
   source: string;
   bundles: WeslBundle[];
-  /** Additional sources for source mode (package sources merged with shader). */
+  /** Internal sources from shaderRoot (package::, super:: imports). */
   libSources?: Record<string, string>;
 }
 
-/** Result of fetching dependencies - bundles or sources depending on mode. */
+/** Result of fetching dependencies. */
 export interface DependencyResult {
   bundles: WeslBundle[];
   libSources?: Record<string, string>;
 }
 
-/** Fetch dependencies for shader source. Returns bundles or sources depending on mode. */
+type ImportCategory = "external" | "package" | "super";
+
+interface CategorizedImports {
+  external: string[][]; // full paths for external packages
+  internal: string[][]; // package:: and super:: paths
+}
+
+/** Fetch dependencies for shader source. Fetches external from npm, internal from shaderRoot. */
 export async function fetchDependenciesForSource(
   source: string,
   configOverrides?: Partial<WgslPlayConfig>,
+  currentPath?: string,
 ): Promise<DependencyResult> {
   const config = getConfig(configOverrides);
-  const packageNames = detectPackageDeps(source);
+  const categorized = categorizeImports(source);
 
-  if (config.packageBase !== "npm") {
-    const result = await fetchPackagesFromHttp(
-      packageNames,
-      config.packageBase,
-      config.mode,
-    );
-    if (config.mode === "source") {
-      return { bundles: [], libSources: toLibSources(result as SourcePackage[]) };
-    }
-    return { bundles: result as WeslBundle[] };
-  }
+  const [bundles, libSources] = await Promise.all([
+    fetchExternalPackages(categorized.external),
+    fetchInternalImports(categorized.internal, config.shaderRoot, currentPath),
+  ]);
 
-  const bundles = await fetchPackagesFromNpm(packageNames);
-  return { bundles };
+  return {
+    bundles,
+    libSources: Object.keys(libSources).length ? libSources : undefined,
+  };
 }
 
-/** Load shader from URL with full config support. */
+/** Load shader from URL, resolving all dependencies. */
 export async function loadShaderFromUrl(
   url: string,
   configOverrides?: Partial<WgslPlayConfig>,
 ): Promise<ShaderWithDeps> {
-  const config = getConfig(configOverrides);
   const source = await fetchShaderSource(url);
-  const packageNames = detectPackageDeps(source);
-
-  if (config.packageBase !== "npm") {
-    const result = await fetchPackagesFromHttp(
-      packageNames,
-      config.packageBase,
-      config.mode,
-    );
-    if (config.mode === "source") {
-      return { source, bundles: [], libSources: toLibSources(result as SourcePackage[]) };
-    }
-    return { source, bundles: result as WeslBundle[] };
-  }
-
-  const bundles = await fetchPackagesFromNpm(packageNames);
-  return { source, bundles };
+  const currentPath = new URL(url, window.location.href).pathname;
+  const deps = await fetchDependenciesForSource(
+    source,
+    configOverrides,
+    currentPath,
+  );
+  return { source, ...deps };
 }
 
-/** Convert source packages to libSources record with WESL module path keys. */
-function toLibSources(sourcePackages: SourcePackage[]): Record<string, string> {
-  const libSources: Record<string, string> = {};
-  for (const pkg of sourcePackages) {
-    for (const [filePath, src] of Object.entries(pkg.sources)) {
-      const baseName = filePath.replace(/\.(wesl|wgsl)$/, "");
-      // lib.wgsl -> package root, others -> package::path::to::module
-      const modulePath =
-        baseName === "lib"
-          ? pkg.packageName
-          : `${pkg.packageName}::${baseName.replace(/\//g, "::")}`;
-      libSources[modulePath] = src;
+/** Categorize import path as external, package, or super. */
+function categorizeImport(path: string[]): ImportCategory {
+  if (path[0] === "package") return "package";
+  if (path[0] === "super") return "super";
+  return "external";
+}
+
+/** Parse source and categorize all imports. */
+function categorizeImports(source: string): CategorizedImports {
+  const resolver = new RecordResolver({ "./main.wesl": source });
+  const unbound = findUnboundIdents(resolver);
+  // Exclude virtual modules
+  const imports = unbound.filter(p => p[0] !== "constants" && p[0] !== "test");
+
+  const external: string[][] = [];
+  const internal: string[][] = [];
+
+  for (const path of imports) {
+    const category = categorizeImport(path);
+    if (category === "external") {
+      external.push(path);
+    } else {
+      internal.push(path);
     }
   }
+
+  return { external, internal };
+}
+
+/** Fetch internal imports from shaderRoot. */
+async function fetchInternalImports(
+  imports: string[][],
+  shaderRoot: string,
+  currentPath?: string,
+): Promise<Record<string, string>> {
+  if (imports.length === 0) return {};
+
+  const libSources: Record<string, string> = {};
+  const fetched = new Set<string>();
+  const queue = [...imports];
+
+  // Normalize shaderRoot (remove trailing slash)
+  const root = shaderRoot.replace(/\/$/, "");
+  // Get current directory for super:: resolution
+  const currentDir = currentPath ? currentPath.replace(/\/[^/]*$/, "") : root;
+
+  while (queue.length > 0) {
+    const path = queue.shift()!;
+    const category = categorizeImport(path);
+
+    // Build URL based on import type
+    let url: string;
+    let modulePath: string;
+
+    if (category === "package") {
+      // package::utils::helper -> /shaders/utils/helper.wesl
+      const segments = path.slice(1); // remove 'package'
+      const filePath = segments.join("/");
+      url = `${root}/${filePath}`;
+      modulePath = path.join("::");
+    } else if (category === "super") {
+      // super::sibling -> resolve relative to current file
+      const superCount = path.filter(s => s === "super").length;
+      const segments = path.filter(s => s !== "super");
+      let dir = currentDir;
+      for (let i = 0; i < superCount; i++) {
+        const parent = dir.replace(/\/[^/]*$/, "");
+        if (parent === dir) {
+          throw new Error(
+            `Cannot resolve super:: above root: ${path.join("::")}`,
+          );
+        }
+        dir = parent;
+      }
+      const filePath = segments.join("/");
+      url = filePath ? `${dir}/${filePath}` : dir;
+      modulePath = path.join("::");
+    } else {
+      continue; // Skip external imports
+    }
+
+    if (fetched.has(modulePath)) continue;
+    fetched.add(modulePath);
+
+    // Try .wesl then .wgsl
+    const source = await fetchWithExtensions(url);
+    if (source === null) {
+      throw new Error(`Failed to fetch internal import: ${modulePath}`);
+    }
+
+    libSources[modulePath] = source;
+
+    // Recursively find imports in fetched source
+    const nested = categorizeImports(source);
+    for (const nestedPath of nested.internal) {
+      const nestedModule = nestedPath.join("::");
+      if (!fetched.has(nestedModule)) {
+        queue.push(nestedPath);
+      }
+    }
+  }
+
   return libSources;
 }
 
-/** Detect external package dependencies from shader source. */
-function detectPackageDeps(source: string): string[] {
-  const resolver = new RecordResolver({ "./main.wesl": source });
-  const unbound = findUnboundIdents(resolver);
-  // Exclude virtual modules: "constants" for @const, "test" for test::Uniforms
-  const pkgRefs = unbound.filter(p => p[0] !== "constants" && p[0] !== "test");
-  const weslPackages = pkgRefs.map(p => p[0]);
-  return [...new Set(weslPackages)];
+/** Try fetching URL with .wesl then .wgsl extension. */
+async function fetchWithExtensions(baseUrl: string): Promise<string | null> {
+  for (const ext of [".wesl", ".wgsl"]) {
+    try {
+      const response = await fetch(baseUrl + ext);
+      if (response.ok) return response.text();
+    } catch {
+      // Try next extension
+    }
+  }
+  return null;
+}
+
+/** Fetch external packages from npm. */
+async function fetchExternalPackages(
+  imports: string[][],
+): Promise<WeslBundle[]> {
+  const packageNames = [...new Set(imports.map(p => p[0]))];
+  if (packageNames.length === 0) return [];
+  return fetchPackagesFromNpm(packageNames);
 }
 
 /** Fetch WESL bundles from npm, auto-fetching dependencies recursively. */

@@ -9,14 +9,13 @@
       wgsl-play { width: 512px; height: 512px; display: block; margin-bottom: 20px; }
       .controls { margin-bottom: 10px; }
       button { padding: 6px 12px; margin-right: 8px; }
-      select { padding: 6px; margin-right: 8px; }
       .section { margin-bottom: 30px; padding: 15px; background: #2a2a2a; border-radius: 8px; }
       h3 { margin-top: 0; }
       pre { background: #333; padding: 10px; overflow-x: auto; font-size: 12px; }
     </style>
   </head>
   <body>
-    <h2>wgsl-play Dev Mode Test</h2>
+    <h2>wgsl-play Test Page</h2>
 
     <!-- Basic test (no imports) -->
     <div class="section">
@@ -33,19 +32,36 @@
       </wgsl-play>
     </div>
 
-    <!-- Dev mode test (imports from local package) -->
+    <!-- npm CDN test (external imports) -->
     <div class="section">
-      <h3>2. Dev Mode Test (imports from random_wgsl)</h3>
+      <h3>2. npm CDN (external imports)</h3>
       <div class="controls">
-        <select id="mode-select">
-          <option value="npm">npm (default)</option>
-          <option value="bundle">bundle (local dist/)</option>
-          <option value="source">source (local shaders/)</option>
-        </select>
-        <button id="load-dev">Load Shader</button>
+        <button id="load-npm">Load from npm</button>
       </div>
       <wgsl-play id="player2"></wgsl-play>
-      <pre id="status">Status: Ready</pre>
+      <pre id="npm-status">Status: Ready</pre>
+    </div>
+
+    <!-- shaderRoot test (internal imports) -->
+    <div class="section">
+      <h3>3. shaderRoot (internal imports)</h3>
+      <p>Tests <code>package::</code> and <code>super::</code> imports from /shaders</p>
+      <div class="controls">
+        <button id="load-internal">Load from shaderRoot</button>
+      </div>
+      <wgsl-play id="player3" shader-root="/shaders"></wgsl-play>
+      <pre id="internal-status">Status: Ready</pre>
+    </div>
+
+    <!-- src attribute with shaderRoot -->
+    <div class="section">
+      <h3>4. src attribute with shaderRoot</h3>
+      <p>Loads shader file with <code>super::</code> and <code>package::</code> imports</p>
+      <div class="controls">
+        <button id="load-src">Load from src</button>
+      </div>
+      <wgsl-play id="player4" shader-root="/shaders"></wgsl-play>
+      <pre id="src-status">Status: Ready</pre>
     </div>
 
     <script type="module" src="./main.ts"></script>

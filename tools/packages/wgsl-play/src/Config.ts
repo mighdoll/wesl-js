@@ -1,18 +1,11 @@
-/** Resolution mode for package loading. */
-export type PackageMode = "source" | "bundle";
-
-/** Configuration for wgsl-play package resolution. */
+/** Configuration for wgsl-play. */
 export interface WgslPlayConfig {
-  /** Base URL for package resolution. 'npm' fetches from registry, URL fetches from server. */
-  packageBase: string;
-
-  /** Resolution mode: 'source' for raw .wesl files, 'bundle' for weslBundle.js files. */
-  mode: PackageMode;
+  /** Root path for internal imports (package::, super::). Default: "/shaders" */
+  shaderRoot: string;
 }
 
 const defaultConfig: WgslPlayConfig = {
-  packageBase: "npm",
-  mode: "bundle",
+  shaderRoot: "/shaders",
 };
 
 let globalConfig: WgslPlayConfig = { ...defaultConfig };

@@ -3,11 +3,8 @@ import { expect, test } from "@playwright/test";
 
 test("basic shader renders (no imports)", async ({ page }) => {
   await page.goto("/");
-
-  // Wait for WebGPU to initialize and render
   await page.waitForTimeout(1000);
 
-  // First player should show gradient
   const player1 = page.locator("#player1");
   await expect(player1).toBeVisible();
 
@@ -16,60 +13,52 @@ test("basic shader renders (no imports)", async ({ page }) => {
   await expect(errorOverlay).not.toBeVisible();
 });
 
-test("dev mode - npm fetch works", async ({ page }) => {
+test("npm CDN - external imports work", async ({ page }) => {
   await page.goto("/");
   await page.waitForTimeout(500);
 
-  // Select npm mode and load
-  await page.selectOption("#mode-select", "npm");
-  await page.click("#load-dev");
-
-  // Wait for load
+  await page.click("#load-npm");
   await page.waitForTimeout(3000);
 
-  // Check status indicates success
-  const status = page.locator("#status");
+  const status = page.locator("#npm-status");
   const statusText = await status.textContent();
 
-  // Should either succeed or show a meaningful error (not crash)
+  // Should succeed or show meaningful error (not crash)
   expect(statusText).toMatch(/Status: (Success|Error)/);
 });
 
-test("dev mode - bundle mode loads from local dist/", async ({ page }) => {
+test("shaderRoot - package:: imports resolve", async ({ page }) => {
   await page.goto("/");
   await page.waitForTimeout(500);
 
-  await page.selectOption("#mode-select", "bundle");
-  await page.click("#load-dev");
-  await page.waitForTimeout(3000);
+  await page.click("#load-internal");
+  await page.waitForTimeout(2000);
 
-  const status = page.locator("#status");
+  const status = page.locator("#internal-status");
   const statusText = await status.textContent();
 
-  console.log("Bundle mode status:", statusText);
-
-  // Bundle mode should successfully load from local dist/
+  console.log("shaderRoot status:", statusText);
   expect(statusText).toContain("Success");
 });
 
-test("dev mode - source mode loads from local shaders/", async ({ page }) => {
+test("shaderRoot - src attribute with super:: and package:: imports", async ({
+  page,
+}) => {
   const logs: string[] = [];
   page.on("console", msg => logs.push(`[${msg.type()}] ${msg.text()}`));
 
   await page.goto("/");
   await page.waitForTimeout(500);
 
-  await page.selectOption("#mode-select", "source");
-  await page.click("#load-dev");
-  await page.waitForTimeout(3000);
+  await page.click("#load-src");
+  await page.waitForTimeout(2000);
 
-  const status = page.locator("#status");
+  const status = page.locator("#src-status");
   const statusText = await status.textContent();
 
   console.log("Browser console:", logs.join("\n"));
-  console.log("Source mode status:", statusText);
+  console.log("src attribute status:", statusText);
 
-  // Source mode should successfully load from local shaders/
   expect(statusText).toContain("Success");
 });
 

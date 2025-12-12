@@ -1,5 +1,5 @@
 import type { LinkParams, WeslBundle } from "wesl";
-import { type PackageMode, type WgslPlayConfig } from "./Config.ts";
+import type { WgslPlayConfig } from "./Config.ts";
 import { ErrorOverlay } from "./ErrorOverlay.ts";
 import {
   fetchDependenciesForSource,
@@ -52,7 +52,7 @@ let template: HTMLTemplateElement | null = null;
  * </wgsl-play>
  */
 export class WgslPlay extends HTMLElement {
-  static observedAttributes = ["src", "mode", "package-base"];
+  static observedAttributes = ["src", "shader-root"];
 
   private canvas: HTMLCanvasElement;
   private errorOverlay: ErrorOverlay;
@@ -72,15 +72,9 @@ export class WgslPlay extends HTMLElement {
 
   /** Get config overrides from element attributes. */
   private getConfigOverrides(): Partial<WgslPlayConfig> | undefined {
-    const mode = this.getAttribute("mode") as PackageMode | null;
-    const packageBase = this.getAttribute("package-base");
-
-    if (!mode && !packageBase) return undefined;
-
-    const overrides: Partial<WgslPlayConfig> = {};
-    if (mode) overrides.mode = mode;
-    if (packageBase) overrides.packageBase = packageBase;
-    return overrides;
+    const shaderRoot = this.getAttribute("shader-root");
+    if (!shaderRoot) return undefined;
+    return { shaderRoot };
   }
 
   constructor() {

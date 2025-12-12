@@ -3,7 +3,9 @@ import type { WeslBundle } from "wesl";
 import { findUnboundIdents, RecordResolver } from "wesl";
 import type { WeslBundleFile } from "./BundleHydrator.ts";
 import { bundleRegistry, hydrateBundleRegistry } from "./BundleHydrator.ts";
-import type { PackageMode } from "./Config.ts";
+
+/** Resolution mode for package loading. (Note: disconnected from main flow) */
+type PackageMode = "source" | "bundle";
 
 /** Loaded sources for source mode. */
 export interface SourcePackage {
@@ -83,7 +85,10 @@ async function fetchSourcePackage(
 
 /** Find references to modules within the same package. */
 function findInternalReferences(source: string, pkgName: string): string[] {
-  const resolver = new RecordResolver({ main: source }, { packageName: pkgName });
+  const resolver = new RecordResolver(
+    { main: source },
+    { packageName: pkgName },
+  );
   const unbound = findUnboundIdents(resolver);
 
   const internalRefs: string[] = [];
@@ -108,7 +113,9 @@ async function fetchSourceFile(
 
   for (const prefix of prefixes) {
     for (const ext of extensions) {
-      const url = normalizeUrl(`${packageBase}/${pkgName}/${prefix}${basePath}.${ext}`);
+      const url = normalizeUrl(
+        `${packageBase}/${pkgName}/${prefix}${basePath}.${ext}`,
+      );
       try {
         const response = await fetch(url);
         if (response.ok) {

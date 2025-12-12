@@ -33,7 +33,7 @@ export async function loadShaderFromUrl(
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     const source = await response.text();
-    const bundles = await fetchDependenciesForSource(source);
+    const { bundles } = await fetchDependenciesForSource(source);
     await compileAndRender(state, source, bundles);
   });
 }
