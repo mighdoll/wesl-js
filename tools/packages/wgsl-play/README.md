@@ -115,19 +115,49 @@ import lygia::math::mod289;     // npm CDN
 
 ## Using with wesl-plugin
 
-For serious development with HMR, library development, or build-time linking, use [wesl-plugin](https://github.com/nicolo-ribaudo/nicolo-ribaudo-wesl-js/tree/main/tools/packages/wesl-plugin):
+For HMR during development, library dependencies, or build-time linking, use [wesl-plugin](https://github.com/wgsl-tooling-wg/wesl-js/tree/main/tools/packages/wesl-plugin).
+
+### Build-time linking (?static)
+
+Simplest approach - WGSL is fully resolved at build time:
 
 ```typescript
 // vite.config.ts
-import { wesl } from "wesl-plugin/vite";
-export default { plugins: [wesl()] };
+import { staticBuildExtension } from "wesl-plugin";
+import viteWesl from "wesl-plugin/vite";
+
+export default {
+  plugins: [viteWesl({ extensions: [staticBuildExtension] })]
+};
 
 // app.ts
-import shader from "./shader.wesl?link";
-player.project = shader;
+import wgsl from "./shader.wesl?static";
+player.source = wgsl;
 ```
 
-The `?link` import provides full WESL features with HMR and build-time optimization.
+### Runtime linking (?link)
+
+Use when you need to vary conditions or constants at runtime:
+
+```typescript
+// vite.config.ts
+import { linkBuildExtension } from "wesl-plugin";
+import viteWesl from "wesl-plugin/vite";
+
+export default {
+  plugins: [viteWesl({ extensions: [linkBuildExtension] })]
+};
+
+// app.ts
+import shaderConfig from "./shader.wesl?link";
+
+// wgsl-play links internally, allowing runtime conditions/constants
+player.project = {
+  ...shaderConfig,
+  conditions: { MOBILE: isMobileGPU },
+  constants: { num_lights: 4 }
+};
+```
 
 ## Exports
 
