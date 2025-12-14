@@ -3,6 +3,7 @@ import {
   findUnboundIdents,
   modulePartsToRelativePath,
   npmNameVariations,
+  partition,
   RecordResolver,
 } from "wesl";
 import type { WeslBundleFile } from "./BundleHydrator.ts";
@@ -27,8 +28,6 @@ export interface DependencyResult {
   bundles: WeslBundle[];
   libSources?: Record<string, string>;
 }
-
-type ImportCategory = "external" | "package" | "super";
 
 interface CategorizedImports {
   external: string[][]; // full paths for external packages
@@ -70,13 +69,6 @@ export async function loadShaderFromUrl(
   return { source, ...deps };
 }
 
-/** Categorize import path as external, package, or super. */
-function categorizeImport(path: string[]): ImportCategory {
-  if (path[0] === "package") return "package";
-  if (path[0] === "super") return "super";
-  return "external";
-}
-
 /** Parse source and categorize all imports. */
 function categorizeImports(source: string): CategorizedImports {
   const resolver = new RecordResolver({ "./main.wesl": source });
@@ -84,18 +76,10 @@ function categorizeImports(source: string): CategorizedImports {
   // Exclude virtual modules
   const imports = unbound.filter(p => p[0] !== "constants" && p[0] !== "test");
 
-  const external: string[][] = [];
-  const internal: string[][] = [];
-
-  for (const path of imports) {
-    const category = categorizeImport(path);
-    if (category === "external") {
-      external.push(path);
-    } else {
-      internal.push(path);
-    }
-  }
-
+  const [internal, external] = partition(
+    imports,
+    p => p[0] === "package" || p[0] === "super",
+  );
   return { external, internal };
 }
 
@@ -108,6 +92,37 @@ function urlToModuleParts(urlPath: string, root: string): string[] {
   return ["package", ...relativePath.split("/").filter(Boolean)];
 }
 
+/** Resolve import path to URL, or undefined if external. */
+function resolveImportUrl(
+  path: string[],
+  root: string,
+  srcModuleParts?: string[],
+): string | undefined {
+  const filePath = modulePartsToRelativePath(path, "package", srcModuleParts);
+  if (!filePath) {
+    if (path[0] === "super" && !srcModuleParts) {
+      throw new Error(
+        `Cannot resolve super:: without file context: ${path.join("::")}`,
+      );
+    }
+    return undefined; // external import
+  }
+  return `${root}/${filePath}`;
+}
+
+/** Fetch source and return nested internal imports. */
+async function fetchAndDiscoverImports(
+  url: string,
+  modulePath: string,
+): Promise<{ source: string; nested: string[][] }> {
+  const source = await fetchWithExtensions(url);
+  if (source === null) {
+    throw new Error(`Failed to fetch internal import: ${modulePath}`);
+  }
+  const { internal: nested } = categorizeImports(source);
+  return { source, nested };
+}
+
 /** Fetch internal imports from shaderRoot. */
 async function fetchInternalImports(
   imports: string[][],
@@ -116,50 +131,28 @@ async function fetchInternalImports(
 ): Promise<Record<string, string>> {
   if (imports.length === 0) return {};
 
+  const root = shaderRoot.replace(/\/$/, "");
+  const srcModuleParts = currentPath ? urlToModuleParts(currentPath, root) : undefined;
+
   const libSources: Record<string, string> = {};
   const fetched = new Set<string>();
   const queue = [...imports];
 
-  // Normalize shaderRoot (remove trailing slash)
-  const root = shaderRoot.replace(/\/$/, "");
-  // Convert currentPath to module parts for super:: resolution
-  const srcModuleParts = currentPath
-    ? urlToModuleParts(currentPath, root)
-    : undefined;
-
   while (queue.length > 0) {
     const path = queue.shift()!;
-
-    // Unified resolution for package:: and super::
-    const filePath = modulePartsToRelativePath(path, "package", srcModuleParts);
-    if (!filePath) {
-      if (path[0] === "super" && !srcModuleParts) {
-        throw new Error(
-          `Cannot resolve super:: without file context: ${path.join("::")}`,
-        );
-      }
-      continue; // external import
-    }
-
-    const url = `${root}/${filePath}`;
     const modulePath = path.join("::");
 
     if (fetched.has(modulePath)) continue;
+
+    const url = resolveImportUrl(path, root, srcModuleParts);
+    if (!url) continue;
+
     fetched.add(modulePath);
-
-    // Try .wesl then .wgsl
-    const source = await fetchWithExtensions(url);
-    if (source === null) {
-      throw new Error(`Failed to fetch internal import: ${modulePath}`);
-    }
-
+    const { source, nested } = await fetchAndDiscoverImports(url, modulePath);
     libSources[modulePath] = source;
 
-    // Recursively find imports in fetched source
-    const nested = categorizeImports(source);
-    for (const nestedPath of nested.internal) {
-      const nestedModule = nestedPath.join("::");
-      if (!fetched.has(nestedModule)) {
+    for (const nestedPath of nested) {
+      if (!fetched.has(nestedPath.join("::"))) {
         queue.push(nestedPath);
       }
     }
