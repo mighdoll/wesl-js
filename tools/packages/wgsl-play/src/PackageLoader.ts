@@ -1,5 +1,10 @@
 import type { WeslBundle } from "wesl";
-import { findUnboundIdents, npmNameVariations, RecordResolver } from "wesl";
+import {
+  findUnboundIdents,
+  modulePartsToRelativePath,
+  npmNameVariations,
+  RecordResolver,
+} from "wesl";
 import type { WeslBundleFile } from "./BundleHydrator.ts";
 import { bundleRegistry, hydrateBundleRegistry } from "./BundleHydrator.ts";
 import {
@@ -94,6 +99,15 @@ function categorizeImports(source: string): CategorizedImports {
   return { external, internal };
 }
 
+/** Convert URL path to module path parts for super:: resolution context. */
+function urlToModuleParts(urlPath: string, root: string): string[] {
+  const relativePath = urlPath
+    .replace(root, "")
+    .replace(/^\//, "")
+    .replace(/\.w[eg]sl$/, "");
+  return ["package", ...relativePath.split("/").filter(Boolean)];
+}
+
 /** Fetch internal imports from shaderRoot. */
 async function fetchInternalImports(
   imports: string[][],
@@ -108,43 +122,27 @@ async function fetchInternalImports(
 
   // Normalize shaderRoot (remove trailing slash)
   const root = shaderRoot.replace(/\/$/, "");
-  // Get current directory for super:: resolution
-  const currentDir = currentPath ? currentPath.replace(/\/[^/]*$/, "") : root;
+  // Convert currentPath to module parts for super:: resolution
+  const srcModuleParts = currentPath
+    ? urlToModuleParts(currentPath, root)
+    : undefined;
 
   while (queue.length > 0) {
     const path = queue.shift()!;
-    const category = categorizeImport(path);
 
-    // Build URL based on import type
-    let url: string;
-    let modulePath: string;
-
-    if (category === "package") {
-      // package::utils::helper -> /shaders/utils/helper.wesl
-      const segments = path.slice(1); // remove 'package'
-      const filePath = segments.join("/");
-      url = `${root}/${filePath}`;
-      modulePath = path.join("::");
-    } else if (category === "super") {
-      // super::sibling -> resolve relative to current file
-      const superCount = path.filter(s => s === "super").length;
-      const segments = path.filter(s => s !== "super");
-      let dir = currentDir;
-      for (let i = 0; i < superCount; i++) {
-        const parent = dir.replace(/\/[^/]*$/, "");
-        if (parent === dir) {
-          throw new Error(
-            `Cannot resolve super:: above root: ${path.join("::")}`,
-          );
-        }
-        dir = parent;
+    // Unified resolution for package:: and super::
+    const filePath = modulePartsToRelativePath(path, "package", srcModuleParts);
+    if (!filePath) {
+      if (path[0] === "super" && !srcModuleParts) {
+        throw new Error(
+          `Cannot resolve super:: without file context: ${path.join("::")}`,
+        );
       }
-      const filePath = segments.join("/");
-      url = filePath ? `${dir}/${filePath}` : dir;
-      modulePath = path.join("::");
-    } else {
-      continue; // Skip external imports
+      continue; // external import
     }
+
+    const url = `${root}/${filePath}`;
+    const modulePath = path.join("::");
 
     if (fetched.has(modulePath)) continue;
     fetched.add(modulePath);

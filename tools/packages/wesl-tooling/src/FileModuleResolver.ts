@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import type { ModuleResolver, WeslAST } from "wesl";
-import { parseSrcModule } from "wesl";
+import { moduleToRelativePath, normalizeDebugRoot, parseSrcModule } from "wesl";
 
 /**
  * Loads WESL modules from the filesystem on demand with caching.
@@ -97,27 +97,16 @@ export class FileModuleResolver implements ModuleResolver {
 
   /** Convert module path (package::foo::bar) to filesystem path (baseDir/foo/bar) */
   private moduleToFilePath(modulePath: string): string | undefined {
-    const parts = modulePath.split("::");
-    const isOurPackage =
-      parts[0] === "package" || parts[0] === this.packageName;
-    if (!isOurPackage) return undefined;
-
-    const relativePath = parts.slice(1).join("/");
+    const relativePath = moduleToRelativePath(modulePath, this.packageName);
+    if (!relativePath) return undefined;
     return `${this.baseDir}/${relativePath}`;
   }
 
   /** Convert module path to debug path for error messages */
   private modulePathToDebugPath(modulePath: string): string {
-    const parts = modulePath.split("::");
-    const relativePath = parts.slice(1).join("/");
+    const relativePath =
+      moduleToRelativePath(modulePath, this.packageName) ?? "";
     const root = normalizeDebugRoot(this.debugWeslRoot);
     return root + relativePath + ".wesl";
   }
-}
-
-/** Normalize debugWeslRoot to ensure it ends with / or is empty */
-function normalizeDebugRoot(debugWeslRoot?: string): string {
-  if (debugWeslRoot === undefined) return "./";
-  if (debugWeslRoot === "") return "";
-  return debugWeslRoot.endsWith("/") ? debugWeslRoot : debugWeslRoot + "/";
 }

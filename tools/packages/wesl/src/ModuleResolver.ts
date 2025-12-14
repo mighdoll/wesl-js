@@ -1,3 +1,4 @@
+import { moduleToRelativePath, normalizeDebugRoot } from "./ModulePathUtil.ts";
 import { parseSrcModule, type WeslAST } from "./ParseWESL.ts";
 import { normalize, noSuffix } from "./PathUtil.ts";
 import type { WeslBundle } from "./WeslBundle.ts";
@@ -78,13 +79,7 @@ export class RecordResolver implements BatchModuleResolver {
   }
 
   private moduleToFilePath(modulePath: string): string {
-    const parts = modulePath.split("::");
-    if (parts[0] !== this.packageName && parts[0] !== "package") {
-      return modulePath;
-    }
-
-    const pathParts = parts.slice(1);
-    return pathParts.join("/");
+    return moduleToRelativePath(modulePath, this.packageName) ?? modulePath;
   }
 
   private modulePathToDebugPath(modulePath: string): string {
@@ -173,11 +168,7 @@ export class BundleResolver implements ModuleResolver {
   }
 
   private moduleToFilePath(modulePath: string): string {
-    const parts = modulePath.split("::");
-    if (parts[0] !== this.packageName) {
-      return modulePath;
-    }
-    return parts.slice(1).join("/");
+    return moduleToRelativePath(modulePath, this.packageName) ?? modulePath;
   }
 
   private modulePathToDebugPath(modulePath: string): string {
@@ -202,13 +193,6 @@ function fileToModulePath(
   const strippedPath = noSuffix(normalize(filePath));
   const moduleSuffix = strippedPath.replaceAll("/", "::");
   return packageName + "::" + moduleSuffix;
-}
-
-/** Normalize debug root to end with / or be empty. */
-function normalizeDebugRoot(debugWeslRoot?: string): string {
-  if (debugWeslRoot === undefined) return "./";
-  if (debugWeslRoot === "") return "";
-  return debugWeslRoot.endsWith("/") ? debugWeslRoot : debugWeslRoot + "/";
 }
 
 /** Try path variants with and without ./ prefix and extension suffixes. */
