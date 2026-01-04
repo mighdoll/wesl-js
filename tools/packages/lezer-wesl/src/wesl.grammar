@@ -1,0 +1,361 @@
+// Lezer grammar for WESL (WebGPU Extended Shading Language)
+// WESL is an extension of WGSL with additional features like imports and conditional compilation
+//
+// This grammar is designed for syntax highlighting. Template syntax (vec3<f32>)
+// is handled at specific locations where it's unambiguous.
+
+@top Module {
+  (importStatement | globalDirective | globalDeclaration)*
+}
+
+// ============================================================================
+// WESL Extensions: Imports
+// ============================================================================
+
+importStatement {
+  Import importPath ("as" Identifier)? ";"
+}
+
+importPath {
+  Identifier ("::" (Identifier | importCollection))*
+}
+
+importCollection {
+  "{" commaSep<importItem> "}"
+}
+
+importItem {
+  Identifier ("as" Identifier)?
+}
+
+// ============================================================================
+// Global Directives
+// ============================================================================
+
+globalDirective {
+  Attribute* (
+    DiagnosticDirective |
+    EnableDirective |
+    RequiresDirective
+  )
+}
+
+DiagnosticDirective {
+  kw<"diagnostic"> "(" Identifier "," Identifier ("." Identifier)? ")" ";"
+}
+
+EnableDirective {
+  kw<"enable"> commaSep1<Identifier> ";"
+}
+
+RequiresDirective {
+  kw<"requires"> commaSep1<Identifier> ";"
+}
+
+// ============================================================================
+// Global Declarations
+// ============================================================================
+
+globalDeclaration {
+  FunctionDeclaration |
+  StructDeclaration |
+  GlobalVariableDeclaration |
+  GlobalValueDeclaration |
+  TypeAliasDeclaration |
+  ConstAssert |
+  ";"
+}
+
+// ============================================================================
+// Structs
+// ============================================================================
+
+StructDeclaration {
+  Attribute* kw<"struct"> Identifier StructBody
+}
+
+StructBody {
+  "{" commaSep1<StructMember> "}"
+}
+
+StructMember {
+  Attribute* Identifier ":" Type
+}
+
+// ============================================================================
+// Functions
+// ============================================================================
+
+FunctionDeclaration {
+  Attribute* kw<"fn"> Identifier ParamList ("->" Attribute* Type)? Block
+}
+
+ParamList {
+  "(" commaSep<Param> ")"
+}
+
+Param {
+  Attribute* Identifier (":" Type)?
+}
+
+// ============================================================================
+// Variables and Values
+// ============================================================================
+
+GlobalVariableDeclaration {
+  Attribute* kw<"var"> TemplateArgs? Identifier (":" Type)? ("=" Expression)? ";"
+}
+
+GlobalValueDeclaration {
+  Attribute* (kw<"override"> | kw<"const">) Identifier (":" Type)? ("=" Expression)? ";"
+}
+
+TypeAliasDeclaration {
+  Attribute* kw<"alias"> Identifier "=" Type ";"
+}
+
+ConstAssert {
+  Attribute* kw<"const_assert"> Expression ";"
+}
+
+// ============================================================================
+// Statements
+// ============================================================================
+
+Block {
+  "{" Statement* "}"
+}
+
+Statement {
+  Attribute* (
+    Block |
+    kw<"return"> Expression? ";" |
+    IfStatement |
+    SwitchStatement |
+    LoopStatement |
+    ForStatement |
+    WhileStatement |
+    kw<"break"> ";" |
+    kw<"continue"> ";" |
+    kw<"discard"> ";" |
+    VarStatement ";" |
+    ExpressionStatement |
+    ";"
+  )
+}
+
+IfStatement {
+  kw<"if"> Expression Block (kw<"else"> (IfStatement | Block))?
+}
+
+SwitchStatement {
+  kw<"switch"> Expression Attribute* "{" SwitchClause+ "}"
+}
+
+SwitchClause {
+  Attribute* ((kw<"case"> commaSep1<Expression> | kw<"default">) ":"? Block)
+}
+
+LoopStatement {
+  kw<"loop"> Attribute* Block
+}
+
+ForStatement {
+  kw<"for"> "(" (VarStatement | Expression)? ";" Expression? ";" Expression? ")" Block
+}
+
+WhileStatement {
+  kw<"while"> Expression Block
+}
+
+VarStatement {
+  (kw<"var"> TemplateArgs? | kw<"let"> | kw<"const">) Identifier (":" Type)? ("=" Expression)?
+}
+
+ExpressionStatement {
+  Expression (AssignOp Expression | "++" | "--")? ";"
+}
+
+// ============================================================================
+// Expressions
+// ============================================================================
+
+@precedence {
+  call @left,
+  unary @right,
+  multiply @left,
+  add @left,
+  shift @left,
+  compare @left,
+  equal @left,
+  bitand @left,
+  bitxor @left,
+  bitor @left,
+  and @left,
+  or @left
+}
+
+Expression {
+  primaryExpr |
+  UnaryExpression |
+  BinaryExpression |
+  PostfixExpression
+}
+
+primaryExpr {
+  Literal |
+  Identifier |
+  "(" Expression ")"
+}
+
+UnaryExpression {
+  !unary ("-" | "!" | "~" | "&" | "*") Expression
+}
+
+BinaryExpression {
+  Expression !or "||" Expression |
+  Expression !and "&&" Expression |
+  Expression !bitor "|" Expression |
+  Expression !bitxor "^" Expression |
+  Expression !bitand "&" Expression |
+  Expression !equal ("==" | "!=") Expression |
+  Expression !compare ("<" | "<=" | ">" | ">=") Expression |
+  Expression !shift ("<<" | ">>") Expression |
+  Expression !add ("+" | "-") Expression |
+  Expression !multiply ("*" | "/" | "%") Expression
+}
+
+// Postfix operations
+PostfixExpression {
+  Expression !call (
+    ArgList |                         // foo()
+    "[" Expression "]" |              // foo[i]
+    "." Identifier |                  // foo.bar
+    "::" Identifier                   // foo::bar
+  )
+}
+
+ArgList {
+  "(" commaSep<Expression> ")"
+}
+
+// ============================================================================
+// Types - template syntax only used at type positions
+// ============================================================================
+
+Type {
+  Identifier TemplateArgs?
+}
+
+TemplateArgs {
+  "<" commaSep<TypeOrExpr> ">"
+}
+
+// For template args, we just parse any valid expression/type tokens
+TypeOrExpr {
+  Identifier TemplateArgs? |
+  Number |
+  Boolean
+}
+
+// ============================================================================
+// Attributes
+// ============================================================================
+
+Attribute {
+  SimpleAttribute | ComplexAttribute
+}
+
+SimpleAttribute {
+  "@" simpleAttrName
+}
+
+ComplexAttribute {
+  "@" Identifier "(" commaSep<Expression> ")"
+}
+
+// Attribute names that never have arguments
+simpleAttrName {
+  @specialize<identifier, "compute" | "const" | "fragment" | "invariant" | "must_use" | "vertex">
+}
+
+// ============================================================================
+// Tokens
+// ============================================================================
+
+@tokens {
+  whitespace { @whitespace+ }
+
+  LineComment { "//" ![\n]* }
+  BlockComment { "/*" blockCommentContent* "*/" }
+  blockCommentContent { ![*] | "*" ![/] }
+
+  identifier { (@asciiLetter | "_") (@asciiLetter | @digit | "_")* }
+
+  Number {
+    "0" $[xX] $[0-9a-fA-F]+ $[iufh]? |
+    @digit+ "." @digit* ($[eE] $[+-]? @digit+)? $[fh]? |
+    @digit* "." @digit+ ($[eE] $[+-]? @digit+)? $[fh]? |
+    @digit+ $[eE] $[+-]? @digit+ $[fh]? |
+    @digit+ $[iufh]?
+  }
+
+  @precedence { LineComment, BlockComment, "/" }
+  @precedence { Number, "." }
+  @precedence { Number, identifier }
+  @precedence { "->", "--", "-=", "-" }
+  @precedence { "<<=", "<<", "<=", "<" }
+  @precedence { ">>=", ">>", ">=", ">" }
+  @precedence { "&&", "&=", "&" }
+  @precedence { "||", "|=", "|" }
+  @precedence { "==", "=" }
+  @precedence { "!=", "!" }
+  @precedence { "++", "+=", "+" }
+  @precedence { "*=", "*" }
+  @precedence { "/=", "/" }
+  @precedence { "%=", "%" }
+  @precedence { "^=", "^" }
+  @precedence { "::", ":" }
+
+  "->"
+  "@"
+  "[" "]"
+  "{" "}"
+  "::" ":"
+  ","
+  "==" "=" "!="
+  ">>=" ">>" ">=" ">"
+  "<<=" "<<" "<=" "<"
+  "%" "-" "--" "." "+" "++"
+  "|" "||"
+  "(" ")"
+  ";" "*" "~" "^"
+  "+=" "-=" "*=" "/=" "%=" "&=" "|=" "^="
+  "&&" "&" "/" "!"
+}
+
+Literal {
+  Number |
+  Boolean
+}
+
+Boolean {
+  @specialize<identifier, "true" | "false">
+}
+
+AssignOp {
+  "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=" | "<<=" | ">>="
+}
+
+Identifier { identifier }
+
+Import { @specialize<identifier, "import"> }
+
+kw<word> { @specialize<identifier, word> }
+
+commaSep<expr> { (expr ("," expr)* ","?)? }
+commaSep1<expr> { expr ("," expr)* ","? }
+
+@skip { whitespace | LineComment | BlockComment }
+
+@detectDelim

@@ -1,0 +1,46 @@
+{
+  "name": "lezer-wesl",
+  "version": "0.6.36",
+  "type": "module",
+  "description": "Lezer grammar for WESL (WebGPU Extended Shading Language)",
+  "files": ["dist", "src"],
+  "repository": "github:wgsl-tooling-wg/wesl-js",
+  "scripts": {
+    "build": "run-s build:grammar build:ts",
+    "build:grammar": "lezer-generator src/wesl.grammar -o src/parser.js",
+    "build:ts": "tsdown",
+    "prepublishOnly": "run-s build",
+    "test": "vitest --hideSkippedTests",
+    "test:once": "vitest run",
+    "typecheck": "tsgo"
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      }
+    },
+    "main": "dist/index.js"
+  },
+  "exports": {
+    ".": {
+      "import": "./src/index.ts"
+    }
+  },
+  "dependencies": {
+    "@lezer/lr": "^1.4.2",
+    "@lezer/highlight": "^1.2.1"
+  },
+  "devDependencies": {
+    "@lezer/generator": "^1.7.2"
+  },
+  "peerDependencies": {
+    "@codemirror/language": "^6.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@codemirror/language": {
+      "optional": true
+    }
+  }
+}
