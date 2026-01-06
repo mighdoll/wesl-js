@@ -44,3 +44,4 @@ test("parse imports.wesl", () => expectNoParsErrors("imports.wesl"));
 test("parse compute.wgsl", () => expectNoParsErrors("compute.wgsl"));
 test("parse render.wgsl", () => expectNoParsErrors("render.wgsl"));
 test("parse statements.wgsl", () => expectNoParsErrors("statements.wgsl"));
+test("parse conditional.wesl", () => expectNoParsErrors("conditional.wesl"));

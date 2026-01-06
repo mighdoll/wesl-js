@@ -3,9 +3,6 @@
 //
 // This grammar is designed for syntax highlighting. Nested template syntax (array<vec4<f32>>)
 // is handled via an external tokenizer that splits '>>' into separate '>' tokens.
-//
-// Known limitations:
-// - @if/@elif/@else conditional compilation not yet supported
 
 @top Module {
   (importStatement | globalDirective | globalDeclaration)*
@@ -16,7 +13,7 @@
 // ============================================================================
 
 importStatement {
-  Import importPath ("as" Identifier)? ";"
+  Attribute* Import importPath ("as" Identifier)? ";"
 }
 
 importPath {
@@ -200,7 +197,10 @@ ExpressionStatement {
   bitxor @left,
   bitor @left,
   and @left,
-  or @left
+  or @left,
+  condNot @right,
+  condAnd @left,
+  condOr @left
 }
 
 Expression {
@@ -271,7 +271,7 @@ TypeOrExpr {
 // ============================================================================
 
 Attribute {
-  SimpleAttribute | ComplexAttribute
+  SimpleAttribute | ComplexAttribute | IfAttribute | ElifAttribute | ElseAttribute
 }
 
 SimpleAttribute {
@@ -285,6 +285,52 @@ ComplexAttribute {
 // Attribute names that never have arguments
 simpleAttrName {
   @specialize<identifier, "compute" | "const" | "fragment" | "invariant" | "must_use" | "vertex">
+}
+
+// ============================================================================
+// WESL Extensions: Conditional Compilation
+// ============================================================================
+
+IfAttribute {
+  "@" attrIf "(" ConditionExpr ")"
+}
+
+ElifAttribute {
+  "@" attrElif "(" ConditionExpr ")"
+}
+
+ElseAttribute {
+  "@" attrElse
+}
+
+attrIf { @specialize<identifier, "if"> }
+attrElif { @specialize<identifier, "elif"> }
+attrElse { @specialize<identifier, "else"> }
+
+// Condition expressions for @if/@elif - subset of full expressions
+ConditionExpr {
+  conditionPrimary |
+  ConditionNot |
+  ConditionAnd |
+  ConditionOr
+}
+
+conditionPrimary {
+  Boolean |
+  Identifier |
+  "(" ConditionExpr ")"
+}
+
+ConditionNot {
+  !condNot "!" ConditionExpr
+}
+
+ConditionAnd {
+  ConditionExpr !condAnd "&&" ConditionExpr
+}
+
+ConditionOr {
+  ConditionExpr !condOr "||" ConditionExpr
 }
 
 // ============================================================================
