@@ -1,11 +1,10 @@
 // Lezer grammar for WESL (WebGPU Extended Shading Language)
 // WESL is an extension of WGSL with additional features like imports and conditional compilation
 //
-// This grammar is designed for syntax highlighting. Template syntax (vec3<f32>)
-// is handled at specific locations where it's unambiguous.
+// This grammar is designed for syntax highlighting. Nested template syntax (array<vec4<f32>>)
+// is handled via an external tokenizer that splits '>>' into separate '>' tokens.
 //
 // Known limitations:
-// - Nested templates like array<vec4<f32>> fail due to >> being tokenized as shift
 // - @if/@elif/@else conditional compilation not yet supported
 
 @top Module {
@@ -257,7 +256,7 @@ Type {
 }
 
 TemplateArgs {
-  "<" commaSep<TypeOrExpr> ">"
+  "<" commaSep<TypeOrExpr> (templateArgsEnd | templateArgsEndFallback)
 }
 
 // For template args, we just parse any valid expression/type tokens
@@ -341,6 +340,8 @@ simpleAttrName {
   ";" "*" "~" "^"
   "+=" "-=" "*=" "/=" "%=" "&=" "|=" "^="
   "&&" "&" "/" "!"
+
+  templateArgsEnd[@name=">"] { ">" }
 }
 
 Literal {
@@ -366,5 +367,7 @@ commaSep<expr> { (expr ("," expr)* ","?)? }
 commaSep1<expr> { expr ("," expr)* ","? }
 
 @skip { whitespace | LineComment | BlockComment }
+
+@external tokens fallback from "./tokens.js" { templateArgsEndFallback[@name=">"] }
 
 @detectDelim
