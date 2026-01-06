@@ -6,7 +6,6 @@
 //
 // Known limitations:
 // - Nested templates like array<vec4<f32>> fail due to >> being tokenized as shift
-// - For-loop update doesn't support assignments (i = i + 1), use compound (i += 1)
 // - @if/@elif/@else conditional compilation not yet supported
 
 @top Module {
@@ -166,7 +165,12 @@ LoopStatement {
 }
 
 ForStatement {
-  kw<"for"> "(" (VarStatement | Expression)? ";" Expression? ";" Expression? ")" Block
+  kw<"for"> "(" (VarStatement | Expression)? ";" Expression? ";" UpdatingExpr? ")" Block
+}
+
+// For-loop update: expression with optional assignment or increment/decrement
+UpdatingExpr {
+  Expression (AssignOp Expression | "++" | "--")?
 }
 
 WhileStatement {
