@@ -1,0 +1,22 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="warmGrad" x1="82" y1="120" x2="174" y2="32" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FCB000"/>
+      <stop offset="100%" stop-color="#FF5343"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Dark background -->
+  <rect width="256" height="256" rx="44" fill="#111827"/>
+
+  <!-- Sierpinski triangle level 1 — three sub-triangles with center gap -->
+
+  <!-- Top triangle (WESL warm gradient: red → gold) -->
+  <path d="M 128,32 L 82,120 L 174,120 Z" fill="url(#warmGrad)"/>
+
+  <!-- Bottom-left triangle (WESL blue) -->
+  <path d="M 78,126 L 32,214 L 124,214 Z" fill="#0391E3"/>
+
+  <!-- Bottom-right triangle (WESL cyan) -->
+  <path d="M 178,126 L 132,214 L 224,214 Z" fill="#08BFF2"/>
+</svg>
