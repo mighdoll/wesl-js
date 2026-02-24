@@ -1,22 +1,29 @@
-<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="warmGrad" x1="82" y1="120" x2="174" y2="32" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#FCB000"/>
-      <stop offset="100%" stop-color="#FF5343"/>
+    <linearGradient id="weslGrad" x1="280" y1="87" x2="200" y2="475" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FF5242"/>
+      <stop offset="100%" stop-color="#FFDD00"/>
     </linearGradient>
   </defs>
 
   <!-- Dark background -->
   <rect width="256" height="256" rx="44" fill="#111827"/>
 
-  <!-- Sierpinski triangle level 1 — three sub-triangles with center gap -->
+  <!-- WebGPU triangle geometry recolored with WESL brand palette -->
+  <g transform="translate(11.93, 31.64) scale(0.326)" fill-rule="evenodd" stroke-linejoin="round">
+    <!-- Triangle 4: small lower-right (WESL blue) -->
+    <path d="m626.63 295.5-60.189-104.25h120.55z" fill="#04A3FF" stroke="#04A3FF"/>
 
-  <!-- Top triangle (WESL warm gradient: red → gold) -->
-  <path d="M 128,32 L 82,120 L 174,120 Z" fill="url(#warmGrad)"/>
+    <!-- Triangle 5: small upper-right (WESL cyan) -->
+    <path d="m626.63 87.001-60.189 104.25h120.55z" fill="#05E3FC" stroke="#05E3FC"/>
 
-  <!-- Bottom-left triangle (WESL blue) -->
-  <path d="M 78,126 L 32,214 L 124,214 Z" fill="#0391E3"/>
+    <!-- Triangle 3: medium lower-right (WESL gold) -->
+    <path d="m506.26 504-120.38-208.5 240.76-0.002z" fill="#FFDD00" stroke="#FFDD00"/>
 
-  <!-- Bottom-right triangle (WESL cyan) -->
-  <path d="M 178,126 L 132,214 L 224,214 Z" fill="#08BFF2"/>
+    <!-- Triangle 2: medium upper-right (WESL orange) -->
+    <path d="m506.26 87-120.38 208.5 240.76-0.002z" fill="#FF7700" stroke="#FF7700"/>
+
+    <!-- Triangle 1: large base (WESL red→gold gradient) -->
+    <path d="m265.5 504-240.76-417h481.51z" fill="url(#weslGrad)"/>
+  </g>
 </svg>
