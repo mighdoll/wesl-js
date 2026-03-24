@@ -10,6 +10,7 @@ import {
   type LinkOptions,
   type PlaybackState,
   type RenderState,
+  renderOnce,
   startRenderLoop,
 } from "./Renderer.ts";
 import cssText from "./WgslPlay.css?inline";
@@ -303,13 +304,18 @@ export class WgslPlay extends HTMLElement {
     if (isPlaying) return;
     this.playback.startTime = performance.now() - pausedDuration;
     this.setPlaying(true);
+    if (this.renderState) {
+      this.stopRenderLoop = startRenderLoop(this.renderState, this.playback);
+    }
   }
 
   /** Pause playback. */
   pause(): void {
     if (!this.playback.isPlaying) return;
     this.playback.pausedDuration = performance.now() - this.playback.startTime;
+    this.stopRenderLoop?.();
     this.setPlaying(false);
+    if (this.renderState) renderOnce(this.renderState, this.playback);
   }
 
   private setPlaying(playing: boolean): void {
@@ -324,7 +330,9 @@ export class WgslPlay extends HTMLElement {
   rewind(): void {
     this.playback.startTime = performance.now();
     this.playback.pausedDuration = 0;
+    this.stopRenderLoop?.();
     this.setPlaying(false);
+    if (this.renderState) renderOnce(this.renderState, this.playback);
   }
 
   /** Display error message in overlay. Pass empty string to clear. */
@@ -365,7 +373,11 @@ export class WgslPlay extends HTMLElement {
         : "opaque";
       this.renderState = await initWebGPU(this.canvas, alphaMode);
       this.loadInitialContent();
-      this.stopRenderLoop = startRenderLoop(this.renderState, this.playback);
+      if (this.playback.isPlaying) {
+        this.stopRenderLoop = startRenderLoop(this.renderState, this.playback);
+      } else {
+        renderOnce(this.renderState, this.playback);
+      }
       this.dispatchEvent(new CustomEvent("ready"));
       return true;
     } catch (error) {

@@ -105,6 +105,12 @@ export async function createPipeline(
   }
 }
 
+/** Render a single frame (used when paused). */
+export function renderOnce(state: RenderState, playback: PlaybackState): void {
+  if (!state.pipeline) return;
+  doRender(state, playback);
+}
+
 /** Start the render loop. Returns a stop function. */
 export function startRenderLoop(
   state: RenderState,
@@ -117,33 +123,28 @@ export function startRenderLoop(
       animationId = requestAnimationFrame(render);
       return;
     }
-
-    const time = calculateTime(playback);
-    const resolution: [number, number] = [
-      state.canvas.width,
-      state.canvas.height,
-    ];
-    const mouse: [number, number] = [0.0, 0.0];
-
-    updateRenderUniforms(
-      state.uniformBuffer,
-      state.device,
-      resolution,
-      time,
-      mouse,
-    );
-    renderFrame({
-      device: state.device,
-      pipeline: state.pipeline,
-      bindGroup: state.bindGroup,
-      targetView: state.context.getCurrentTexture().createView(),
-    });
-    state.frameCount++;
+    doRender(state, playback);
     animationId = requestAnimationFrame(render);
   }
 
   animationId = requestAnimationFrame(render);
   return () => cancelAnimationFrame(animationId);
+}
+
+/** Update uniforms and submit one GPU frame. */
+function doRender(state: RenderState, playback: PlaybackState): void {
+  const time = calculateTime(playback);
+  const resolution: [number, number] = [state.canvas.width, state.canvas.height];
+  const mouse: [number, number] = [0.0, 0.0];
+
+  updateRenderUniforms(state.uniformBuffer, state.device, resolution, time, mouse);
+  renderFrame({
+    device: state.device,
+    pipeline: state.pipeline!,
+    bindGroup: state.bindGroup,
+    targetView: state.context.getCurrentTexture().createView(),
+  });
+  state.frameCount++;
 }
 
 function calculateTime(playback: PlaybackState): number {
