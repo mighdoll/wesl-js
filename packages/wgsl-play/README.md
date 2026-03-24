@@ -80,6 +80,7 @@ The `?raw` suffix imports the file as a string. This keeps shaders alongside you
 - `shader-root` - Root path for internal imports (default: `/shaders`)
 - `autoplay` - Start animating on load (default: `true`). Set `autoplay="false"` to start paused
 - `transparent` - Use premultiplied alpha for transparent backgrounds (default: opaque)
+- `no-controls` - Hide playback controls (play/pause, rewind, fullscreen)
 - `fetch-libs` - Auto-fetch missing libraries from npm (default: `true`). Set `fetch-libs="false"` to disable
 
 ### Properties
