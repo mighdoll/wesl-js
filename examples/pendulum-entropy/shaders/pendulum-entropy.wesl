@@ -1,28 +1,32 @@
 import env::u;
 
-// === Physics constants ===
+const PI: f32 = 3.14159265358979;
+const TWO_PI: f32 = 6.28318530717959;
+
+// === Physics constants (matching notebook) ===
 const M: f32 = 1.0;
 const G: f32 = 9.81;
-const K: f32 = 20.0;       // spring constant
 const REST_LEN: f32 = 1.0;
+// Note: notebook defines k=20 but never uses it in newderiv
 
-// === Simulation parameters ===
-const DT: f32 = 0.02;
-const NUM_STEPS: u32 = 500u;
+// === Simulation parameters (matching notebook: tmax=5, dt=0.01) ===
+const DT: f32 = 0.01;
+const NUM_SAMPLES: u32 = 501u; // includes initial state at t=0
+const SIM_STEPS: u32 = 500u;
 
 // === Histogram parameters ===
-const PL_MIN: f32 = -30.0;
-const BIN_WIDTH: f32 = 1.0;
-const NUM_BINS: u32 = 61u;  // covers pL in [-30, 30]
+// Hash-based histogram for 4D state entropy
+const HASH_BINS: u32 = 512u;
 
 // Spring potential P(x) = x^4 - x^2, where x = REST_LEN - L
-// Force = P'(x) = 4x^3 - 2x
+// Pdot(x) = 4x^3 - 2x
 fn spring_force(x: f32) -> f32 {
     return 4.0 * x * x * x - 2.0 * x;
 }
 
-// Equations of motion for the spring pendulum
-// State: (theta, ptheta, L, pL)
+// Equations of motion (matches notebook's newderiv exactly)
+// pLdot = ptheta^2/(m*L^3) + Pdot(L0-L) + m*g*cos(theta)
+// Note: no k multiplier, matching the notebook
 fn eom(s: vec4f) -> vec4f {
     let theta = s.x;
     let ptheta = s.y;
@@ -35,7 +39,7 @@ fn eom(s: vec4f) -> vec4f {
     let pthetadot = -M * G * L * sin(theta);
     let Ldot = pL / M;
     let pLdot = ptheta * ptheta / (M * L3)
-              + K * spring_force(REST_LEN - L)
+              + spring_force(REST_LEN - L)
               + M * G * cos(theta);
 
     return vec4f(thetadot, pthetadot, Ldot, pLdot);
@@ -48,6 +52,42 @@ fn rk4(s: vec4f, h: f32) -> vec4f {
     let k3 = eom(s + 0.5 * h * k2);
     let k4 = eom(s + h * k3);
     return s + (h / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4);
+}
+
+// Encode 4D state to u32 key, matching notebook rounding:
+//   theta: mod 2pi, round to 0 decimals (integer)
+//   ptheta: round to 1 decimal
+//   L: round to 0 decimals (integer)
+//   pL: round to 1 decimal
+fn encode_state(s: vec4f) -> u32 {
+    // theta mod 2pi, rounded to integer: 0..6
+    let theta_mod = s.x - floor(s.x / TWO_PI) * TWO_PI;
+    let theta_int = u32(clamp(round(theta_mod), 0.0, 6.0));
+
+    // L rounded to integer: 0..15
+    let L_int = u32(clamp(round(s.z), 0.0, 15.0));
+
+    // ptheta rounded to 0.1, shifted: 0..2000
+    let ptheta_idx = u32(clamp(round(s.y * 10.0) + 1000.0, 0.0, 2000.0));
+
+    // pL rounded to 0.1, shifted: 0..2000
+    let pL_idx = u32(clamp(round(s.w * 10.0) + 1000.0, 0.0, 2000.0));
+
+    return theta_int
+         | (L_int << 3u)
+         | (ptheta_idx << 7u)
+         | (pL_idx << 18u);
+}
+
+// Hash mixing for uniform bucket distribution
+fn hash_mix(x: u32) -> u32 {
+    var h = x;
+    h ^= h >> 16u;
+    h *= 0x45d9f3bu;
+    h ^= h >> 16u;
+    h *= 0x45d9f3bu;
+    h ^= h >> 16u;
+    return h;
 }
 
 // Simple heatmap: black -> blue -> cyan -> green -> yellow -> red
@@ -72,7 +112,7 @@ fn heatmap(t: f32) -> vec3f {
     let x0 = mix(-1.5, 1.5, uv.x);
     let y0 = mix(-1.5, 1.5, 1.0 - uv.y);
 
-    // Initial conditions: position -> (theta, L), zero momentum
+    // Initial conditions (matches notebook's vary_angle)
     let theta0 = atan2(x0, -y0);
     let L_init = sqrt(x0 * x0 + y0 * y0);
 
@@ -83,32 +123,32 @@ fn heatmap(t: f32) -> vec3f {
 
     var state = vec4f(theta0, 0.0, L_init, 0.0);
 
-    // Histogram of rounded pL values
-    var hist: array<u32, 61>;
+    // Hash-based histogram for 4D state entropy
+    var hist: array<u32, 512>;
 
-    for (var i: u32 = 0u; i < NUM_STEPS; i++) {
+    // Record initial state (t=0), matching notebook which includes y0
+    let key0 = hash_mix(encode_state(state));
+    hist[key0 % HASH_BINS] = hist[key0 % HASH_BINS] + 1u;
+
+    // Integrate and record states
+    for (var i: u32 = 0u; i < SIM_STEPS; i++) {
         state = rk4(state, DT);
 
-        let pL = state.w;
-        let bin_f = clamp(
-            (round(pL / BIN_WIDTH) * BIN_WIDTH - PL_MIN) / BIN_WIDTH,
-            0.0,
-            f32(NUM_BINS - 1u)
-        );
-        let bin = u32(bin_f);
-        hist[bin] = hist[bin] + 1u;
+        let key = hash_mix(encode_state(state));
+        hist[key % HASH_BINS] = hist[key % HASH_BINS] + 1u;
     }
 
-    // Shannon entropy of the pL distribution
+    // Shannon entropy using natural log (matching scipy.stats.entropy)
     var H: f32 = 0.0;
-    let total = f32(NUM_STEPS);
-    for (var j: u32 = 0u; j < NUM_BINS; j++) {
+    let total = f32(NUM_SAMPLES);
+    for (var j: u32 = 0u; j < HASH_BINS; j++) {
         if hist[j] > 0u {
             let p = f32(hist[j]) / total;
-            H -= p * log2(p);
+            H -= p * log(p);
         }
     }
 
-    let normalized = H / log2(f32(NUM_BINS));
+    // Scale to match notebook's entropy range (~5.5 to ~6.3)
+    let normalized = clamp((H - 5.5) / 0.8, 0.0, 1.0);
     return vec4f(heatmap(normalized), 1.0);
 }
