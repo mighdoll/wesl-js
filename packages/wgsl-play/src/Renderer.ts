@@ -134,10 +134,19 @@ export function startRenderLoop(
 /** Update uniforms and submit one GPU frame. */
 function doRender(state: RenderState, playback: PlaybackState): void {
   const time = calculateTime(playback);
-  const resolution: [number, number] = [state.canvas.width, state.canvas.height];
+  const resolution: [number, number] = [
+    state.canvas.width,
+    state.canvas.height,
+  ];
   const mouse: [number, number] = [0.0, 0.0];
 
-  updateRenderUniforms(state.uniformBuffer, state.device, resolution, time, mouse);
+  updateRenderUniforms(
+    state.uniformBuffer,
+    state.device,
+    resolution,
+    time,
+    mouse,
+  );
   renderFrame({
     device: state.device,
     pipeline: state.pipeline!,

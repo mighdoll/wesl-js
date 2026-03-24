@@ -375,8 +375,6 @@ export class WgslPlay extends HTMLElement {
       this.loadInitialContent();
       if (this.playback.isPlaying) {
         this.stopRenderLoop = startRenderLoop(this.renderState, this.playback);
-      } else {
-        renderOnce(this.renderState, this.playback);
       }
       this.dispatchEvent(new CustomEvent("ready"));
       return true;
@@ -502,28 +500,36 @@ export class WgslPlay extends HTMLElement {
 
       try {
         this.errorOverlay.hide();
-        if (!this._fromFullProject) {
-          const { weslSrc, libs } = await fetchDependencies(mainSource, {
-            shaderRoot: this.getConfigOverrides()?.shaderRoot,
-            existingSources: this._weslSrc,
-            skipExternal: !this._fetchLibs,
-          });
-          this._weslSrc = { ...this._weslSrc, ...weslSrc };
-          this._libs = dedupLibs(this._libs, libs);
-        }
-        await createPipeline(this.renderState!, mainSource, {
-          ...this._linkOptions,
-          weslSrc: this._weslSrc,
-          libs: this._libs,
-          rootModuleName: this._rootModuleName,
-        });
-        if (!this._dirty)
+        await this.discoverAndBuild(mainSource);
+        if (!this._dirty) {
+          if (!this.playback.isPlaying)
+            renderOnce(this.renderState!, this.playback);
           this.dispatchEvent(new CustomEvent("compile-success"));
+        }
       } catch (error) {
         if (!this._dirty) this.handleCompileError(error);
       }
     }
     this._building = false;
+  }
+
+  /** Fetch dependencies if needed and compile the shader pipeline. */
+  private async discoverAndBuild(mainSource: string): Promise<void> {
+    if (!this._fromFullProject) {
+      const { weslSrc, libs } = await fetchDependencies(mainSource, {
+        shaderRoot: this.getConfigOverrides()?.shaderRoot,
+        existingSources: this._weslSrc,
+        skipExternal: !this._fetchLibs,
+      });
+      this._weslSrc = { ...this._weslSrc, ...weslSrc };
+      this._libs = dedupLibs(this._libs, libs);
+    }
+    await createPipeline(this.renderState!, mainSource, {
+      ...this._linkOptions,
+      weslSrc: this._weslSrc,
+      libs: this._libs,
+      rootModuleName: this._rootModuleName,
+    });
   }
 
   private handleCompileError(error: unknown): void {
