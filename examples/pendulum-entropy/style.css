@@ -1,0 +1,35 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+body {
+  background: #1a1a1a;
+  color: #ccc;
+  font-family: system-ui, sans-serif;
+  height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 8px;
+}
+
+h1 {
+  grid-column: 1 / -1;
+  font-size: 1.1rem;
+  padding: 4px 0;
+}
+
+wgsl-edit {
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid #333;
+  border-radius: 4px;
+}
+
+wgsl-play {
+  width: 200px;
+  height: 200px;
+  border: 1px solid #333;
+  border-radius: 4px;
+}

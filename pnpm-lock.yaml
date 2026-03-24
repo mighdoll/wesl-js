@@ -165,6 +165,28 @@ importers:
         specifier: workspace:x
         version: link:../../packages/wesl-plugin
 
+  examples/pendulum-entropy:
+    dependencies:
+      wesl:
+        specifier: workspace:*
+        version: link:../../packages/wesl
+      wgsl-edit:
+        specifier: workspace:*
+        version: link:../../packages/wgsl-edit
+      wgsl-play:
+        specifier: workspace:*
+        version: link:../../packages/wgsl-play
+    devDependencies:
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vite:
+        specifier: ^8.0.1
+        version: 8.0.1(@types/node@25.5.0)(esbuild@0.27.4)(jiti@2.6.1)(terser@5.43.1)(tsx@4.21.0)(yaml@2.8.2)
+      wesl-plugin:
+        specifier: workspace:x
+        version: link:../../packages/wesl-plugin
+
   examples/wesl-rand:
     dependencies:
       '@codemirror/language':
