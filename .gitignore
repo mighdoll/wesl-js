@@ -39,3 +39,6 @@ bench-report/
 # test built packages
 /temp-built-test/
 /temp-packages/
+
+# mkcert local dev certs
+*.pem
