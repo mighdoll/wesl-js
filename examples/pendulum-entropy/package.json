@@ -3,15 +3,16 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build"
+    "build": "tsc && vite build",
+    "dev": "vite"
   },
   "dependencies": {
     "wesl": "workspace:*",
-    "wgsl-play": "workspace:*",
-    "wgsl-edit": "workspace:*"
+    "wgsl-edit": "workspace:*",
+    "wgsl-play": "workspace:*"
   },
   "devDependencies": {
+    "@vitejs/plugin-basic-ssl": "^2.2.0",
     "typescript": "^5.9.3",
     "vite": "^8.0.1",
     "wesl-plugin": "workspace:x"

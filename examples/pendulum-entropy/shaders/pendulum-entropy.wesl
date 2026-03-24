@@ -3,7 +3,6 @@ import env::u;
 // === Physics constants ===
 const M: f32 = 1.0;
 const G: f32 = 9.81;
-const K: f32 = 20.0;       // spring constant
 const REST_LEN: f32 = 1.0;
 
 // === Simulation parameters ===
@@ -35,7 +34,7 @@ fn eom(s: vec4f) -> vec4f {
     let pthetadot = -M * G * L * sin(theta);
     let Ldot = pL / M;
     let pLdot = ptheta * ptheta / (M * L3)
-              + K * spring_force(REST_LEN - L)
+              + spring_force(REST_LEN - L)
               + M * G * cos(theta);
 
     return vec4f(thetadot, pthetadot, Ldot, pLdot);
@@ -76,11 +75,6 @@ fn heatmap(t: f32) -> vec3f {
     let theta0 = atan2(x0, -y0);
     let L_init = sqrt(x0 * x0 + y0 * y0);
 
-    // Singularity near origin
-    if L_init < 0.05 {
-        return vec4f(0.0, 0.0, 0.0, 1.0);
-    }
-
     var state = vec4f(theta0, 0.0, L_init, 0.0);
 
     // Histogram of rounded pL values
@@ -89,7 +83,7 @@ fn heatmap(t: f32) -> vec3f {
     for (var i: u32 = 0u; i < NUM_STEPS; i++) {
         state = rk4(state, DT);
 
-        let pL = state.w;
+        let pL = state.x;
         let bin_f = clamp(
             (round(pL / BIN_WIDTH) * BIN_WIDTH - PL_MIN) / BIN_WIDTH,
             0.0,
