@@ -3,21 +3,30 @@ import env::u;
 // === Physics constants ===
 const M: f32 = 1.0;
 const G: f32 = 9.81;
-const REST_LEN: f32 = 1.0;
-
+const REST_LEN: f32 = 1;
+const PI: f32 = 3.14159265358979323;
 // === Simulation parameters ===
 const DT: f32 = 0.01;
-const NUM_STEPS: u32 = 1000u;
+const NUM_STEPS: u32 = 1200u;
 
 // === Histogram parameters ===
+const MAX_PTHETA: f32 = 25.0;
+const MAX_L: f32 = 6.0;
+const MAX_PL: f32 = 10.0;
+// these must sum to less than 16
+const BITS_THETA: u32 = 5;
+const BITS_PTHETA: u32 = 3;
+const BITS_L: u32 = 3;
+const BITS_PL: u32 = 2;
+
 const PL_MIN: f32 = -30.0;
 const BIN_WIDTH: f32 = 0.5;
-const NUM_BINS: u32 = 121u;  // covers pL in [-30, 30]
+const NUM_BINS: u32 = (1<<(BITS_THETA+BITS_PTHETA+BITS_L+BITS_PL))-1;  // covers pL in [-30, 30]
 
 // Spring potential P(x) = x^4 - x^2, where x = REST_LEN - L
 // Pdot(x) = 4x^3 - 2x
 fn spring_force(x: f32) -> f32 {
-    return 4.0 * x * x * x - 2.0 * x;
+    return 4.0 * x * x * x - 9.0 * x*x;
 }
 
 // Equations of motion for the spring pendulum
@@ -25,7 +34,7 @@ fn spring_force(x: f32) -> f32 {
 fn eom(s: vec4f) -> vec4f {
     let theta = s.x;
     let ptheta = s.y;
-    let L = max(s.z, 0.01);
+    let L = max(s.z, 0.001);
     let pL = s.w;
     let L2 = L * L;
     let L3 = L2 * L;
@@ -49,6 +58,11 @@ fn rk4(s: vec4f, h: f32) -> vec4f {
     return s + (h / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4);
 }
 
+fn posmod(a:f32,n:f32)->f32{
+  return a-n*floor(a/n);
+}
+
+
 // Simple heatmap: black -> blue -> cyan -> green -> yellow -> red
 fn heatmap(t: f32) -> vec3f {
     let s = clamp(t, 0.0, 1.0) * 5.0;
@@ -64,6 +78,8 @@ fn heatmap(t: f32) -> vec3f {
     }
 }
 
+var<private> hist: array<u32, NUM_BINS>;
+
 @fragment fn fs_main(@builtin(position) pos: vec4f) -> @location(0) vec4f {
     // Map pixel to [-1.5, 1.5] x [-1.5, 1.5] (square, centered)
     let res = min(u.resolution.x, u.resolution.y);
@@ -78,18 +94,15 @@ fn heatmap(t: f32) -> vec3f {
     var state = vec4f(theta0, 0.0, L_init, 0.0);
 
     // Histogram of rounded pL values
-    var hist: array<u32, 121>;
 
     for (var i: u32 = 0u; i < NUM_STEPS; i++) {
         state = rk4(state, DT);
-
-        let pL = state.x;
-        let bin_f = clamp(
-            (round(pL / BIN_WIDTH) * BIN_WIDTH - PL_MIN) / BIN_WIDTH,
-            0.0,
-            f32(NUM_BINS - 1u)
-        );
-        let bin = u32(bin_f);
+        let theta = clamp(u32(f32(1<<BITS_THETA)*(posmod(state.x,2*PI)/(2*PI))),0,(1<<BITS_THETA)-1);
+        let pTheta = clamp(u32((state.y+MAX_PTHETA)/(2*MAX_PTHETA)*f32(1<<BITS_PTHETA)),0,(1<<BITS_PTHETA) - 1);
+        let L = clamp(u32((state.z)/(MAX_L)*f32(1<<BITS_L)),0,(1<<BITS_L)-1);
+        let pL = clamp(u32((state.w+MAX_PL)/(2*MAX_PL)*f32(1<<BITS_PL)),0,(1<<BITS_PL)-1);
+        
+        let bin=theta | (pTheta<<(BITS_THETA)) | (L <<(BITS_THETA+BITS_PTHETA)) | (pL << (BITS_THETA+BITS_PTHETA+BITS_L));
         hist[bin] = hist[bin] + 1u;
     }
 
@@ -104,5 +117,5 @@ fn heatmap(t: f32) -> vec3f {
     }
 
     let normalized = pow(H / log2(f32(NUM_BINS)), 2.5);
-    return vec4f(heatmap(normalized), 1.0);
+    return vec4f(heatmap(H/8), 1.0);
 }
