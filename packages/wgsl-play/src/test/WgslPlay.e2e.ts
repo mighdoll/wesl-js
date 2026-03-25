@@ -120,9 +120,8 @@ test("npm CDN - external imports work", async ({ page }) => {
   await page.waitForLoadState("networkidle");
   await waitForFrame(page, "#player2");
 
-  // Rewind to time=0 for deterministic snapshot
+  // Rewind to time=0 for deterministic snapshot (rewind() renders synchronously)
   await page.click("#rewind2");
-  await waitForNewFrame(page, "#player2");
   await expectCanvasSnapshot(page, "#player2", "npm-cdn.png");
 });
 
