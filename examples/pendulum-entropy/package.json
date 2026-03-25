@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "build": "tsc && vite build",
-    "dev": "vite"
+    "dev": "vite",
+    "serve:tunnel": "cloudflared tunnel --url http://localhost:5173"
   },
   "dependencies": {
     "wesl": "workspace:*",
