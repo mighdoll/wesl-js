@@ -19,8 +19,6 @@ const BITS_PTHETA: u32 = 3;
 const BITS_L: u32 = 3;
 const BITS_PL: u32 = 2;
 
-const PL_MIN: f32 = -30.0;
-const BIN_WIDTH: f32 = 0.5;
 const NUM_BINS: u32 = (1<<(BITS_THETA+BITS_PTHETA+BITS_L+BITS_PL))-1;  // covers pL in [-30, 30]
 
 // Spring potential P(x) = x^4 - x^2, where x = REST_LEN - L
