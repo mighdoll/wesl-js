@@ -18,6 +18,8 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
+    port: 9111,
+    strictPort: true,
     fs: { allow: [".."] },
   },
 });
