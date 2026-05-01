@@ -1,3 +1,7 @@
 name = "play-auth"
 main = "src/index.ts"
 compatibility_date = "2026-04-01"
+
+[vars]
+GITHUB_CLIENT_ID = "Ov23li6iYF3wfpn2cdgM"
+ALLOWED_ORIGINS = "https://wgsl-play.dev,http://localhost:9111"
