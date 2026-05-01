@@ -425,6 +425,9 @@ importers:
         specifier: workspace:*
         version: link:../wgsl-play
     devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^4.20260430.1
+        version: 4.20260617.1
       '@playwright/test':
         specifier: ^1.53.2
         version: 1.53.2
@@ -442,7 +445,7 @@ importers:
         version: link:../wesl-plugin
       wrangler:
         specifier: ^4.77.0
-        version: 4.87.0
+        version: 4.87.0(@cloudflare/workers-types@4.20260617.1)
 
   packages/random_wgsl:
     devDependencies:
@@ -1188,6 +1191,9 @@ packages:
     engines: {node: '>=16'}
     cpu: [x64]
     os: [win32]
+
+  '@cloudflare/workers-types@4.20260617.1':
+    resolution: {integrity: sha512-HdbP3CNcdMZBwegitFDjWvzv+6wPkFXvV9gBXMnf6RjV2Cy3W8TJL3IhSEGul0S6F1DHjnucP7lrpIsvkzNEjA==}
 
   '@codemirror/autocomplete@6.18.6':
     resolution: {integrity: sha512-PHHBXFomUs5DF+9tCOM/UoW6XQ4R44lLNNhRaW9PKPTU0D7lIjRg3ElxaJnTwsl/oHiR93WSXDBrekhoUGCPtg==}
@@ -6466,6 +6472,8 @@ snapshots:
   '@cloudflare/workerd-windows-64@1.20260430.1':
     optional: true
 
+  '@cloudflare/workers-types@4.20260617.1': {}
+
   '@codemirror/autocomplete@6.18.6':
     dependencies:
       '@codemirror/language': 6.11.2
@@ -11308,7 +11316,7 @@ snapshots:
 
   workerpool@6.5.1: {}
 
-  wrangler@4.87.0:
+  wrangler@4.87.0(@cloudflare/workers-types@4.20260617.1):
     dependencies:
       '@cloudflare/kv-asset-handler': 0.5.0
       '@cloudflare/unenv-preset': 2.16.1(unenv@2.0.0-rc.24)(workerd@1.20260430.1)
@@ -11319,6 +11327,7 @@ snapshots:
       unenv: 2.0.0-rc.24
       workerd: 1.20260430.1
     optionalDependencies:
+      '@cloudflare/workers-types': 4.20260617.1
       fsevents: 2.3.3
     transitivePeerDependencies:
       - bufferutil

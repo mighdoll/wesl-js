@@ -20,6 +20,9 @@ site
 # vite temp files
 vite.config.ts.timestamp-*.mjs
 
+# wrangler local secrets
+.dev.vars
+
 # previous rev for benchmark comparisons
 _baseline
 
