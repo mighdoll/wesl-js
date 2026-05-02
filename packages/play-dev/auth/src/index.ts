@@ -32,10 +32,13 @@
 interface Env {
   GITHUB_CLIENT_ID: string;
   GITHUB_CLIENT_SECRET: string;
+  GITHUB_CLIENT_ID_DEV: string;
+  GITHUB_CLIENT_SECRET_DEV: string;
   ALLOWED_ORIGINS: string;
 }
 
 const expectedScope = "gist";
+const devOrigin = "http://localhost:9111";
 
 export default { fetch: handle };
 
@@ -48,25 +51,34 @@ async function handle(req: Request, env: Env): Promise<Response> {
   if (req.method !== "POST")
     return new Response("method not allowed", { status: 405 });
 
-  return withCors(await handlePost(req, env), origin);
+  return withCors(await handlePost(req, env, origin), origin);
 }
 
-async function handlePost(req: Request, env: Env): Promise<Response> {
+async function handlePost(
+  req: Request,
+  env: Env,
+  origin: string,
+): Promise<Response> {
   const body = (await req.json().catch(() => null)) as {
     code?: unknown;
   } | null;
   if (!body || typeof body.code !== "string") {
     return Response.json({ error: "invalid_request" }, { status: 400 });
   }
-  return exchangeCode(body.code, env);
+  return exchangeCode(body.code, env, origin);
 }
 
 /** Trade an OAuth `code` for a GitHub access token. Forwards GitHub's JSON body verbatim on success;
  * maps transport failures and non-2xx GitHub responses to 502. */
-async function exchangeCode(code: string, env: Env): Promise<Response> {
+async function exchangeCode(
+  code: string,
+  env: Env,
+  origin: string,
+): Promise<Response> {
+  const { clientId, clientSecret } = pickApp(env, origin);
   const params = new URLSearchParams({
-    client_id: env.GITHUB_CLIENT_ID,
-    client_secret: env.GITHUB_CLIENT_SECRET,
+    client_id: clientId,
+    client_secret: clientSecret,
     code,
   });
   let res: Response;
@@ -85,9 +97,10 @@ async function exchangeCode(code: string, env: Env): Promise<Response> {
       { status: 502 },
     );
   }
-  const data = (await res.json().catch(() => null)) as
-    | Record<string, unknown>
-    | null;
+  const data = (await res.json().catch(() => null)) as Record<
+    string,
+    unknown
+  > | null;
   if (!res.ok || typeof data?.error === "string") {
     return Response.json(
       { error: "github_error", status: res.status, body: data },
@@ -95,7 +108,10 @@ async function exchangeCode(code: string, env: Env): Promise<Response> {
     );
   }
   const scope = typeof data?.scope === "string" ? data.scope : "";
-  const granted = scope.split(",").map(s => s.trim()).filter(Boolean);
+  const granted = scope
+    .split(",")
+    .map(s => s.trim())
+    .filter(Boolean);
   if (granted.length !== 1 || granted[0] !== expectedScope) {
     return Response.json(
       { error: "unexpected_scope", granted: scope },
@@ -103,6 +119,23 @@ async function exchangeCode(code: string, env: Env): Promise<Response> {
     );
   }
   return Response.json(data);
+}
+
+/** Pick the prod or dev OAuth credentials based on the calling SPA's origin. */
+function pickApp(
+  env: Env,
+  origin: string,
+): { clientId: string; clientSecret: string } {
+  if (origin === devOrigin) {
+    return {
+      clientId: env.GITHUB_CLIENT_ID_DEV,
+      clientSecret: env.GITHUB_CLIENT_SECRET_DEV,
+    };
+  }
+  return {
+    clientId: env.GITHUB_CLIENT_ID,
+    clientSecret: env.GITHUB_CLIENT_SECRET,
+  };
 }
 
 /** @return the request Origin if it appears in the comma-separated allowlist, else null. */

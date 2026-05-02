@@ -1,11 +1,13 @@
+import type { ComponentChildren } from "preact";
 import { Title } from "./Title.tsx";
 
 interface Props {
   title: string;
   onTitleCommit(value: string): void;
+  accountMenu: ComponentChildren;
 }
 
-export function TopBar({ title, onTitleCommit }: Props) {
+export function TopBar({ title, onTitleCommit, accountMenu }: Props) {
   return (
     <header class="topbar">
       <a class="logo" href="/" aria-label="wgsl-play.dev">
@@ -23,11 +25,11 @@ export function TopBar({ title, onTitleCommit }: Props) {
         type="button"
         class="save-btn"
         disabled
-        title="Sign in (coming soon)"
+        title="Save coming next slice"
       >
         Save
       </button>
-      <div class="account-slot" />
+      {accountMenu}
     </header>
   );
 }

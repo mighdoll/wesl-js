@@ -8,6 +8,8 @@ import "wgsl-play/jsx-preact";
 import type { AppearanceChangeDetail } from "appearance-picker";
 import { useEffect, useRef, useState } from "preact/hooks";
 import type { WeslProject } from "wesl";
+import { type AuthToken, readToken } from "./auth/Token.ts";
+import { AccountMenu } from "./components/AccountMenu.tsx";
 import { EditPlay } from "./components/EditPlay.tsx";
 import { Footer } from "./components/Footer.tsx";
 import { TopBar } from "./components/TopBar.tsx";
@@ -26,6 +28,7 @@ const initialState = resolveInitialState();
 export function App() {
   const [theme, setTheme] = useState<"light" | "dark">(() => initialTheme());
   const [title, setTitle] = useState(initialState.payload.title);
+  const [token, setToken] = useState<AuthToken | null>(() => readToken());
   const sessionId = useRef(initialState.sessionId);
   const buffer = useRef<BufferPayload>(initialState.payload);
 
@@ -63,7 +66,13 @@ export function App() {
 
   return (
     <>
-      <TopBar title={title} onTitleCommit={onTitleCommit} />
+      <TopBar
+        title={title}
+        onTitleCommit={onTitleCommit}
+        accountMenu={
+          <AccountMenu token={token} onSignOut={() => setToken(null)} />
+        }
+      />
       <EditPlay
         initial={initialState.payload.project}
         theme={theme}
