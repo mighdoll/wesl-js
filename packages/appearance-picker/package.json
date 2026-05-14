@@ -1,7 +1,7 @@
 {
   "name": "appearance-picker",
   "description": "<appearance-picker> custom element for tri-state (system/light/dark) appearance switching",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "type": "module",
   "files": [
     "dist",
