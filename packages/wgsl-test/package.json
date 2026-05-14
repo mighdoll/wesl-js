@@ -12,7 +12,7 @@
     "lib",
     "src"
   ],
-  "repository": "github:wgsl-tooling-wg/wesl-js",
+  "repository": "github:webgpu-tools/wesl-js",
   "scripts": {
     "build": "tsdown && wesl-packager --outDir lib",
     "dev": "tsdown --watch",

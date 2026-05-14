@@ -11,7 +11,7 @@ const bevyBulkTest = {
   name: "Bevy",
   baseDir: "bevy-wgsl",
   git: {
-    url: "https://github.com/wgsl-tooling-wg/bevy-wgsl.git",
+    url: "https://github.com/webgpu-tools/bevy-wgsl.git",
     revision: "84977ff025eaf8d92e56a9c35b815fae70eb4af0",
   },
 };

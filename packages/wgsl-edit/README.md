@@ -105,7 +105,7 @@ editor.project = {                    // load a full project
 ## Using with wesl-plugin
 
 For full project support (libraries, conditional compilation, constants), use
-[wesl-plugin](https://github.com/wgsl-tooling-wg/wesl-js/tree/main/packages/wesl-plugin)
+[wesl-plugin](https://github.com/webgpu-tools/wesl-js/tree/main/packages/wesl-plugin)
 to assemble shaders at build time and pass them to the editor via `project`.
 
 ```typescript

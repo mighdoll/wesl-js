@@ -32,9 +32,9 @@ npm install wesl
 
 ## Examples
 
-- [Using WESL with a bundler](https://github.com/wgsl-tooling-wg/examples/tree/main/wesl-sample-vite)
-- [Vanilla WESL](https://github.com/wgsl-tooling-wg/examples/tree/main/wesl-sample-vanilla)
-- [More examples](https://github.com/wgsl-tooling-wg/examples)
+- [Using WESL with a bundler](https://github.com/webgpu-tools/examples/tree/main/wesl-sample-vite)
+- [Vanilla WESL](https://github.com/webgpu-tools/examples/tree/main/wesl-sample-vanilla)
+- [More examples](https://github.com/webgpu-tools/examples)
 
 
 ## Linking from the command line
@@ -60,8 +60,8 @@ the WESL specification.
 
 See [Developing](/Developing.md) for working on wesl-js itself
 
-[wesl-rs]: https://github.com/wgsl-tooling-wg/wesl-rs
-[wesl-js]: https://github.com/wgsl-tooling-wg/wesl-js
+[wesl-rs]: https://github.com/webgpu-tools/wesl-rs
+[wesl-js]: https://github.com/webgpu-tools/wesl-js
 [WESL]: https://wesl-lang.dev/
 
 ## License

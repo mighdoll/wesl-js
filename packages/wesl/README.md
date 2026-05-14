@@ -41,5 +41,5 @@ fn random_color(uv: vec2u) -> vec3f {
 </pre>
 
 [wesl plugin]: https://www.npmjs.com/package/wesl-plugin
-[examples]: https://github.com/wgsl-tooling-wg/wesl-js/tree/main/examples 
+[examples]: https://github.com/webgpu-tools/wesl-js/tree/main/examples 
 [wesl]: https://www.npmjs.com/package/wesl

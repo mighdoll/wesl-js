@@ -246,7 +246,7 @@ test("canvas output matches snapshot", async () => {
 
 ## Build Version
 **vitest-image-snapshot** is currently 
-part of the [wesl-js](https://github.com/wgsl-tooling-wg/wesl-js/) monorepo. 
+part of the [wesl-js](https://github.com/webgpu-tools/wesl-js/) monorepo. 
 (It'll eventually move to it's own repo).
 
 ## Contributions

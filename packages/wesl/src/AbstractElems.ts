@@ -52,7 +52,7 @@ export type ElemKindMap = {
   var: VarElem;
 };
 
-/** Inspired by https://github.com/wgsl-tooling-wg/wesl-rs/blob/3b2434eac1b2ebda9eb8bfb25f43d8600d819872/crates/wgsl-parse/src/syntax.rs#L364 */
+/** Inspired by https://github.com/webgpu-tools/wesl-rs/blob/3b2434eac1b2ebda9eb8bfb25f43d8600d819872/crates/wgsl-parse/src/syntax.rs#L364 */
 export type ExpressionElem =
   | Literal
   | RefIdentElem

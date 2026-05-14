@@ -39,7 +39,7 @@ interface CompoundOptions {
 
 // Experimental: declarations in conditional blocks visible in outer scope.
 // e.g. @if(X) { let y = 1; } makes y visible outside the block.
-// see https://github.com/wgsl-tooling-wg/wesl-spec/issues/158
+// see https://github.com/webgpu-tools/wesl-spec/issues/158
 const conditionalBlockFeature = true;
 
 /** Function bodies share scope with parameters (per WGSL spec). */

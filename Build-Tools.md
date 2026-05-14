@@ -110,7 +110,7 @@ The copy is likely a different version than the current tree
 - To make it easy for vanilla node tools to understand our sources, 
   we limit use of TypeScript features that require TypeScript code generation,
   notably attributes like 'public' or 'readonly' on class constructor 
-  function parameters. See [commit](https://github.com/wgsl-tooling-wg/wesl-js/tree/cd8dcc3c49fc0fa96174126980cd7e8127b6a073).
+  function parameters. See [commit](https://github.com/webgpu-tools/wesl-js/tree/cd8dcc3c49fc0fa96174126980cd7e8127b6a073).
 
 ### wesl-tooling types
 - We currently don't build or publish the wesl-tooling package

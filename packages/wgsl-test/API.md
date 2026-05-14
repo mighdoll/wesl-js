@@ -24,9 +24,9 @@
 
 ## Examples
 - [Compute Shader Example](#complete-test-example) - Full example on this page
-- [wgsl-test-native](https://github.com/wgsl-tooling-wg/examples/tree/main/wgsl-test-native) - Native WESL testing with `@test` (example project)
-- [wgsl-test-basic-compute](https://github.com/wgsl-tooling-wg/examples/tree/main/wgsl-test-basic-compute) - Compute shader testing (example project)
-- [wgsl-test-fragment-image](https://github.com/wgsl-tooling-wg/examples/tree/main/wgsl-test-fragment-image) - Fragment shader & image snapshots (example project)
+- [wgsl-test-native](https://github.com/webgpu-tools/examples/tree/main/wgsl-test-native) - Native WESL testing with `@test` (example project)
+- [wgsl-test-basic-compute](https://github.com/webgpu-tools/examples/tree/main/wgsl-test-basic-compute) - Compute shader testing (example project)
+- [wgsl-test-fragment-image](https://github.com/webgpu-tools/examples/tree/main/wgsl-test-fragment-image) - Fragment shader & image snapshots (example project)
 
 ---
 
@@ -348,7 +348,7 @@ For advanced configuration and detailed information, see the [vitest-image-snaps
 - **Directory structure** - Understanding `__image_snapshots__/`, `__image_actual__/`, and `__image_diffs__/`
 - **HTML diff report** - Setup and customization for visual test failure reports
 
-[vitest-image-snapshot]: https://github.com/wgsl-tooling-wg/wesl-js/tree/main/packages/vitest-image-snapshot
+[vitest-image-snapshot]: https://github.com/webgpu-tools/wesl-js/tree/main/packages/vitest-image-snapshot
 
 ## Complete Test Example
 
@@ -467,4 +467,4 @@ const pixel = result.data.slice(0, 4); // First pixel RGBA
 
 ## See Also
 
-- [README.md](https://github.com/wgsl-tooling-wg/wesl-js/blob/main/packages/wgsl-test/README.md) - Quick start guide
+- [README.md](https://github.com/webgpu-tools/wesl-js/blob/main/packages/wgsl-test/README.md) - Quick start guide

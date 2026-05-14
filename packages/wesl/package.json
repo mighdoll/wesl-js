@@ -6,7 +6,7 @@
     "dist",
     "src"
   ],
-  "repository": "github:wgsl-tooling-wg/wesl-js",
+  "repository": "github:webgpu-tools/wesl-js",
   "scripts": {
     "build": "tsdown",
     "build:docs": "typedoc --plugin typedoc-theme-hierarchy --entryPoints ./src/index.ts --entryPointStrategy expand --out ./docs",

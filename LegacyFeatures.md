@@ -1,7 +1,7 @@
 
 # Features from the Legacy Version of wgsl-linker
 
-_(These are going away, in favor of the new [WESL standard](https://github.com/wgsl-tooling-wg/wesl-spec).)_
+_(These are going away, in favor of the new [WESL standard](https://github.com/webgpu-tools/wesl-spec).)_
 
 ## Additional Features
 

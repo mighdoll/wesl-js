@@ -53,7 +53,7 @@ const device = await getGPUDevice();
 await testWesl({ device, moduleName: "interp_test" });
 ```
 
-**[See API.md for assertion functions →](https://github.com/wgsl-tooling-wg/wesl-js/blob/main/packages/wgsl-test/API.md#assertion-functions)**
+**[See API.md for assertion functions →](https://github.com/webgpu-tools/wesl-js/blob/main/packages/wgsl-test/API.md#assertion-functions)**
 
 ## Annotated Resources
 
@@ -106,7 +106,7 @@ test("blur shader matches snapshot", async () => {
 
 Update snapshots with `vitest -u` as needed.
 
-**[See API.md for snapshot workflow and visual regression testing →](https://github.com/wgsl-tooling-wg/wesl-js/blob/main/packages/wgsl-test/API.md#visual-regression-testing)**
+**[See API.md for snapshot workflow and visual regression testing →](https://github.com/webgpu-tools/wesl-js/blob/main/packages/wgsl-test/API.md#visual-regression-testing)**
 
 ## Testing Compute Shaders
 
@@ -134,7 +134,7 @@ const { results } = await testCompute({ device, src });
 // results = [0, 388445122]
 ```
 
-**[See API.md for complete API documentation →](https://github.com/wgsl-tooling-wg/wesl-js/blob/main/packages/wgsl-test/API.md#testcompute)**
+**[See API.md for complete API documentation →](https://github.com/webgpu-tools/wesl-js/blob/main/packages/wgsl-test/API.md#testcompute)**
 
 ## Testing Fragment Shaders
 
@@ -161,20 +161,20 @@ const result = await testFragment({ device, src });
 // result = [2.828, 1.414, 0.0, 2.0]  // vec4f color at pixel (0,0)
 ```
 
-**[See API.md for derivatives, input textures, uniforms, and more →](https://github.com/wgsl-tooling-wg/wesl-js/blob/main/packages/wgsl-test/API.md#testfragment)**
+**[See API.md for derivatives, input textures, uniforms, and more →](https://github.com/webgpu-tools/wesl-js/blob/main/packages/wgsl-test/API.md#testfragment)**
 
 ## API Documentation
 
 -
-  **[API.md](https://github.com/wgsl-tooling-wg/wesl-js/blob/main/packages/wgsl-test/API.md)**
+  **[API.md](https://github.com/webgpu-tools/wesl-js/blob/main/packages/wgsl-test/API.md)**
   - Complete API reference with detailed examples
 -
-  **[API.md#complete-test-example](https://github.com/wgsl-tooling-wg/wesl-js/blob/main/packages/wgsl-test/API.md#complete-test-example)**
+  **[API.md#complete-test-example](https://github.com/webgpu-tools/wesl-js/blob/main/packages/wgsl-test/API.md#complete-test-example)**
   - Full vitest test setup with beforeAll/afterAll
-- **[Examples](https://github.com/wgsl-tooling-wg/wesl-js/tree/main/examples)**
+- **[Examples](https://github.com/webgpu-tools/wesl-js/tree/main/examples)**
   - Tiny standalone examples
 
 ## Future
 
-File an [issue](https://github.com/wgsl-tooling-wg/wesl-js/issues) or talk about
+File an [issue](https://github.com/webgpu-tools/wesl-js/issues) or talk about
 your ideas on the tooling group [discord chat](https://discord.gg/5UhkaSu4dt).

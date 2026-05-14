@@ -132,4 +132,4 @@ const myExtension: PluginExtension = {
 };
 ```
 
-See [PluginExtension.ts](https://github.com/wgsl-tooling-wg/wesl-js/blob/main/packages/wesl-plugin/src/PluginExtension.ts) for the full API.
+See [PluginExtension.ts](https://github.com/webgpu-tools/wesl-js/blob/main/packages/wesl-plugin/src/PluginExtension.ts) for the full API.

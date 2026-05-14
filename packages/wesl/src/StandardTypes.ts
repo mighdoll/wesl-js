@@ -1,5 +1,5 @@
 // From https://www.w3.org/TR/WGSL/#predeclared
-// Use https://github.com/wgsl-tooling-wg/wgsl-spec to regenerate these list in the future
+// Use https://github.com/webgpu-tools/wgsl-spec to regenerate these list in the future
 
 export const stdFns = `bitcast all any select arrayLength 
   abs acos acosh asin asinh atan atanh atan2 ceil clamp cos cosh 

@@ -7,7 +7,7 @@
     "dist",
     "src"
   ],
-  "repository": "github:wgsl-tooling-wg/wesl-js",
+  "repository": "github:webgpu-tools/wesl-js",
   "scripts": {
     "build": "run-s build:grammar build:ts",
     "build:grammar": "lezer-generator src/wesl.grammar -o src/parser.js",

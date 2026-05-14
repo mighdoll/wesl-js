@@ -25,7 +25,7 @@ export type ManglerFn = (
 /**
  * Construct a globally unique name based on the declaration
  * module path separated by underscores.
- * Corresponds to "Underscore-count mangling" from [NameMangling.md](https://github.com/wgsl-tooling-wg/wesl-spec/blob/main/NameMangling.md)
+ * Corresponds to "Underscore-count mangling" from [NameMangling.md](https://github.com/webgpu-tools/wesl-spec/blob/main/NameMangling.md)
  */
 export function underscoreMangle(
   decl: DeclIdent,

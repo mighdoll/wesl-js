@@ -6,7 +6,7 @@
     "src",
     "dist"
   ],
-  "repository": "github:wgsl-tooling-wg/wesl-js",
+  "repository": "github:webgpu-tools/wesl-js",
   "scripts": {
     "build": "wesl-packager",
     "prepublishOnly": "run-s build",

@@ -1,4 +1,4 @@
-// Use https://github.com/wgsl-tooling-wg/wgsl-spec to check this list in the future
+// Use https://github.com/webgpu-tools/wgsl-spec to check this list in the future
 // I recommend checking whether a new list and the current list are equal
 
 /** https://www.w3.org/TR/WGSL/#keyword-summary */

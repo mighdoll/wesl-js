@@ -8,8 +8,8 @@
     "dist",
     "src"
   ],
-  "repository": "https://github.com/wgsl-tooling-wg/wesl-js/tree/main/packages/cli",
-  "homepage": "https://github.com/wgsl-tooling-wg/wesl-js/tree/main/packages/cli#readme",
+  "repository": "https://github.com/webgpu-tools/wesl-js/tree/main/packages/cli",
+  "homepage": "https://github.com/webgpu-tools/wesl-js/tree/main/packages/cli#readme",
   "scripts": {
     "build": "tsdown",
     "prepublishOnly": "run-s build",

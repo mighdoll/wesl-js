@@ -4,7 +4,7 @@
   "version": "0.1.5",
   "private": true,
   "type": "module",
-  "repository": "github:wgsl-tooling-wg/wesl-js",
+  "repository": "github:webgpu-tools/wesl-js",
   "scripts": {
     "build": "tsdown",
     "build:vsix": "turbo run build:vsix:run",

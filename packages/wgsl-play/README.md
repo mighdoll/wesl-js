@@ -312,7 +312,7 @@ import super::common::tint;
 
 ## Using with wesl-plugin
 
-For more control, use the [wesl-plugin](https://github.com/wgsl-tooling-wg/wesl-js/tree/main/packages/wesl-plugin) to
+For more control, use the [wesl-plugin](https://github.com/webgpu-tools/wesl-js/tree/main/packages/wesl-plugin) to
 assemble shaders and libraries at build time and provide
 them wgsl-play in JavaScript or TypeScript.
 - provides full support for Hot Module Reloading during development
