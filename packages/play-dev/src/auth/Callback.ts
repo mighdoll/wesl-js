@@ -1,9 +1,3 @@
-/**
- * Post-redirect handler for `/auth/callback`. Verifies state, swaps the
- * `code` for a token via the Cloudflare Worker, fetches the GitHub profile
- * for avatar/login caching, and persists the result.
- */
-
 import { takeStoredState } from "./Authorize.ts";
 import { type AuthToken, writeToken } from "./Token.ts";
 
@@ -13,6 +7,11 @@ export type CallbackResult =
   | { ok: true; token: AuthToken }
   | { ok: false; error: string };
 
+/**
+ * Post-redirect handler for `/auth/callback`. Verifies state, swaps the
+ * `code` for a token via the Cloudflare Worker, fetches the GitHub profile
+ * for avatar/login caching, and persists the result.
+ */
 export async function completeSignIn(): Promise<CallbackResult> {
   const params = new URLSearchParams(location.search);
   const code = params.get("code");
