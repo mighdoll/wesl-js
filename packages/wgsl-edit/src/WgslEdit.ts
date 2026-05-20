@@ -360,6 +360,7 @@ export class WgslEdit extends HTMLElement {
       if (tab) this.activeFile = tab;
     }
     this.updateLint();
+    this.dispatchChange();
   }
 
   /** Link/compile WESL sources into WGSL. Returns the compiled WGSL string. */
