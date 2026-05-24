@@ -262,7 +262,8 @@ export interface UnknownExpressionElem extends ElemWithContentsBase {
 export interface TranslateTimeExpressionElem {
   kind: "translate-time-expression";
   expression: ExpressionElem;
-  span: Span;
+  start: number;
+  end: number;
 }
 
 /** A literal value (boolean or number) in WESL source. */
@@ -316,9 +317,16 @@ export interface FunctionCallExpression extends AbstractElemBase {
 
 export interface UnaryOperator {
   value: "!" | "&" | "*" | "-" | "~";
-  span: Span;
+  start: number;
+  end: number;
 }
 
+/** Uses span (not inline start/end) so each operator object stays in a smaller
+ * V8 size class. Inline start/end uses slightly less memory overall (no separate
+ * span tuple) but each object is bigger and more likely to be promoted to old
+ * gen under sustained allocation pressure, triggering more major GCs and
+ * ~5% slower wall time on math-heavy parse workloads (bevy_env_map/parse).
+ * A rare case where allocating more bytes wins on GC. */
 export interface BinaryOperator {
   value:
     | ("||" | "&&" | "+" | "-" | "*" | "/" | "%" | "==")

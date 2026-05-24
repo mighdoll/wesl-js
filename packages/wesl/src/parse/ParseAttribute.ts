@@ -90,7 +90,8 @@ function parseConditionalAttribute<T>(
 
   const translateTimeExpr = makeTranslateTimeExpressionElem({
     value: expr,
-    span: [startPos, stream.checkpoint()],
+    start: startPos,
+    end: stream.checkpoint(),
   });
   return makeAttr(translateTimeExpr);
 }
@@ -174,12 +175,14 @@ function parseStandardAttribute(ctx: ParsingContext): AttributeElem | null {
 // TODO remove translate-time once we drop v1
 function makeTranslateTimeExpressionElem(args: {
   value: ExpressionElem;
-  span: [number, number];
+  start: number;
+  end: number;
 }): TranslateTimeExpressionElem {
   return {
     kind: "translate-time-expression",
     expression: args.value,
-    span: args.span,
+    start: args.start,
+    end: args.end,
   };
 }
 

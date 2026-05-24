@@ -31,13 +31,15 @@ function ifAttr(condition: boolean): AttributeElem {
   const literal: Literal = {
     kind: "literal",
     value: condition ? "true" : "false",
-    span: [0, 0],
+    start: 0,
+    end: 0,
   };
 
   const translateTimeExpr: TranslateTimeExpressionElem = {
     kind: "translate-time-expression",
     expression: literal,
-    span: [0, 0],
+    start: 0,
+    end: 0,
   };
 
   const ifAttribute: IfAttribute = {

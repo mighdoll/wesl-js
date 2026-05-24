@@ -21,7 +21,8 @@ export function makeLiteral(token: WeslToken<"keyword" | "number">): Literal {
 }
 
 export function makeUnaryOperator(token: WeslToken<"symbol">): UnaryOperator {
-  return { value: token.text as UnaryOperator["value"], span: token.span };
+  const [start, end] = token.span;
+  return { value: token.text as UnaryOperator["value"], start, end };
 }
 
 export function makeBinaryOperator(token: {
@@ -36,12 +37,11 @@ export function makeUnaryExpression(
   operator: UnaryOperator,
   expr: ExpressionElem,
 ): UnaryExpression {
-  const [start] = operator.span;
   return {
     kind: "unary-expression",
     operator,
     expression: expr,
-    start,
+    start: operator.start,
     end: expr.end,
   };
 }

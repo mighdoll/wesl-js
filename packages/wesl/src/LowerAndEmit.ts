@@ -391,11 +391,8 @@ function emitExpression(e: ExpressionElem, ctx: EmitContext): void {
   }
 
   if (kind === "unary-expression") {
-    ctx.srcBuilder.add(
-      e.operator.value,
-      e.operator.span[0],
-      e.operator.span[1],
-    );
+    const { value, start, end } = e.operator;
+    ctx.srcBuilder.add(value, start, end);
     emitExpression(e.expression, ctx);
     return;
   }
