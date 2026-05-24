@@ -2,9 +2,14 @@
 // Measures realistic bundle size: what users pay when importing `link` from the package.
 // Uses terser for minification. tsdown's built-in minifier (Oxc) is ~0.6% larger
 // and still in alpha, but we may switch to it later.
+//
+// If a baseline copy of the repo exists at <repo>/_baseline (created by
+// `pnpm bench:baseline <version>` in wesl-bench), the baseline's wesl is also
+// measured and a delta is printed.
 
 import { execSync } from "node:child_process";
 import {
+  existsSync,
   mkdirSync,
   readFileSync,
   rmSync,
@@ -12,43 +17,71 @@ import {
   writeFileSync,
 } from "node:fs";
 import { resolve } from "node:path";
-import { brotliCompressSync } from "node:zlib";
+import { brotliCompressSync, gzipSync } from "node:zlib";
 import { build } from "vite";
 
-const tmpDir = resolve(import.meta.dirname, "../.size-check-tmp");
-const distNodebug = resolve(import.meta.dirname, "../dist-nodebug");
+const scriptDir = import.meta.dirname;
+const currentWesl = resolve(scriptDir, "..");
+const repoRoot = resolve(scriptDir, "../../..");
+const baselineWesl = resolve(repoRoot, "_baseline/packages/wesl");
+const tmpRoot = resolve(currentWesl, ".size-check-tmp");
+
+interface Sizes {
+  raw: number;
+  gzip: number;
+  brotli: number;
+}
 
 async function main() {
-  // Ensure nodebug build exists
-  try {
-    statSync(resolve(distNodebug, "index.js"));
-  } catch {
-    console.log("Building nodebug first...");
-    execSync("pnpm build:nodebug", {
-      cwd: resolve(import.meta.dirname, ".."),
-      stdio: "inherit",
-    });
+  rmSync(tmpRoot, { recursive: true, force: true });
+  mkdirSync(tmpRoot, { recursive: true });
+
+  const current = await measure(currentWesl, "current");
+  const baseline = existsSync(baselineWesl)
+    ? await measure(baselineWesl, "baseline")
+    : null;
+
+  console.log();
+  reportSize("Raw   ", current.raw, baseline?.raw);
+  reportSize("Gzip  ", current.gzip, baseline?.gzip);
+  reportSize("Brotli", current.brotli, baseline?.brotli);
+  console.log();
+
+  if (baseline) {
+    const info = baselineVersionInfo();
+    if (info) console.log(`Baseline: ${info}\n`);
+  } else {
+    console.log(
+      `Tip: run \`pnpm bench:baseline <version>\` in wesl-bench to enable size diffs.\n`,
+    );
   }
 
-  // Setup temp directory
-  rmSync(tmpDir, { recursive: true, force: true });
-  mkdirSync(tmpDir, { recursive: true });
+  rmSync(tmpRoot, { recursive: true, force: true });
+}
 
-  // Create test entry that imports just `link`
-  const entryFile = resolve(tmpDir, "entry.ts");
+/** Build (if needed) and bundle the wesl package at `weslDir`, returning sizes. */
+async function measure(weslDir: string, label: string): Promise<Sizes> {
+  const distDir = resolve(weslDir, "dist-nodebug");
+  if (!existsSync(resolve(distDir, "index.js"))) {
+    console.log(`Building nodebug for ${label}...`);
+    execSync("pnpm build:nodebug", { cwd: weslDir, stdio: "inherit" });
+  }
+
+  const outDir = resolve(tmpRoot, label);
+  mkdirSync(outDir, { recursive: true });
+  const entryFile = resolve(outDir, "entry.ts");
   writeFileSync(
     entryFile,
-    `import { link } from "../dist-nodebug/index.js";\nexport { link };\n`,
+    `import { link } from ${JSON.stringify(`${distDir}/index.js`)};\nexport { link };\n`,
   );
 
-  // Bundle with vite + terser
   const outFile = "out.js";
   await build({
     configFile: false,
     logLevel: "warn",
     build: {
       lib: { entry: entryFile, formats: ["es"], fileName: () => outFile },
-      outDir: tmpDir,
+      outDir,
       emptyOutDir: false,
       minify: "terser",
       sourcemap: false,
@@ -56,16 +89,35 @@ async function main() {
     },
   });
 
-  const outPath = resolve(tmpDir, outFile);
-  const raw = statSync(outPath).size;
-  const brotli = brotliCompressSync(readFileSync(outPath)).length;
+  const outPath = resolve(outDir, outFile);
+  const bytes = readFileSync(outPath);
+  return {
+    raw: statSync(outPath).size,
+    gzip: gzipSync(bytes).length,
+    brotli: brotliCompressSync(bytes).length,
+  };
+}
 
-  console.log(
-    `\nSize: ${(raw / 1024).toFixed(1)} kB raw, ${(brotli / 1024).toFixed(1)} kB brotli\n`,
-  );
+/** Print one size line with byte resolution and an optional delta vs baseline. */
+function reportSize(label: string, size: number, baseline?: number): void {
+  const bytes = size.toLocaleString("en-US").padStart(8);
+  const kB = (size / 1024).toFixed(2).padStart(7);
+  let delta = "";
+  if (baseline !== undefined) {
+    const diff = size - baseline;
+    const sign = diff > 0 ? "+" : diff < 0 ? "" : " ";
+    const pct = baseline === 0 ? 0 : (diff / baseline) * 100;
+    delta = `   ${sign}${diff.toLocaleString("en-US")} B (${sign}${pct.toFixed(2)}%)`;
+  }
+  console.log(`${label}: ${bytes} B  (${kB} kB)${delta}`);
+}
 
-  // Cleanup
-  rmSync(tmpDir, { recursive: true, force: true });
+/** Read baseline git version info written by `pnpm bench:baseline`. */
+function baselineVersionInfo(): string | null {
+  const file = resolve(repoRoot, "_baseline/.baseline-version");
+  if (!existsSync(file)) return null;
+  const { hash, date, ref } = JSON.parse(readFileSync(file, "utf8"));
+  return `${hash} (${date})${ref && ref !== hash ? ` [${ref}]` : ""}`;
 }
 
 main().catch(console.error);
