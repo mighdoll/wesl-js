@@ -49,6 +49,7 @@ export function loadAllExamples(
     particle: loadFile(examplesDir, "particle.wgsl"),
     unity: loadFile(examplesDir, "unity_webgpu_000002B8376A5020.fs.wgsl"),
     tiny: loadFile(examplesDir, "tiny.wgsl"),
+    op_dense: loadFile(examplesDir, "op_dense.wgsl"),
   };
 }
 
