@@ -5,6 +5,10 @@ packages:
   - 'packages/wesl-plugin/test/*'
   - 'examples/*'
 
+# turbo manages install ordering; pnpm's pre-run auto-install conflicts with
+# the minimumReleaseAge cooldown policy and races on git submodule hooks.
+verifyDepsBeforeRun: false
+
 allowBuilds:
   esbuild: true
   es5-ext: false
