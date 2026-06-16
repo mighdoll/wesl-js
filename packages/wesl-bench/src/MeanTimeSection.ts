@@ -1,6 +1,6 @@
 import {
-  average,
   type MeasuredResults,
+  mean,
   type ScalarSection,
   scalarSection,
   timeMs,
@@ -18,7 +18,7 @@ export const meanTimeSection: ScalarSection = scalarSection({
       formatter: timeMs,
       comparable: true,
       value: (r: MeasuredResults) =>
-        r.samples.length ? average(r.samples) : undefined,
+        r.samples.length ? mean(r.samples) : undefined,
     },
   ],
 });
