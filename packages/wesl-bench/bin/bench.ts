@@ -37,7 +37,7 @@ await runBenchCli({
       );
     }
     const matrix: BenchMatrix<WeslSource> = {
-      name: "WESL Parser",
+      name: "WESL",
       variantDir: new URL("../src/variants/", import.meta.url).href,
       casesModule: new URL("../src/Cases.ts", import.meta.url).href,
       baselineDir: hasBaseline

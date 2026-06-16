@@ -13,9 +13,7 @@ test("runs without errors", () => {
     `node --expose-gc --experimental-strip-types ${benchPath} --profile`,
     { encoding: "utf8" },
   );
-
-  if (!result.includes("bevy_env_map"))
-    throw new Error("Missing benchmark name");
+  if (!result.includes("WESL")) throw new Error("Missing matrix name");
   if (!result.includes("link")) throw new Error("Missing link variant");
 });
 
