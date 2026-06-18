@@ -9,7 +9,7 @@ import {
   solidTexture,
   type TextureBinding,
 } from "wesl-gpu";
-import type { DiscoveredResource } from "wesl-reflect";
+import type { DiscoveredBuffer, DiscoveredResource } from "wesl-reflect";
 import { lemurTexture } from "./ExampleImages.ts";
 
 /** GPU resources created for annotated test vars. */
@@ -18,13 +18,21 @@ export interface TestResources {
   entries: GPUBindGroupEntry[];
   /** Layout entries for annotated resources. */
   layoutEntries: GPUBindGroupLayoutEntry[];
-  /** Read-write storage buffers to re-zero between tests. */
-  buffers: GPUBuffer[];
+  /** Read-write storage buffers, keyed by var name (re-zeroed between tests). */
+  buffers: Map<string, GPUBuffer>;
 }
 
 export interface CreateTestResourcesOptions {
   /** f32 sentinel to pre-fill storage buffers, so unwritten slots are visible in failing tests. */
   prefill?: number;
+}
+
+/** Test bind group + pipeline layout for annotated resources. */
+export interface TestBindings {
+  bindGroup: GPUBindGroup;
+  pipelineLayout: GPUPipelineLayout;
+  /** Read-write storage buffers, keyed by var name. */
+  buffers: Map<string, GPUBuffer>;
 }
 
 type TextureGenerator = (
@@ -64,6 +72,22 @@ export async function createTestResources(
   return { entries: out.entries, layoutEntries: out.layoutEntries, buffers };
 }
 
+/** Allocate test resources and build the matching bind group + pipeline layout. */
+export async function setupTestBindings(
+  device: GPUDevice,
+  resources: DiscoveredResource[],
+  startBinding: number,
+  opts: CreateTestResourcesOptions = {},
+): Promise<TestBindings> {
+  const test = await createTestResources(device, resources, startBinding, opts);
+  const layout = device.createBindGroupLayout({ entries: test.layoutEntries });
+  const bindGroup = device.createBindGroup({ layout, entries: test.entries });
+  const pipelineLayout = device.createPipelineLayout({
+    bindGroupLayouts: [layout],
+  });
+  return { bindGroup, pipelineLayout, buffers: test.buffers };
+}
+
 /** Generate a test texture from the named source. */
 async function testTextureHandler(
   device: GPUDevice,
@@ -82,12 +106,19 @@ async function testTextureHandler(
   return { texture: await gen(device, r.params) };
 }
 
-/** Filter to only read_write buffers (for rezeroing between tests). */
+/** Map each read_write @buffer var name to its GPU storage buffer.
+ *  `allBuffers` is in buffer-declaration order, so index `i` over the buffer
+ *  resources lines up with it. Keying by name frees consumers from that order. */
 function collectReadWriteBuffers(
   resources: DiscoveredResource[],
   allBuffers: GPUBuffer[],
-): GPUBuffer[] {
-  return resources
-    .filter(r => r.kind === "buffer")
-    .flatMap((r, i) => (r.access === "read_write" ? [allBuffers[i]] : []));
+): Map<string, GPUBuffer> {
+  const isBuffer = (r: DiscoveredResource): r is DiscoveredBuffer =>
+    r.kind === "buffer";
+  const pairs = resources
+    .filter(isBuffer)
+    .flatMap((r, i): [string, GPUBuffer][] =>
+      r.access === "read_write" ? [[r.varName, allBuffers[i]]] : [],
+    );
+  return new Map(pairs);
 }

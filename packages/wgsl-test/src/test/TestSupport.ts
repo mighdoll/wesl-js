@@ -13,9 +13,8 @@ export function loadFixture(name: string): string {
 
 /** Parse a WESL source string into an AST for test assertions. */
 export function parseTest(src: string): WeslAST {
-  return parseSrcModule({
-    modulePath: "test",
-    debugFilePath: "test.wesl",
-    src,
-  });
+  return parseSrcModule(
+    { modulePath: "test", debugFilePath: "test.wesl", src },
+    { weslExtensions: { doBlocks: true } },
+  );
 }

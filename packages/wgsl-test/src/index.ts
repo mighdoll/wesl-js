@@ -19,9 +19,12 @@ export {
   withErrorScopes,
 } from "wesl-gpu";
 
+export * from "./BufferDecode.ts";
 export * from "./CompileShader.ts";
+export * from "./DoBlockDiscovery.ts";
 export * from "./ExampleImages.ts";
 export * from "./ImageHelpers.ts";
+export * from "./RunDoBlock.ts";
 export * from "./TestComputeShader.ts";
 export * from "./TestDiscovery.ts";
 export * from "./TestFragmentShader.ts";

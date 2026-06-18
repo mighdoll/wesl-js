@@ -1,4 +1,4 @@
-import { type LinkParams, parseSrcModule } from "wesl";
+import { type LinkParams, parseSrcModule, type WeslAST } from "wesl";
 import { clearBuffers, runCompute } from "wesl-gpu";
 import {
   annotatedResourcesPlugin,
@@ -11,6 +11,8 @@ import {
   resolveShaderContext,
   type ShaderContext,
 } from "./CompileShader.ts";
+import { type DoBlockInfo, findDoBlockTests } from "./DoBlockDiscovery.ts";
+import { runDoBlock } from "./RunDoBlock.ts";
 import { resolveShaderSource } from "./ShaderModuleLoader.ts";
 import type { ComputeTestParams } from "./TestComputeShader.ts";
 import {
@@ -52,6 +54,8 @@ export interface TestResult {
   actual: number[];
   expected: number[];
   snapshot?: SnapshotResult;
+  /** Failure message for non-compute-test failures (e.g. do-block dispatch). */
+  message?: string;
 }
 
 /** Parameters for testWesl() which registers all @test functions with vitest. */
@@ -89,6 +93,15 @@ interface BuildSnapshotArgs {
   snapshotFns: SnapshotFunctionInfo[];
 }
 
+interface DoTestFileParams {
+  ast: WeslAST;
+  shaderSrc: string;
+  shaderContext: ShaderContext;
+  device: GPUDevice;
+  conditions?: LinkParams["conditions"];
+  constants?: LinkParams["constants"];
+}
+
 /** Size of TestResult struct in bytes (u32 + u32 + padding + vec4f + vec4f = 48). */
 const testResultSize = 48;
 
@@ -101,11 +114,19 @@ export async function testWesl(params: TestWeslParams): Promise<void> {
   const { shaderSrc, ast } = await parseTestModule(params);
   const testFns = findTestFunctions(ast);
   const snapshotFns = findSnapshotFunctions(ast);
+  const doTests = findDoBlockTests(ast);
 
   // Register compute @test functions
   for (const fn of testFns) {
     test(testDisplayName(fn.name, fn.description), async () => {
       await expectWesl({ ...params, testName: fn.name });
+    });
+  }
+
+  // Register `@test @entry do` blocks
+  for (const d of doTests) {
+    test(testDisplayName(d.name), async () => {
+      await expectWesl({ ...params, testName: d.name });
     });
   }
 
@@ -142,6 +163,7 @@ export async function expectWesl(params: RunWeslParams): Promise<void> {
 
   const messages = failures.map(f => {
     if (f.snapshot) return `  ${f.name}: FAILED\n    ${f.snapshot.message}`;
+    if (f.message) return `  ${f.name}: FAILED\n    ${f.message}`;
     return [
       `  ${f.name}: FAILED`,
       `    actual:   [${f.actual.join(", ")}]`,
@@ -162,9 +184,11 @@ export async function runWesl(runParams: RunWeslParams): Promise<TestResult[]> {
 
   let testFns = findTestFunctions(ast);
   let snapshotFns = findSnapshotFunctions(ast);
+  let doTests = findDoBlockTests(ast);
   if (testName) {
     testFns = testFns.filter(t => t.name === testName);
     snapshotFns = snapshotFns.filter(s => s.name === testName);
+    doTests = doTests.filter(d => d.name === testName);
   }
 
   const resources = findAnnotatedResources(ast);
@@ -197,8 +221,21 @@ export async function runWesl(runParams: RunWeslParams): Promise<TestResult[]> {
   // WebGPU zero-inits buffers on creation, so the first test doesn't need it.
   for (const [i, fn] of testFns.entries()) {
     if (i > 0 && computeResources)
-      clearBuffers(device, computeResources.buffers);
+      clearBuffers(device, computeResources.buffers.values());
     results.push(await runSingleComputeTest(fn, computeParams));
+  }
+
+  // Run @test @entry do blocks; a clean dispatch counts as a pass.
+  const doParams: DoTestFileParams = {
+    ast,
+    shaderSrc,
+    shaderContext,
+    device,
+    conditions,
+    constants,
+  };
+  for (const d of doTests) {
+    results.push(await runSingleDoBlockTest(d, doParams));
   }
 
   // Run fragment snapshot tests
@@ -243,11 +280,10 @@ async function parseTestModule(params: {
   const { projectDir, src, moduleName } = params;
   const shaderSrc = await resolveShaderSource(src, moduleName, projectDir);
   const modPath = moduleName || "test";
-  const ast = parseSrcModule({
-    modulePath: modPath,
-    debugFilePath: modPath + ".wesl",
-    src: shaderSrc,
-  });
+  const ast = parseSrcModule(
+    { modulePath: modPath, debugFilePath: modPath + ".wesl", src: shaderSrc },
+    { weslExtensions: { doBlocks: true } },
+  );
   return { shaderSrc, ast };
 }
 
@@ -348,6 +384,21 @@ fn _weslTestEntry() {
     readBuffers: new Map([["result", resultBuffer]]),
   });
   return parseTestResult(testFn.name, readbacks.get("result")!);
+}
+
+/** Run a `@test @entry do` block; passes if dispatch completes (no assertions yet). */
+async function runSingleDoBlockTest(
+  info: DoBlockInfo,
+  params: DoTestFileParams,
+): Promise<TestResult> {
+  const { name } = info;
+  try {
+    await runDoBlock({ ...params, blockName: name });
+    return { name, passed: true, actual: [], expected: [] };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    return { name, passed: false, actual: [], expected: [], message };
+  }
 }
 
 /** Allocate a TestResult-struct storage buffer pre-filled with -999.0 sentinels

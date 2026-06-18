@@ -139,11 +139,14 @@ async function runFragment(params: FragmentTestParams): Promise<number[]> {
   const textureCount = params.textures?.length ?? 0;
   const startBinding = 1 + textureCount * 2;
   const resources = findAnnotatedResources(
-    parseSrcModule({
-      modulePath: "package::main",
-      debugFilePath: "./main.wesl",
-      src: fragmentSrc,
-    }),
+    parseSrcModule(
+      {
+        modulePath: "package::main",
+        debugFilePath: "./main.wesl",
+        src: fragmentSrc,
+      },
+      { weslExtensions: { doBlocks: true } },
+    ),
   );
   const testResources =
     resources.length > 0
@@ -161,6 +164,7 @@ async function runFragment(params: FragmentTestParams): Promise<number[]> {
     resolver,
     packageName: params.packageName ?? ctx.packageName,
     config: plugins ? { plugins } : params.config,
+    weslExtensions: { doBlocks: true },
     extraEntries: testResources?.entries,
     extraLayoutEntries: testResources?.layoutEntries,
   });

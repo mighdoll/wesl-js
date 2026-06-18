@@ -31,6 +31,16 @@ export interface ComputeRunResult {
   readbacks: Map<string, ArrayBuffer>;
 }
 
+/** Parameters for {@link recordComputePass}: dispatch one compute pipeline
+ *  into a caller-provided encoder. */
+export interface RecordComputePassParams {
+  encoder: GPUCommandEncoder;
+  pipeline: GPUComputePipeline;
+  bindGroup: GPUBindGroup;
+  /** Dispatch dims. Single number = x only; tuple = [x, y, z]. Default 1. */
+  dispatchWorkgroups?: number | [number, number, number];
+}
+
 /** Link a WESL/WGSL compute shader into a GPU shader module.
  *  Mirrors `linkFragmentShader` without the synthetic vertex prelude. */
 export async function linkComputeShader(
@@ -52,6 +62,18 @@ export async function runCompute(
   return withErrorScopes(p.device, () => dispatchAndReadback(p));
 }
 
+/** Record one compute pass into the caller's encoder; the caller submits.
+ *  Used by interpreters that need many passes in a single command buffer. */
+export function recordComputePass(p: RecordComputePassParams): void {
+  const dispatch = p.dispatchWorkgroups ?? 1;
+  const pass = p.encoder.beginComputePass();
+  pass.setPipeline(p.pipeline);
+  pass.setBindGroup(0, p.bindGroup);
+  if (typeof dispatch === "number") pass.dispatchWorkgroups(dispatch);
+  else pass.dispatchWorkgroups(...dispatch);
+  pass.end();
+}
+
 /** Clear each buffer to zeros so re-runs / re-tests see deterministic initial state. */
 export function clearBuffers(
   device: GPUDevice,
@@ -70,7 +92,6 @@ async function dispatchAndReadback(
   p: RunComputeParams,
 ): Promise<ComputeRunResult> {
   const { device, module, entryPoint, bindGroup, pipelineLayout } = p;
-  const dispatch = p.dispatchWorkgroups ?? 1;
   const pipeline = device.createComputePipeline({
     layout: pipelineLayout,
     compute: { module, entryPoint },
@@ -82,12 +103,12 @@ async function dispatchAndReadback(
   }
 
   const encoder = device.createCommandEncoder();
-  const pass = encoder.beginComputePass();
-  pass.setPipeline(pipeline);
-  pass.setBindGroup(0, bindGroup);
-  if (typeof dispatch === "number") pass.dispatchWorkgroups(dispatch);
-  else pass.dispatchWorkgroups(...dispatch);
-  pass.end();
+  recordComputePass({
+    encoder,
+    pipeline,
+    bindGroup,
+    dispatchWorkgroups: p.dispatchWorkgroups,
+  });
   for (const [name, src] of p.readBuffers) {
     const dst = stagingBuffers.get(name)!;
     encoder.copyBufferToBuffer(src, 0, dst, 0, src.size);

@@ -125,6 +125,7 @@ export async function compileShader(
     constants,
     packageName: params.packageName ?? ctx.packageName,
     config: params.plugins ? { plugins: params.plugins } : undefined,
+    weslExtensions: { doBlocks: true }, // applies to the weslSrc fallback path
   });
   const module = linked.createShaderModule(device);
 
@@ -147,6 +148,7 @@ export async function resolveShaderContext(
     packageName,
     !useSourceShaders, // include current package when testing bundles
     virtualLibNames,
+    { doBlocks: true },
   );
 
   const fileResolver = useSourceShaders
@@ -177,6 +179,20 @@ export async function createProjectResolver(
   return new FileModuleResolver(baseDir, packageName);
 }
 
+/** Build a fresh resolver from a ShaderContext and main source.
+ * Returns undefined if context has no fileResolver (bundle-only mode). */
+export function buildResolver(
+  ctx: ShaderContext,
+  src: string,
+): ModuleResolver | undefined {
+  if (!ctx.fileResolver) return undefined;
+  const mainResolver = new RecordResolver(
+    { main: src },
+    { packageName: ctx.packageName, weslExtensions: { doBlocks: true } },
+  );
+  return freshResolver(new CompositeResolver([mainResolver, ctx.fileResolver]));
+}
+
 /** Verify shader compilation succeeded, throw on errors. */
 async function verifyCompilation(module: GPUShaderModule): Promise<void> {
   const info = await module.getCompilationInfo();
@@ -187,20 +203,6 @@ async function verifyCompilation(module: GPUShaderModule): Promise<void> {
       .join("\n");
     throw new Error(`Shader compilation failed:\n${messages}`);
   }
-}
-
-/** Build a fresh resolver from a ShaderContext and main source.
- * Returns undefined if context has no fileResolver (bundle-only mode). */
-export function buildResolver(
-  ctx: ShaderContext,
-  src: string,
-): ModuleResolver | undefined {
-  if (!ctx.fileResolver) return undefined;
-  const mainResolver = new RecordResolver(
-    { main: src },
-    { packageName: ctx.packageName },
-  );
-  return freshResolver(new CompositeResolver([mainResolver, ctx.fileResolver]));
 }
 
 /** Read package name from package.json, normalized for WGSL identifiers. */

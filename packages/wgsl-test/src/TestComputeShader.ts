@@ -2,16 +2,13 @@ import { type LinkParams, parseSrcModule, type WeslAST } from "wesl";
 import { runCompute } from "wesl-gpu";
 import {
   annotatedResourcesPlugin,
-  type DiscoveredBuffer,
   type DiscoveredResource,
   findAnnotatedResources,
-  type ScalarKind,
-  type TypeShape,
-  varReflection,
 } from "wesl-reflect";
+import { decodeReadbacks } from "./BufferDecode.ts";
 import { compileShader } from "./CompileShader.ts";
 import { resolveShaderSource } from "./ShaderModuleLoader.ts";
-import { createTestResources } from "./TestResourceSetup.ts";
+import { setupTestBindings } from "./TestResourceSetup.ts";
 
 export interface ComputeTestParams {
   /** WESL/WGSL source code for the compute shader to test.
@@ -78,7 +75,7 @@ export async function testCompute(
   const dispatchWorkgroups = params.dispatchWorkgroups ?? 1;
 
   const shaderSrc = await resolveShaderSource(src, moduleName, projectDir);
-  const { ast, resources, bufferVars } = parseAndValidate(shaderSrc);
+  const { ast, resources } = parseAndValidate(shaderSrc);
 
   const startBinding = 0;
   const module = await compileShader({
@@ -91,118 +88,42 @@ export async function testCompute(
     plugins: [annotatedResourcesPlugin(resources, startBinding)],
   });
 
-  const { bindGroup, pipelineLayout, buffers } = await setupBindings(
+  const { bindGroup, pipelineLayout, buffers } = await setupTestBindings(
     device,
     resources,
     startBinding,
+    { prefill: sentinel },
   );
 
-  const readBuffers = mapReadWriteBuffers(bufferVars, buffers);
   const { readbacks } = await runCompute({
     device,
     module,
     entryPoint: "main",
     bindGroup,
     pipelineLayout,
-    readBuffers,
+    readBuffers: buffers,
     dispatchWorkgroups,
   });
 
   return decodeReadbacks(ast, readbacks);
 }
 
-/** Parse the shader and extract @buffer vars; throws if none are declared. */
+/** Parse the shader and extract annotated resources; throws if no @buffer. */
 function parseAndValidate(shaderSrc: string): {
   ast: WeslAST;
   resources: DiscoveredResource[];
-  bufferVars: DiscoveredBuffer[];
 } {
-  const ast = parseSrcModule({
-    modulePath: "main",
-    debugFilePath: "./main.wesl",
-    src: shaderSrc,
-  });
-  const resources = findAnnotatedResources(ast);
-  const bufferVars = resources.filter(
-    (r): r is DiscoveredBuffer => r.kind === "buffer",
+  const ast = parseSrcModule(
+    { modulePath: "main", debugFilePath: "./main.wesl", src: shaderSrc },
+    { weslExtensions: { doBlocks: true } },
   );
-  if (bufferVars.length === 0) {
+  const resources = findAnnotatedResources(ast);
+  const hasBuffer = resources.some(r => r.kind === "buffer");
+  if (!hasBuffer) {
     throw new Error(
       "testCompute: shader has no @buffer declarations. Add e.g. " +
         "`@buffer var<storage, read_write> results: array<u32, 4>;` to capture results.",
     );
   }
-  return { ast, resources, bufferVars };
-}
-
-/** Allocate test buffers and build the bind group + pipeline layout. */
-async function setupBindings(
-  device: GPUDevice,
-  resources: DiscoveredResource[],
-  startBinding: number,
-): Promise<{
-  bindGroup: GPUBindGroup;
-  pipelineLayout: GPUPipelineLayout;
-  buffers: GPUBuffer[];
-}> {
-  const test = await createTestResources(device, resources, startBinding, {
-    prefill: sentinel,
-  });
-  const bgLayout = device.createBindGroupLayout({
-    entries: test.layoutEntries,
-  });
-  const bindGroup = device.createBindGroup({
-    layout: bgLayout,
-    entries: test.entries,
-  });
-  const pipelineLayout = device.createPipelineLayout({
-    bindGroupLayouts: [bgLayout],
-  });
-  return { bindGroup, pipelineLayout, buffers: test.buffers };
-}
-
-/** Decode each readback buffer using the var's reflected type. */
-function decodeReadbacks(
-  ast: WeslAST,
-  readbacks: Map<string, ArrayBuffer>,
-): Record<string, number[]> {
-  const result: Record<string, number[]> = {};
-  for (const [name, data] of readbacks) {
-    result[name] = decodeBuffer(data, varReflection(ast, name).type);
-  }
-  return result;
-}
-
-/** Map read_write @buffer var name to its GPU buffer (matched by declaration order). */
-function mapReadWriteBuffers(
-  bufferVars: DiscoveredBuffer[],
-  rwBuffers: GPUBuffer[],
-): Map<string, GPUBuffer> {
-  const rw = bufferVars.filter(b => b.access === "read_write");
-  return new Map(rw.map((b, i) => [b.varName, rwBuffers[i]]));
-}
-
-/** Decode an ArrayBuffer as a flat number[] using the type's leaf scalar kind. */
-function decodeBuffer(data: ArrayBuffer, type: TypeShape): number[] {
-  const kind = leafScalar(type);
-  switch (kind) {
-    case "f32":
-      return Array.from(new Float32Array(data));
-    case "i32":
-      return Array.from(new Int32Array(data));
-    case "u32":
-      return Array.from(new Uint32Array(data));
-    default:
-      throw new Error(`testCompute: cannot decode buffer of kind '${kind}'`);
-  }
-}
-
-/** Walk into arrays/vecs/mats/atomics to find the underlying scalar element kind. */
-function leafScalar(t: TypeShape): ScalarKind {
-  if (t.kind === "scalar") return t.type;
-  if (t.kind === "vec") return t.component;
-  if (t.kind === "mat") return t.component;
-  if (t.kind === "atomic") return t.component;
-  if (t.kind === "array") return leafScalar(t.elem);
-  throw new Error(`testCompute: cannot decode buffer of kind '${t.kind}'`);
+  return { ast, resources };
 }
