@@ -3,7 +3,9 @@ import type {
   Attribute,
   AttributeElem,
   DirectiveElem,
+  DoBlockElem,
   FnElem,
+  FnParamElem,
   StuffElem,
   TypedDeclElem,
   TypeRefElem,
@@ -75,6 +77,8 @@ function addElemFields(elem: AbstractElem, str: LineWrapper): void {
     str.add(` ${elem.name.ident.originalName}.${elem.member.name}${extra}`);
   } else if (kind === "fn") {
     addFnFields(elem, str);
+  } else if (kind === "do") {
+    addDoFields(elem, str);
   } else if (kind === "alias") {
     const prefix = elem.name.ident.kind === "decl" ? "%" : "";
     str.add(
@@ -172,13 +176,24 @@ function addTypedDeclIdent(elem: TypedDeclElem, str: LineWrapper) {
 
 function addFnFields(elem: FnElem, str: LineWrapper) {
   const { name, params, returnType, attributes } = elem;
+  str.add(` ${name.ident.originalName}(${paramListToString(params)})`);
+  listAttributeElems(attributes, str);
+  if (returnType) str.add(" -> " + typeRefElemToString(returnType));
+}
+
+function addDoFields(elem: DoBlockElem, str: LineWrapper) {
+  const { name, params, attributes } = elem;
+  str.add(` ${name.name}(${paramListToString(params)})`);
+  listAttributeElems(attributes, str);
+}
+
+/** @return "name: type, ..." for a fn/do parameter list. */
+function paramListToString(params: FnParamElem[]): string {
   const paramStrs = params.map(p => {
     const { originalName } = p.name.decl.ident;
     return `${originalName}: ${typeRefElemToString(p.name.typeRef!)}`;
   });
-  str.add(` ${name.ident.originalName}(${paramStrs.join(", ")})`);
-  listAttributeElems(attributes, str);
-  if (returnType) str.add(" -> " + typeRefElemToString(returnType));
+  return paramStrs.join(", ");
 }
 
 /** show attribute names in short form to verify collection */

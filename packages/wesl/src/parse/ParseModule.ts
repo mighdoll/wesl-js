@@ -1,13 +1,18 @@
 import type {
+  AbstractElem,
   Attribute,
   AttributeElem,
   ConditionalAttribute,
   ConstAssertElem,
+  DoBlockElem,
   GlobalDeclarationElem,
+  ModuleElem,
 } from "../AbstractElems.ts";
+import { ParseError } from "../ParseError.ts";
 import { findMap } from "../Util.ts";
 import { parseAttributeList } from "./ParseAttribute.ts";
 import { parseDirective } from "./ParseDirective.ts";
+import { parseDoBlock } from "./ParseDoBlock.ts";
 import { parseFnDecl } from "./ParseFn.ts";
 import {
   parseAliasDecl,
@@ -31,6 +36,7 @@ const declParsers = [
   parseAliasDecl,
   parseStructDecl,
   parseFnDecl,
+  parseDoBlock,
   parseConstAssert,
 ];
 
@@ -39,6 +45,25 @@ export function parseModule(ctx: ParsingContext): void {
   parseImports(ctx);
   parseDirectives(ctx);
   while (parseNextDeclaration(ctx)) {}
+}
+
+/**
+ * Reject a module that declares the same name as both a `do` block and a
+ * fn/global (`do` blocks share the module's declaration namespace). This is a
+ * small module-local pass, deliberately not part of bindIdents.
+ */
+export function checkDoBlockNames(moduleElem: ModuleElem): void {
+  const doBlocks = moduleElem.contents.filter(
+    (e): e is DoBlockElem => e.kind === "do",
+  );
+  if (doBlocks.length === 0) return;
+
+  const declNames = new Set(moduleElem.contents.map(globalDeclName));
+  const conflict = doBlocks.find(b => declNames.has(b.name.name));
+  if (conflict) {
+    const { name, start, end } = conflict.name;
+    throw new ParseError(`'${name}' declared as both fn and do`, [start, end]);
+  }
 }
 
 /** Parse WESL import statements at the start of the module. */
@@ -72,6 +97,22 @@ function parseNextDeclaration(ctx: ParsingContext): boolean {
   if (attrs.length)
     throwParseError(stream, "Expected declaration after attributes");
   return false;
+}
+
+/** @return the declared name of a module-level declaration, if it has one. */
+function globalDeclName(elem: AbstractElem): string | undefined {
+  switch (elem.kind) {
+    case "fn":
+    case "struct":
+    case "alias":
+      return elem.name.ident.originalName;
+    case "gvar":
+    case "const":
+    case "override":
+      return elem.name.decl.ident.originalName;
+    default:
+      return undefined;
+  }
 }
 
 /** Try each declaration parser until one succeeds. */

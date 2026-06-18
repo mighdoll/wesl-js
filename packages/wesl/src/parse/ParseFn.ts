@@ -83,7 +83,7 @@ export function parseFnDecl(
 }
 
 /** Grammar: '(' param_list? ')' where param_list : param ( ',' param )* ','? */
-function parseFnParams(ctx: ParsingContext): FnParamElem[] {
+export function parseFnParams(ctx: ParsingContext): FnParamElem[] {
   const { stream } = ctx;
   const params: FnParamElem[] = [];
 

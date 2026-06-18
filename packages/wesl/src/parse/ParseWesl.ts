@@ -5,7 +5,7 @@ import { WeslParseError } from "../ParseWESL.ts";
 import type { SrcModule } from "../Scope.ts";
 import { emptyScope } from "../Scope.ts";
 import { beginElem, finishContents } from "./ContentsHelpers.ts";
-import { parseModule } from "./ParseModule.ts";
+import { checkDoBlockNames, parseModule } from "./ParseModule.ts";
 import { type ParseOptions, ParsingContext } from "./ParsingContext.ts";
 import { WeslStream } from "./WeslStream.ts";
 
@@ -20,6 +20,7 @@ export function parseWesl(
     parseModule(ctx);
     const moduleElem = state.stable.moduleElem;
     moduleElem.contents = finishContents(ctx, 0, moduleElem.end);
+    checkDoBlockNames(moduleElem);
     return state.stable;
   } catch (e) {
     if (e instanceof ParseError) {
@@ -35,7 +36,7 @@ export function parseWesl(
 /** Initialize parse state: token stream, root scope, and module element. */
 function createParseState(
   srcModule: SrcModule,
-  options?: ParseOptions,
+  parseOptions?: ParseOptions,
 ): {
   ctx: ParsingContext;
   state: WeslParseState;
@@ -50,8 +51,8 @@ function createParseState(
   };
   const state: WeslParseState = {
     context: { scope: rootScope, openElems: [] },
-    stable: { srcModule, moduleElem, rootScope, imports: [] },
+    stable: { srcModule, moduleElem, rootScope, imports: [], parseOptions },
   };
-  const ctx = new ParsingContext(stream, state, options);
+  const ctx = new ParsingContext(stream, state, parseOptions);
   return { ctx, state };
 }

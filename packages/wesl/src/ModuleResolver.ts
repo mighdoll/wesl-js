@@ -1,5 +1,9 @@
 import { moduleToRelativePath, normalizeDebugRoot } from "./ModulePathUtil.ts";
-import { parseSrcModule, type WeslAST } from "./ParseWESL.ts";
+import {
+  parseSrcModule,
+  type WeslAST,
+  type WeslExtensions,
+} from "./ParseWESL.ts";
 import { normalize, noSuffix } from "./PathUtil.ts";
 import type { WeslBundle } from "./WeslBundle.ts";
 
@@ -20,6 +24,8 @@ export interface RecordResolverOptions {
   packageName?: string;
   /** Debug path prefix for error messages */
   debugWeslRoot?: string;
+  /** Enable experimental, not-yet-spec'd syntax extensions while parsing. */
+  weslExtensions?: WeslExtensions;
 }
 
 const libRegex = /^lib\.w[eg]sl$/i;
@@ -30,15 +36,17 @@ export class RecordResolver implements BatchModuleResolver {
   readonly sources: Record<string, string>;
   readonly packageName: string;
   readonly debugWeslRoot: string;
+  readonly weslExtensions?: WeslExtensions;
 
   constructor(
     sources: Record<string, string>,
     options: RecordResolverOptions = {},
   ) {
-    const { packageName = "package", debugWeslRoot } = options;
+    const { packageName = "package", debugWeslRoot, weslExtensions } = options;
     this.sources = sources;
     this.packageName = packageName;
     this.debugWeslRoot = normalizeDebugRoot(debugWeslRoot);
+    this.weslExtensions = weslExtensions;
   }
 
   resolveModule(modulePath: string): WeslAST | undefined {
@@ -49,7 +57,10 @@ export class RecordResolver implements BatchModuleResolver {
     if (source === undefined) return undefined;
 
     const debugFilePath = this.modulePathToDebugPath(modulePath);
-    const ast = parseSrcModule({ modulePath, debugFilePath, src: source });
+    const ast = parseSrcModule(
+      { modulePath, debugFilePath, src: source },
+      { weslExtensions: this.weslExtensions },
+    );
     this.astCache.set(modulePath, ast);
     return ast;
   }
@@ -171,7 +182,7 @@ export function freshResolver(inner: ModuleResolver): ModuleResolver {
       if (cached) return cached;
       const ast = inner.resolveModule(modulePath);
       if (!ast) return undefined;
-      const fresh = parseSrcModule(ast.srcModule);
+      const fresh = parseSrcModule(ast.srcModule, ast.parseOptions);
       cache.set(modulePath, fresh);
       return fresh;
     },

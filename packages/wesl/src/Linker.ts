@@ -14,7 +14,7 @@ import {
   type ModuleResolver,
   RecordResolver,
 } from "./ModuleResolver.ts";
-import type { WeslAST } from "./ParseWESL.ts";
+import type { WeslAST, WeslExtensions } from "./ParseWESL.ts";
 import type { Conditions, DeclIdent, SrcModule } from "./Scope.ts";
 import { type SrcMap, SrcMapBuilder } from "./SrcMap.ts";
 import { filterMap, mapValues } from "./Util.ts";
@@ -77,6 +77,11 @@ export interface LinkParams {
 
   /** function to construct globally unique wgsl identifiers */
   mangler?: ManglerFn;
+
+  /** opt-in parsing of experimental, not-yet-spec'd syntax extensions.
+   * Only applied to the local source resolver built from `weslSrc`; callers
+   * that supply their own `resolver` must set it on that resolver. */
+  weslExtensions?: WeslExtensions;
 }
 
 /** Project config for web components and tools. */
@@ -88,6 +93,7 @@ export type WeslProject = Pick<
   | "constants"
   | "libs"
   | "packageName"
+  | "weslExtensions"
 > & {
   /** Shader directory relative to project root (set by ?link from wesl.toml). */
   shaderRoot?: string;
@@ -119,12 +125,18 @@ export async function link(params: LinkParams): Promise<LinkedWesl> {
 /** linker api for benchmarking */
 export function _linkSync(params: LinkParams): SrcMap {
   const { weslSrc, libs = [], packageName, debugWeslRoot, resolver } = params;
+  const { weslExtensions } = params;
 
   if (!resolver && !weslSrc) {
     throw new Error("Either resolver or weslSrc must be provided");
   }
   const primaryResolver =
-    resolver ?? new RecordResolver(weslSrc!, { packageName, debugWeslRoot });
+    resolver ??
+    new RecordResolver(weslSrc!, {
+      packageName,
+      debugWeslRoot,
+      weslExtensions,
+    });
 
   const libResolvers = createLibraryResolvers(libs, debugWeslRoot);
   const allResolvers = [primaryResolver, ...libResolvers];

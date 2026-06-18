@@ -13,6 +13,7 @@ export type WeslOptions = Pick<
   | "packageName"
   | "constants"
   | "config"
+  | "weslExtensions"
 >;
 
 /** GPU rendering params for fragment shaders */

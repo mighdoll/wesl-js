@@ -105,7 +105,7 @@ export class WgslPlay extends HTMLElement {
   private _weslSrc: Record<string, string> = {};
   private _rootModuleName = "package::main";
   private _libs?: WeslBundle[];
-  private _linkOptions: LinkOptions = {};
+  private _linkOptions: LinkOptions = { weslExtensions: { doBlocks: true } };
   private _fetchSources = true;
   private _initPromise?: Promise<boolean>;
   private _sourceEl: HTMLElement | null = null;
@@ -280,10 +280,13 @@ export class WgslPlay extends HTMLElement {
   /** Set project configuration (mirrors wesl link() API). */
   set project(value: WeslProject) {
     const { weslSrc, rootModuleName, libs } = value;
-    const { packageName, conditions, constants } = value;
+    const { packageName, conditions, constants, weslExtensions } = value;
     if (packageName !== undefined) this._linkOptions.packageName = packageName;
     if (conditions !== undefined) this._linkOptions.conditions = conditions;
     if (constants !== undefined) this._linkOptions.constants = constants;
+    if (weslExtensions !== undefined) {
+      this._linkOptions.weslExtensions = weslExtensions;
+    }
     if (libs) this._libs = libs;
 
     if (weslSrc) {

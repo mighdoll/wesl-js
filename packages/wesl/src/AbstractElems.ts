@@ -9,7 +9,7 @@ import type { Span } from "./Span.ts";
  */
 export type AbstractElem = GrammarElem | SyntheticElem | ExpressionElem;
 
-export type GrammarElem = ContainerElem | TerminalElem;
+export type GrammarElem = ContainerElem | TerminalElem | DoBlockElem;
 
 export type ContainerElem =
   | AttributeElem
@@ -75,6 +75,7 @@ export type TerminalElem =
 export type GlobalDeclarationElem =
   | AliasElem
   | ConstElem
+  | DoBlockElem
   | FnElem
   | GlobalVarElem
   | OverrideElem
@@ -311,6 +312,7 @@ export interface BinaryExpression extends AbstractElemBase {
 export interface FunctionCallExpression extends AbstractElemBase {
   kind: "call-expression";
   function: RefIdentElem | TypeRefElem; // template_elaborated_ident
+  /** Only populated for function calls; constructor calls carry templates on `function`. */
   templateArgs?: TypeTemplateParameter[];
   arguments: ExpressionElem[];
 }
@@ -359,6 +361,21 @@ export interface EnableDirective {
 export interface RequiresDirective {
   kind: "requires";
   extensions: NameElem[];
+}
+
+/**
+ * A `do` block: a CPU-side dispatch script (`do name(params) { ... }`).
+ *
+ * Module-local: its name and body idents never enter bindIdents/the scope
+ * tree, and the linker drops it entirely from emitted WGSL. The parsed body
+ * is retained for the interpreter, which resolves names by AST match.
+ */
+export interface DoBlockElem extends AbstractElemBase, HasAttributes {
+  kind: "do";
+  name: NameElem;
+  params: FnParamElem[];
+  body: StatementElem;
+  attributes?: AttributeElem[];
 }
 
 /** A function declaration. */

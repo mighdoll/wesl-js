@@ -23,10 +23,13 @@ export async function linkWeslModule(
 ): Promise<LinkWeslModuleResult> {
   const { rootSource, scanSource, conditions, constants } = params;
   const { device, resolver, libs = [], rootModuleName = "main" } = params;
-  const { packageName, config, weslSrc, virtualLibs } = params;
+  const { packageName, config, weslSrc, virtualLibs, weslExtensions } = params;
 
   const resolvers: RecordResolver[] = [
-    new RecordResolver({ [rootModuleName]: rootSource }, { packageName }),
+    new RecordResolver(
+      { [rootModuleName]: rootSource },
+      { packageName, weslExtensions },
+    ),
   ];
   if (weslSrc) resolvers.push(new RecordResolver(weslSrc, { packageName }));
 

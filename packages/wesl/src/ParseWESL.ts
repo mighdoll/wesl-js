@@ -9,12 +9,12 @@ import { filterValidElements } from "./Conditions.ts";
 import { type FlatImport, flattenTreeImport } from "./FlattenTreeImport.ts";
 import type { ParseError } from "./ParseError.ts";
 import { parseWesl } from "./parse/ParseWesl.ts";
-import type { ParseOptions } from "./parse/ParsingContext.ts";
+import type { ParseOptions, WeslExtensions } from "./parse/ParsingContext.ts";
 import type { Conditions, Scope, SrcModule } from "./Scope.ts";
 import type { Span } from "./Span.ts";
 import { errorHighlight, offsetToLineNumber } from "./Util.ts";
 
-export type { ParseOptions };
+export type { ParseOptions, WeslExtensions };
 
 /** Partial element being constructed during parsing. */
 export type OpenElem<T extends ContainerElem = ContainerElem> = Pick<
@@ -41,6 +41,8 @@ export interface WeslAST {
   imports: ImportStatement[];
   /** Module level const_assert statements. */
   moduleAsserts?: ConstAssertElem[];
+  /** Parse options used to produce this AST (so re-parsing preserves them). */
+  parseOptions?: ParseOptions;
 }
 
 /** Extended AST with cached flattened imports. */

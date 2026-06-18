@@ -111,6 +111,9 @@ function lowerAndEmitElem(e: AbstractElem, ctx: EmitContext): void {
   switch (e.kind) {
     case "import":
       return; // import statements are dropped from emitted text
+    case "do":
+      return; // do blocks are CPU-only, dropped from emitted text
+
     case "text":
       emitText(e, ctx);
       return;

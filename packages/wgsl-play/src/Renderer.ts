@@ -115,11 +115,14 @@ export async function createPipeline(
 ): Promise<BuildResult> {
   const pkg = options?.packageName ?? "package";
   const root = options?.rootModuleName ?? "main";
-  const ast = parseSrcModule({
-    modulePath: `${pkg}::${root}`,
-    debugFilePath: `./${root}.wesl`,
-    src: shaderSource,
-  });
+  const ast = parseSrcModule(
+    {
+      modulePath: `${pkg}::${root}`,
+      debugFilePath: `./${root}.wesl`,
+      src: shaderSource,
+    },
+    { weslExtensions: options?.weslExtensions },
+  );
   const resources = findAnnotatedResources(ast);
   const entryPoints = classifyEntryPoints(ast);
   const mode = detectMode(entryPoints);

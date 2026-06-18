@@ -11,10 +11,15 @@ import {
 } from "../Scope.ts";
 import type { WeslStream } from "./WeslStream.ts";
 
+/** Opt-in toggles for not-yet-spec'd WESL/WGSL features (for prototyping). */
+export interface WeslExtensions {
+  /** Parse `do name(...) { ... }` blocks. */
+  doBlocks?: boolean;
+}
+
 export interface ParseOptions {
-  /** Store expression AST nodes in statement contents (for tooling/validation). */
-  // LATER we'll always store expressions in the AST, (but this partial support is for wgsl-edit validation)
-  preserveExpressions?: boolean;
+  /** Enable parsing of experimental, not-yet-spec'd syntax extensions. */
+  weslExtensions?: WeslExtensions;
 }
 
 /** Context for parsers to build AST and manage scopes. */

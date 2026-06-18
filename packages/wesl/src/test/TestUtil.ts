@@ -2,13 +2,23 @@ import { expect } from "vitest";
 import { type BoundAndTransformed, RecordResolver, type SrcModule } from "wesl";
 import { bindAndTransform, type LinkParams, link } from "../Linker.ts";
 import { withLoggerAsync } from "../Logging.ts";
-import { parseSrcModule, type WeslAST } from "../ParseWESL.ts";
+import {
+  type ParseOptions,
+  parseSrcModule,
+  type WeslAST,
+} from "../ParseWESL.ts";
 import { expectNoLog, logCatch } from "./LogCatcher.ts";
 import { stripWesl } from "./StripWesl.ts";
 
 export type LinkTestOpts = Pick<
   LinkParams,
-  "conditions" | "libs" | "config" | "virtualLibs" | "constants" | "mangler"
+  | "conditions"
+  | "libs"
+  | "config"
+  | "virtualLibs"
+  | "constants"
+  | "mangler"
+  | "weslExtensions"
 >;
 
 interface BindTestResult {
@@ -22,13 +32,13 @@ export function expectTokenMatch(actual: string, expected: string): void {
 }
 
 /** Parse a single wesl file. */
-export function parseWESL(src: string): WeslAST {
+export function parseWESL(src: string, options?: ParseOptions): WeslAST {
   const srcModule: SrcModule = {
     modulePath: "package::test",
     debugFilePath: "./test.wesl",
     src,
   };
-  return parseSrcModule(srcModule);
+  return parseSrcModule(srcModule, options);
 }
 
 /** Link wesl for tests. First module is ./test.wesl, rest are ./file1.wesl, etc. */
@@ -74,13 +84,13 @@ async function linkWithLogInternal(
 }
 
 /** Parse wesl for testing, ensuring no logged warnings. */
-export function parseTest(src: string): WeslAST {
-  return expectNoLog(() => parseWESL(src));
+export function parseTest(src: string, options?: ParseOptions): WeslAST {
+  return expectNoLog(() => parseWESL(src, options));
 }
 
 /** Parse wesl without log collection (for debugging). */
-export function parseTestRaw(src: string): WeslAST {
-  return parseWESL(src);
+export function parseTestRaw(src: string, options?: ParseOptions): WeslAST {
+  return parseWESL(src, options);
 }
 
 /** Parse and bind wesl source for testing. Returns bound result and resolver. */

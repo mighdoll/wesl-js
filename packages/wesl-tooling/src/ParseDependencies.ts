@@ -1,6 +1,6 @@
 import { pathToFileURL } from "node:url";
 import { resolve } from "import-meta-resolve";
-import type { WeslBundle } from "wesl";
+import type { WeslBundle, WeslExtensions } from "wesl";
 import {
   filterMap,
   findUnboundIdents,
@@ -22,16 +22,18 @@ import { npmResolveWESL } from "./NpmResolver.ts";
  * @param weslSrc - Record of WESL source files by path
  * @param projectDir - Project directory for resolving package imports
  * @param virtualLibNames - Virtual lib names to exclude (e.g., ['env', 'constants'])
+ * @param weslExtensions - Opt-in WESL extensions to enable while parsing
  * @returns Dependency paths in npm format (e.g., 'foo/bar', 'foo')
  */
 export function parseDependencies(
   weslSrc: Record<string, string>,
   projectDir: string,
   virtualLibNames: string[] = [],
+  weslExtensions?: WeslExtensions,
 ): string[] {
   let resolver: RecordResolver;
   try {
-    resolver = new RecordResolver(weslSrc);
+    resolver = new RecordResolver(weslSrc, { weslExtensions });
   } catch (e: any) {
     if (e.cause instanceof WeslParseError) {
       console.error(e.message, "\n");
@@ -74,6 +76,7 @@ export function resolvePkgDeps(
  * @param packageName - Optional current package name
  * @param includeCurrentPackage - Include current package in results (default: false)
  * @param virtualLibNames - Virtual lib names to exclude from resolution
+ * @param weslExtensions - Opt-in WESL extensions to enable while parsing
  * @returns Loaded WeslBundle instances
  */
 export async function dependencyBundles(
@@ -82,8 +85,14 @@ export async function dependencyBundles(
   packageName?: string,
   includeCurrentPackage = false,
   virtualLibNames: string[] = [],
+  weslExtensions?: WeslExtensions,
 ): Promise<WeslBundle[]> {
-  const deps = parseDependencies(weslSrc, projectDir, virtualLibNames);
+  const deps = parseDependencies(
+    weslSrc,
+    projectDir,
+    virtualLibNames,
+    weslExtensions,
+  );
   const filteredDeps = includeCurrentPackage
     ? deps
     : otherPackages(deps, packageName);
@@ -98,14 +107,6 @@ export async function dependencyBundles(
   return await Promise.all(bundles);
 }
 
-/** Exclude current package from dependency list. */
-function otherPackages(deps: string[], packageName?: string): string[] {
-  if (!packageName) return deps;
-  return deps.filter(
-    dep => dep !== packageName && !dep.startsWith(`${packageName}/`),
-  );
-}
-
 /** Normalize project directory to file:// URL with trailing slash. */
 function projectDirURL(projectDir: string): string {
   if (projectDir.startsWith("file://")) {
@@ -113,4 +114,12 @@ function projectDirURL(projectDir: string): string {
   }
   const fileUrl = pathToFileURL(projectDir).href;
   return fileUrl.endsWith("/") ? fileUrl : `${fileUrl}/`;
+}
+
+/** Exclude current package from dependency list. */
+function otherPackages(deps: string[], packageName?: string): string[] {
+  if (!packageName) return deps;
+  return deps.filter(
+    dep => dep !== packageName && !dep.startsWith(`${packageName}/`),
+  );
 }
