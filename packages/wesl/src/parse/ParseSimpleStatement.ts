@@ -15,11 +15,10 @@ import type {
   Statement,
 } from "../AbstractElems.ts";
 import type { Span } from "../Span.ts";
-import { beginElem, finishContents, finishElem } from "./ContentsHelpers.ts";
+import { beginElem, finishContents } from "./ContentsHelpers.ts";
 import { parseExpression } from "./ParseExpression.ts";
-import { getStartWithAttributes } from "./ParseStatement.ts";
+import { finishStatement, getStartWithAttributes } from "./ParseStatement.ts";
 import {
-  attachAttributes,
   expect,
   expectExpression,
   parseContentExpression,
@@ -107,9 +106,7 @@ function parseReturnStmt(
   beginElem(ctx, "return", attributes);
   const value = parseContentExpression(ctx) ?? undefined;
   expect(stream, ";", "return statement");
-  const elem = finishElem("return", startPos, ctx, { value });
-  attachAttributes(elem, attributes);
-  return elem;
+  return finishStatement("return", startPos, ctx, { value }, attributes);
 }
 
 /**
@@ -129,9 +126,7 @@ function parseBreakStmt(
     condition = expectExpression(ctx, "Expected condition after 'break if'");
   }
   expect(stream, ";", "break statement");
-  const elem = finishElem("break", startPos, ctx, { condition });
-  attachAttributes(elem, attributes);
-  return elem;
+  return finishStatement("break", startPos, ctx, { condition }, attributes);
 }
 
 /** Grammar: continue_statement : 'continue' ';' */
@@ -144,9 +139,7 @@ function parseContinueStmt(
   if (!stream.matchText("continue")) return null;
   beginElem(ctx, "continue", attributes);
   expect(stream, ";", "continue statement");
-  const elem = finishElem("continue", startPos, ctx, {});
-  attachAttributes(elem, attributes);
-  return elem;
+  return finishStatement("continue", startPos, ctx, {}, attributes);
 }
 
 /** Grammar: 'discard' ';' */
@@ -159,9 +152,7 @@ function parseDiscardStmt(
   if (!stream.matchText("discard")) return null;
   beginElem(ctx, "discard", attributes);
   expect(stream, ";", "discard statement");
-  const elem = finishElem("discard", startPos, ctx, {});
-  attachAttributes(elem, attributes);
-  return elem;
+  return finishStatement("discard", startPos, ctx, {}, attributes);
 }
 
 /** Parse empty statement (just ';'). Spans the ';' so it emits no extra text. */
@@ -189,9 +180,7 @@ function parsePhonyAssignment(
     "Expected expression after assignment operator",
   );
   expect(stream, ";", "assignment");
-  const elem = finishElem("assign", startPos, ctx, { lhs, op, rhs });
-  attachAttributes(elem, attributes);
-  return elem;
+  return finishStatement("assign", startPos, ctx, { lhs, op, rhs }, attributes);
 }
 
 /**
@@ -217,27 +206,18 @@ function parseExpressionStmt(
   if (incDec) {
     expect(stream, ";", "expression");
     const kind = incDec.op === "++" ? "increment" : "decrement";
-    const elem = finishElem(kind, startPos, ctx, { target: expr });
-    attachAttributes(elem, attributes);
-    return elem;
+    return finishStatement(kind, startPos, ctx, { target: expr }, attributes);
   }
 
   const assign = parseAssignmentRhs(ctx);
   expect(stream, ";", "expression");
   if (assign) {
-    const elem = finishElem("assign", startPos, ctx, {
-      lhs: expr,
-      op: assign.op,
-      rhs: assign.rhs,
-    });
-    attachAttributes(elem, attributes);
-    return elem;
+    const params = { lhs: expr, op: assign.op, rhs: assign.rhs };
+    return finishStatement("assign", startPos, ctx, params, attributes);
   }
 
   if (expr.kind !== "call-expression") {
     throwParseError(stream, "Expected call, assignment, or increment");
   }
-  const elem = finishElem("call", startPos, ctx, { call: expr });
-  attachAttributes(elem, attributes);
-  return elem;
+  return finishStatement("call", startPos, ctx, { call: expr }, attributes);
 }

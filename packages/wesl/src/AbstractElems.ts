@@ -537,7 +537,7 @@ export interface ForElem extends ElemWithContentsBase, HasAttributes {
   body: BlockElem;
 }
 
-type ForInit =
+export type ForInit =
   | VarElem
   | LetElem
   | ConstElem
@@ -545,7 +545,7 @@ type ForInit =
   | IncrementElem
   | DecrementElem
   | CallElem;
-type ForUpdate = AssignElem | IncrementElem | DecrementElem | CallElem;
+export type ForUpdate = AssignElem | IncrementElem | DecrementElem | CallElem;
 
 /** A while loop. */
 export interface WhileElem extends ElemWithContentsBase, HasAttributes {

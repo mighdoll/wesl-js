@@ -1,32 +1,26 @@
 import type {
-  AssignElem,
   AttributeElem,
-  CallElem,
-  ConstElem,
   ContinuingElem,
-  DecrementElem,
   ExpressionElem,
   ForElem,
-  IncrementElem,
-  LetElem,
+  ForInit,
+  ForUpdate,
   LoopElem,
-  VarElem,
   WhileElem,
 } from "../AbstractElems.ts";
-import { finishElem } from "./ContentsHelpers.ts";
 import { parseLocalVarDecl } from "./ParseLocalVar.ts";
 import { parseAssignmentRhs, parseIncDecOp } from "./ParseSimpleStatement.ts";
-import { beginStatement, expectCompound } from "./ParseStatement.ts";
 import {
-  attachAttributes,
+  beginStatement,
+  expectCompound,
+  finishStatement,
+} from "./ParseStatement.ts";
+import {
   expect,
   expectExpression,
   parseContentExpression,
 } from "./ParseUtil.ts";
 import type { ParsingContext } from "./ParsingContext.ts";
-
-type ForInit = VarElem | LetElem | ConstElem | ForUpdate;
-type ForUpdate = AssignElem | IncrementElem | DecrementElem | CallElem;
 
 /**
  * Grammar: for_statement : attribute* 'for' '(' for_header ')' compound_statement
@@ -53,14 +47,8 @@ export function parseForStatement(
   ctx.addElem(body);
   ctx.popScope();
 
-  const elem = finishElem("for", startPos, ctx, {
-    init,
-    condition,
-    update,
-    body,
-  });
-  attachAttributes(elem, attributes);
-  return elem;
+  const params = { init, condition, update, body };
+  return finishStatement("for", startPos, ctx, params, attributes);
 }
 
 /** Grammar: while_statement : attribute* 'while' expression compound_statement */
@@ -75,9 +63,13 @@ export function parseWhileStatement(
   const body = expectCompound(ctx, "Expected '{' after while condition");
   ctx.addElem(body);
 
-  const elem = finishElem("while", startPos, ctx, { condition, body });
-  attachAttributes(elem, attributes);
-  return elem;
+  return finishStatement(
+    "while",
+    startPos,
+    ctx,
+    { condition, body },
+    attributes,
+  );
 }
 
 /** Grammar: loop_statement : attribute* 'loop' attribute* '{' statement* continuing_statement? '}' */
@@ -94,9 +86,13 @@ export function parseLoopStatement(
     (s): s is ContinuingElem => s.kind === "continuing",
   );
 
-  const elem = finishElem("loop", startPos, ctx, { body, continuing });
-  attachAttributes(elem, attributes);
-  return elem;
+  return finishStatement(
+    "loop",
+    startPos,
+    ctx,
+    { body, continuing },
+    attributes,
+  );
 }
 
 /** Grammar: continuing_statement : 'continuing' continuing_compound_statement */
@@ -111,9 +107,8 @@ export function parseContinuingStatement(
   ctx.addElem(body);
   const breakIf = body.body.find(s => s.kind === "break")?.condition;
 
-  const elem = finishElem("continuing", startPos, ctx, { body, breakIf });
-  attachAttributes(elem, attributes);
-  return elem;
+  const params = { body, breakIf };
+  return finishStatement("continuing", startPos, ctx, params, attributes);
 }
 
 /** Grammar: for_init? ';'

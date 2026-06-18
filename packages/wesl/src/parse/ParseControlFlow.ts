@@ -11,6 +11,7 @@ import { parseAttributeList } from "./ParseAttribute.ts";
 import {
   beginStatement,
   expectCompound,
+  finishStatement,
   parseCompoundStatement,
 } from "./ParseStatement.ts";
 import {
@@ -37,13 +38,8 @@ export function parseIfStatement(
   ctx.addElem(body);
   const elseBranch = parseElseChain(ctx);
 
-  const elem = finishElem("if", startPos, ctx, {
-    condition,
-    body,
-    else: elseBranch,
-  });
-  attachAttributes(elem, attributes);
-  return elem;
+  const params = { condition, body, else: elseBranch };
+  return finishStatement("if", startPos, ctx, params, attributes);
 }
 
 /** Grammar: switch_statement : attribute* 'switch' expression switch_body */
@@ -57,9 +53,8 @@ export function parseSwitchStatement(
   const selector = expectExpression(ctx, "Expected expression after 'switch'");
   const clauses = expectSwitchClauses(ctx);
 
-  const elem = finishElem("switch", startPos, ctx, { selector, clauses });
-  attachAttributes(elem, attributes);
-  return elem;
+  const params = { selector, clauses };
+  return finishStatement("switch", startPos, ctx, params, attributes);
 }
 
 /**

@@ -2,8 +2,10 @@ import type {
   AttributeElem,
   BlockElem,
   ContainerElem,
+  ElemKindMap,
   ElifAttribute,
   ElseAttribute,
+  HasAttributes,
   IfAttribute,
   Statement,
 } from "../AbstractElems.ts";
@@ -69,9 +71,7 @@ export function parseCompoundStatement(
   const body = parseBlockStatements(ctx, options?.loopBody);
   if (!skipScope) ctx.popScope();
 
-  const elem = finishElem("block", startPos, ctx, { body });
-  attachAttributes(elem, attributes);
-  return elem;
+  return finishStatement("block", startPos, ctx, { body }, attributes);
 }
 
 /** Grammar: attribute* compound_statement (for control flow bodies) */
@@ -108,6 +108,19 @@ export function beginStatement(
   const startPos = getStartWithAttributes(attributes, keywordPos);
   beginElem(ctx, kind, attributes);
   return startPos;
+}
+
+/** Finish a statement element and attach its attributes. */
+export function finishStatement<K extends keyof ElemKindMap>(
+  kind: K,
+  start: number,
+  ctx: ParsingContext,
+  params: Omit<ElemKindMap[K], "kind" | "start" | "end" | "contents">,
+  attributes?: AttributeElem[],
+): ElemKindMap[K] {
+  const elem = finishElem(kind, start, ctx, params);
+  attachAttributes(elem as HasAttributes, attributes);
+  return elem;
 }
 
 function hasConditionalAttr(attributes?: AttributeElem[]): boolean {
