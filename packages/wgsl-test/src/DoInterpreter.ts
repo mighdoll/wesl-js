@@ -338,13 +338,12 @@ function resolveAssignTarget(
   const name = lhs.ident.originalName;
   const local = scope.get(name);
   if (!local) {
-    throw new Error(
-      `do block '${block.name.name}': assignment to unbound name '${name}'`,
-    );
+    throw blockError(block, `assignment to unbound name '${name}'`);
   }
   if (!local.mutable) {
-    throw new Error(
-      `do block '${block.name.name}': cannot reassign immutable '${name}' ` +
+    throw blockError(
+      block,
+      `cannot reassign immutable '${name}' ` +
         "(let/const bindings are immutable; declare with 'var' to mutate)",
     );
   }
@@ -359,9 +358,7 @@ function bindLocal(
 ): void {
   const name = decl.name.decl.ident.originalName;
   if (!decl.init) {
-    throw new Error(
-      `do block '${block.name.name}': '${decl.kind} ${name}' has no initializer`,
-    );
+    throw blockError(block, `'${decl.kind} ${name}' has no initializer`);
   }
   const value = evalExpr(decl.init, block, scope);
   scope.set(name, { value, mutable: decl.kind === "var" });
@@ -376,9 +373,7 @@ function dispatchCall(
 ): void {
   const targetName = callTargetName(call);
   if (!targetName) {
-    throw new Error(
-      `do block '${block.name.name}': could not resolve call target`,
-    );
+    throw blockError(block, "could not resolve call target");
   }
   const args = call.arguments.map(a => evalExpr(a, block, scope));
 
@@ -394,9 +389,7 @@ function dispatchCall(
     return;
   }
 
-  throw new Error(
-    `do block '${block.name.name}': call to undefined target '${targetName}'`,
-  );
+  throw blockError(block, `call to undefined target '${targetName}'`);
 }
 
 function evalExpr(
@@ -411,9 +404,9 @@ function evalExpr(
       const name = expr.ident.originalName;
       const local = scope.get(name);
       if (local === undefined) {
-        throw new Error(
-          `do block '${block.name.name}': unbound name '${name}' ` +
-            "(evaluator handles only let/var/const locals)",
+        throw blockError(
+          block,
+          `unbound name '${name}' (evaluator handles only let/var/const locals)`,
         );
       }
       return local.value;
@@ -472,9 +465,9 @@ function dispatchEntryPoint(
   if (entry.stage === "compute") {
     const pipeline = env.pipelines.get(entry.fnName);
     if (!pipeline) {
-      throw new Error(
-        `do block '${block.name.name}': no compute pipeline for ` +
-          `entry point '${entry.fnName}'`,
+      throw blockError(
+        block,
+        `no compute pipeline for entry point '${entry.fnName}'`,
       );
     }
     recordComputePass({
@@ -487,17 +480,15 @@ function dispatchEntryPoint(
   }
   if (entry.stage === "fragment") {
     if (!env.renderFragment) {
-      throw new Error(
-        `do block '${block.name.name}': fragment call '${entry.fnName}' ` +
-          "but no renderFragment hook supplied",
+      throw blockError(
+        block,
+        `fragment call '${entry.fnName}' but no renderFragment hook supplied`,
       );
     }
     env.renderFragment(entry);
     return;
   }
-  throw new Error(
-    `do block '${block.name.name}': cannot call ${entry.stage} entry '${entry.fnName}'`,
-  );
+  throw blockError(block, `cannot call ${entry.stage} entry '${entry.fnName}'`);
 }
 
 /** Parse an integer literal, rejecting float literals with a tiered message. */
@@ -530,9 +521,7 @@ function evalUnary(
     case "!":
       return v === 0 ? 1 : 0;
     default:
-      throw new Error(
-        `do block '${block.name.name}': unsupported unary '${expr.operator.value}'`,
-      );
+      throw blockError(block, `unsupported unary '${expr.operator.value}'`);
   }
 }
 
@@ -614,6 +603,11 @@ function truthy(v: number): boolean {
   return v !== 0;
 }
 
+/** An interpreter error scoped to a do block, prefixed with the block's name. */
+function blockError(block: DoBlockElem, msg: string): Error {
+  return new Error(`do block '${block.name.name}': ${msg}`);
+}
+
 /** Build a tiered rejection error: names the construct and the tier required. */
 function rejection(
   block: DoBlockElem,
@@ -621,9 +615,9 @@ function rejection(
   tier: string,
   feature: string,
 ): Error {
-  return new Error(
-    `do block '${block.name.name}': ${construct} is not yet supported ` +
-      `(${tier}: ${feature})`,
+  return blockError(
+    block,
+    `${construct} is not yet supported (${tier}: ${feature})`,
   );
 }
 
