@@ -152,7 +152,6 @@ function makeStandardAttr(
           start,
           end,
           expression: { kind: "literal", value: String(value), start, end },
-          contents: [{ kind: "literal", value: String(value), start, end }],
         },
       ],
     },

@@ -83,7 +83,9 @@ export function contentsToString(
 ): string {
   if (elem.kind === "translate-time-expression") {
     throw new Error("Not supported");
-  } else if (elem.kind === "expression" || elem.kind === "stuff") {
+  } else if (elem.kind === "expression") {
+    return expressionToString(elem.expression);
+  } else if (elem.kind === "stuff") {
     const parts = elem.contents.map(c => {
       const { kind } = c;
       if (kind === "text") {

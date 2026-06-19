@@ -196,8 +196,11 @@ function lowerAndEmitElem(e: AbstractElem, ctx: EmitContext): void {
       return;
 
     case "memberRef":
-    case "expression":
       emitContents(e, ctx);
+      return;
+
+    case "expression":
+      emitExpression(e.expression, ctx);
       return;
 
     // Switch clauses are normally emitted structurally by emitSwitch; handle the
@@ -731,12 +734,10 @@ function emitStandardAttribute(e: AttributeElem, ctx: EmitContext): void {
   }
 
   ctx.srcBuilder.add("@" + e.attribute.name + "(", e.start, params[0].start);
-  for (let i = 0; i < params.length; i++) {
-    emitContents(params[i], ctx);
-    if (i < params.length - 1) {
-      ctx.srcBuilder.add(",", params[i].end, params[i + 1].start);
-    }
-  }
+  params.forEach((param, i) => {
+    if (i > 0) ctx.srcBuilder.appendNext(", ");
+    emitExpression(param.expression, ctx);
+  });
   ctx.srcBuilder.add(")", params[params.length - 1].end, e.end);
 }
 

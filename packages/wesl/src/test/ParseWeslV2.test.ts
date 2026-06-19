@@ -191,7 +191,7 @@ test("parse @compute @workgroup_size(a, b, 1) before fn", () => {
         '
       fn main() @compute @workgroup_size
         attribute @compute
-        attribute @workgroup_size(ref a, ' ' ref b, ' ' literal literal(1))
+        attribute @workgroup_size(ref a, ref b, literal literal(1))
         decl %main
         block
       text '
@@ -534,7 +534,7 @@ test("parse fn with attributes and suffix comma", () => {
       '
       fn main(grid: vec3<ref u32>, localIndex: u32) @compute @workgroup_size
         attribute @compute
-        attribute @workgroup_size(ref workgroupThreads, ' ' literal literal(1), ' ' literal literal(1))
+        attribute @workgroup_size(ref workgroupThreads, literal literal(1), literal literal(1))
         decl %main
         param
           attribute @builtin(global_invocation_id)

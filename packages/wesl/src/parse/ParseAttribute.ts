@@ -15,14 +15,12 @@ import type {
   UnknownExpressionElem,
 } from "../AbstractElems.ts";
 import { ParseError } from "../ParseError.ts";
-import { beginElem, finishContents } from "./ContentsHelpers.ts";
 import { parseExpression } from "./ParseExpression.ts";
 import {
   expect,
   expectWord,
   makeNameElem,
   parseCommaList,
-  parseContentExpression,
   parseMany,
   throwParseError,
 } from "./ParseUtil.ts";
@@ -259,10 +257,7 @@ function parseNameElem(ctx: ParsingContext): NameElem {
 function parseAttrParam(ctx: ParsingContext): UnknownExpressionElem {
   const { stream } = ctx;
   const start = stream.checkpoint();
-  beginElem(ctx, "expression");
-  const expression = parseContentExpression(ctx);
+  const expression = parseExpression(ctx);
   if (!expression) throwParseError(stream, "Expected attribute parameter");
-  const end = stream.checkpoint();
-  const contents = finishContents(ctx, start, end);
-  return { kind: "expression", expression, start, end, contents };
+  return { kind: "expression", expression, start, end: stream.checkpoint() };
 }

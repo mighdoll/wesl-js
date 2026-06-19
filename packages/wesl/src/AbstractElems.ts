@@ -7,7 +7,11 @@ import type { Span } from "./Span.ts";
  * Parts needing further analysis are pulled into these structures.
  * Uninteresting parts are 'TextElem' nodes, copied to output WGSL.
  */
-export type AbstractElem = GrammarElem | SyntheticElem | ExpressionElem;
+export type AbstractElem =
+  | GrammarElem
+  | SyntheticElem
+  | ExpressionElem
+  | UnknownExpressionElem;
 
 export type GrammarElem =
   | ContainerElem
@@ -31,7 +35,6 @@ export type GrammarElem =
  */
 export type ContainerElem =
   | AttributeElem
-  | UnknownExpressionElem
   | SimpleMemberRef
   | ModuleElem
   | StuffElem;
@@ -311,7 +314,7 @@ export interface ConstElem extends AbstractElemBase, HasAttributes {
 }
 
 /** An expression without special handling, used in attribute parameters. */
-export interface UnknownExpressionElem extends ElemWithContentsBase {
+export interface UnknownExpressionElem extends AbstractElemBase {
   kind: "expression";
   expression: ExpressionElem;
 }

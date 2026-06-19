@@ -63,6 +63,8 @@ function structuralFields(elem: AbstractElem): AbstractElem[] | undefined {
       return [elem.name, elem.typeRef];
     case "type":
       return [elem.name.refIdentElem, ...(elem.templateParams ?? [])];
+    case "expression":
+      return [elem.expression];
     case "param":
       return [elem.name];
     case "typeDecl":

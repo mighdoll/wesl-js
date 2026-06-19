@@ -46,6 +46,7 @@ function addElemFields(elem: AbstractElem, str: LineWrapper): void {
   // no-op kinds (handled elsewhere or no additional fields)
   if (
     kind === "assert" ||
+    kind === "expression" ||
     kind === "module" ||
     kind === "param" ||
     kind === "stuff" ||
@@ -87,15 +88,6 @@ function addElemFields(elem: AbstractElem, str: LineWrapper): void {
     );
   } else if (kind === "attribute") {
     addAttributeFields(elem.attribute, str);
-  } else if (kind === "expression") {
-    const contents = elem.contents
-      .map(e =>
-        e.kind === "text"
-          ? `'${e.srcModule.src.slice(e.start, e.end)}'`
-          : astToString(e),
-      )
-      .join(" ");
-    str.add(" " + contents);
   } else if (kind === "type") {
     const nameStr =
       typeof elem.name === "string" ? elem.name : elem.name.originalName;
@@ -264,16 +256,8 @@ function addDirective(elem: DirectiveElem, str: LineWrapper) {
   listAttributeElems(attributes, str);
 }
 
-// LATER Temp hack while I clean up the expression parsing
 function unknownExpressionToString(elem: UnknownExpressionElem): string {
-  if (!("contents" in elem)) return astToString(elem);
-  return elem.contents
-    .map(e => {
-      if (e.kind === "text")
-        return `'${e.srcModule.src.slice(e.start, e.end)}'`;
-      return astToString(e);
-    })
-    .join(" ");
+  return astToString(elem.expression);
 }
 
 function templateParamToString(p: TypeTemplateParameter): string {
