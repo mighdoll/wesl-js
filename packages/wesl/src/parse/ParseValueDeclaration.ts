@@ -8,15 +8,10 @@ import type {
   TypeRefElem,
 } from "../AbstractElems.ts";
 import type { Scope } from "../Scope.ts";
-import {
-  beginElem,
-  discardOpenElem,
-  finishContents,
-} from "./ContentsHelpers.ts";
-import { getStartWithAttributes } from "./ParseStatement.ts";
+import { beginElem, finishContents } from "./ContentsHelpers.ts";
+import { finishStatement, getStartWithAttributes } from "./ParseStatement.ts";
 import { parseSimpleTypeRef } from "./ParseType.ts";
 import {
-  attachAttributes,
   createDeclIdentElem,
   expect,
   expectExpression,
@@ -95,21 +90,21 @@ function parseValueDecl<K extends ValueDeclKind>(
 
   expect(stream, ";", `${keyword} declaration`);
 
-  const endPos = stream.checkpoint();
-  discardOpenElem(ctx);
   typedDecl.decl.ident.dependentScope = ctx.currentScope();
   ctx.popScope();
 
-  const elem: ConstElem | OverrideElem = {
-    kind: keyword,
-    name: typedDecl,
-    init,
-    start: startPos,
-    end: endPos,
-  };
-  attachAttributes(elem, attributes);
+  // const/override share these fields; cast keyword to the union so the params
+  // type-check against the concrete elems rather than the opaque generic K.
+  const fields = { name: typedDecl, init };
+  const elem = finishStatement(
+    keyword as ValueDeclKind,
+    startPos,
+    ctx,
+    fields,
+    attributes,
+  ) as ElemKindMap[K];
   linkDeclIdent(typedDecl, elem);
-  return elem as ElemKindMap[K];
+  return elem;
 }
 
 /** @return true if ctx is at module level (not inside fn/block) */
