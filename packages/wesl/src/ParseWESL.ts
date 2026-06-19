@@ -18,8 +18,8 @@ import { errorHighlight, offsetToLineNumber } from "./Util.ts";
 export type { ParseOptions, WeslExtensions };
 
 /** Partial element being constructed during parsing: a kind tag plus the child
- *  elems collected beneath it (gaps later covered with TextElems for the elems
- *  that keep `contents`; discarded for statements, which emit from fields). */
+ *  elems collected beneath it. The module keeps these as its `decls`; statements
+ *  discard them and emit from their own typed fields. */
 export interface OpenElem {
   kind: OpenElemKind;
   contents: AbstractElem[];
