@@ -101,17 +101,12 @@ export function flatImports(
   // TODO cache per condition set?
   if (ast._flatImports && !conditions) return ast._flatImports;
 
-  // Get ImportElem elements from the module's top-level decls
   const importElems = ast.moduleElem.decls.filter(
     (elem): elem is ImportElem => elem.kind === "import",
   );
-
-  // Filter based on conditions if provided
   const validImportElems = conditions
     ? filterValidElements(importElems, conditions)
     : importElems;
-
-  // Extract ImportStatement from valid ImportElem elements
   const importStatements = validImportElems.map(elem => elem.imports);
 
   const flat = importStatements.flatMap(flattenTreeImport);

@@ -7,6 +7,7 @@ import type {
 } from "./AbstractElems.ts";
 import { srcLog } from "./Logging.ts";
 
+/** Visit an elem and all its descendants, parent before children (pre-order). */
 export function visitAst(
   elem: AbstractElem,
   visitor: (elem: AbstractElem) => void,

@@ -2,10 +2,9 @@ import type { DeclIdent, RefIdent, Scope, SrcModule } from "./Scope.ts";
 import type { Span } from "./Span.ts";
 
 /**
- * AST structures describing 'interesting' parts of WESL source.
- *
- * Parts needing further analysis are pulled into these structures.
- * Uninteresting parts are 'TextElem' nodes, copied to output WGSL.
+ * AST structures describing WESL source. Each element holds its interesting
+ * parts as typed child fields (name, type, init, body, ...); emit walks those
+ * fields and reconstructs the surrounding WGSL syntax rather than copying spans.
  */
 export type AbstractElem =
   | GrammarElem
@@ -218,7 +217,7 @@ export interface SyntheticElem {
   text: string;
 }
 
-/* ------   Container Elements  (contain other elements)  ------   */
+/* ------   Composite Elements  (hold child elements in typed fields)  ------   */
 
 /** A declaration identifier with an optional type. */
 export interface TypedDeclElem extends AbstractElemBase {
