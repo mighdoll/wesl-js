@@ -10,6 +10,13 @@ import type { SrcModule } from "../Scope.ts";
 import type { ParsingContext } from "./ParsingContext.ts";
 import type { CommentTrivia } from "./WeslStream.ts";
 
+/** An element that can carry attached comments. */
+interface Commentable {
+  start: number;
+  commentsBefore?: CommentElem[];
+  commentsAfter?: CommentElem[];
+}
+
 /** Push partial element onto stack for content collection. */
 export function beginElem(
   ctx: ParsingContext,
@@ -35,13 +42,6 @@ export function finishContents(
   return coverWithText(ctx, open.contents as GrammarElem[], start, end);
 }
 
-/** Pop the top open element, throwing if the stack is empty. */
-function popOpenElem(ctx: ParsingContext): OpenElem {
-  const open = ctx.state.context.openElems.pop();
-  if (!open) throw new Error("No open element to close");
-  return open;
-}
-
 /** Create a TextElem */
 export function makeText(
   srcModule: SrcModule,
@@ -49,34 +49,6 @@ export function makeText(
   end: number,
 ): TextElem {
   return { kind: "text", start, end, srcModule };
-}
-
-/** Fill gaps between child elements with TextElems. */
-function coverWithText(
-  ctx: ParsingContext,
-  contents: GrammarElem[],
-  start: number,
-  end: number,
-): GrammarElem[] {
-  const { srcModule } = ctx.state.stable;
-  const sorted = contents.slice().sort((a, b) => a.start - b.start);
-  const elems: GrammarElem[] = [];
-  let pos = start;
-
-  for (const elem of sorted) {
-    if (pos < elem.start) elems.push(makeText(srcModule, pos, elem.start));
-    elems.push(elem);
-    pos = elem.end;
-  }
-  if (pos < end) elems.push(makeText(srcModule, pos, end));
-  return elems;
-}
-
-/** An element that can carry attached comments. */
-interface Commentable {
-  start: number;
-  commentsBefore?: CommentElem[];
-  commentsAfter?: CommentElem[];
 }
 
 /**
@@ -112,6 +84,34 @@ export function attachComments(
   }
 }
 
+/** Pop the top open element, throwing if the stack is empty. */
+function popOpenElem(ctx: ParsingContext): OpenElem {
+  const open = ctx.state.context.openElems.pop();
+  if (!open) throw new Error("No open element to close");
+  return open;
+}
+
+/** Fill gaps between child elements with TextElems. */
+function coverWithText(
+  ctx: ParsingContext,
+  contents: GrammarElem[],
+  start: number,
+  end: number,
+): GrammarElem[] {
+  const { srcModule } = ctx.state.stable;
+  const sorted = contents.slice().sort((a, b) => a.start - b.start);
+  const elems: GrammarElem[] = [];
+  let pos = start;
+
+  for (const elem of sorted) {
+    if (pos < elem.start) elems.push(makeText(srcModule, pos, elem.start));
+    elems.push(elem);
+    pos = elem.end;
+  }
+  if (pos < end) elems.push(makeText(srcModule, pos, end));
+  return elems;
+}
+
 /**
  * Split a comment run between the previous child (trailing) and this child
  * (leading) at the first comment that begins its own line. With no previous
@@ -128,12 +128,6 @@ function splitRun(
     addComments(prev, "commentsAfter", run.slice(0, split), srcModule);
   if (split < run.length)
     addComments(child, "commentsBefore", run.slice(split), srcModule);
-}
-
-/** Index of the first comment that begins its own line (after a line break). */
-function firstOwnLine(run: CommentTrivia[]): number {
-  const i = run.findIndex(t => t.newlineBefore);
-  return i === -1 ? run.length : i;
 }
 
 /** Append converted comments to an element's leading or trailing list. */
@@ -159,4 +153,10 @@ function makeComment(trivia: CommentTrivia, srcModule: SrcModule): CommentElem {
   };
   if (blankBefore) comment.blankBefore = true;
   return comment;
+}
+
+/** Index of the first comment that begins its own line (after a line break). */
+function firstOwnLine(run: CommentTrivia[]): number {
+  const i = run.findIndex(t => t.newlineBefore);
+  return i === -1 ? run.length : i;
 }
