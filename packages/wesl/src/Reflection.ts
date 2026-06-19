@@ -2,7 +2,6 @@ import type {
   BindingStructElem,
   NameElem,
   StructMemberElem,
-  TextElem,
   TranslateTimeExpressionElem,
   TypeRefElem,
   UnknownExpressionElem,
@@ -10,6 +9,7 @@ import type {
 import { assertThat } from "./Assertions.ts";
 import type { TransformedAST, WeslJsPlugin } from "./Linker.ts";
 import { identElemLog } from "./LinkerUtil.ts";
+import { expressionToString } from "./LowerAndEmit.ts";
 import { matchOneOf } from "./parse/stream/RegexHelpers.ts";
 import type { RefIdent } from "./Scope.ts";
 import {
@@ -278,8 +278,7 @@ function paramText(
     expression.kind === "expression",
     "Only expression elements are supported in this position",
   );
-  const text = expression.contents[0] as TextElem;
-  return text.srcModule.src.slice(expression.start, expression.end);
+  return expressionToString(expression.expression);
 }
 
 export function formatToTextureSampleType(

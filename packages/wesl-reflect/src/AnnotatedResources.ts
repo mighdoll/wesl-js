@@ -2,11 +2,10 @@ import type {
   AttributeElem,
   GlobalVarElem,
   StandardAttribute,
-  UnknownExpressionElem,
   WeslAST,
   WeslJsPlugin,
 } from "wesl";
-import { findAnnotation } from "./Annotations.ts";
+import { findAnnotation, firstRefName } from "./Annotations.ts";
 import { buildStructRegistry, type StructRegistry } from "./StructLayout.ts";
 import { typeShape } from "./TypeShape.ts";
 import { originalTypeName } from "./WeslStructs.ts";
@@ -152,6 +151,7 @@ function makeStandardAttr(
           kind: "expression",
           start,
           end,
+          expression: { kind: "literal", value: String(value), start, end },
           contents: [{ kind: "literal", value: String(value), start, end }],
         },
       ],
@@ -205,12 +205,4 @@ function discoverSampler(
   const filterName = firstRefName(attr.params?.[0]) ?? "linear";
   const filter = filterName === "nearest" ? "nearest" : "linear";
   return { kind: "sampler", varName, filter };
-}
-
-/** Extract the originalName of the first `ref` expression in an attribute parameter. */
-function firstRefName(
-  param: UnknownExpressionElem | undefined,
-): string | undefined {
-  const ref = param?.contents.find(c => c.kind === "ref");
-  return ref?.kind === "ref" ? ref.ident.originalName : undefined;
 }

@@ -24,6 +24,7 @@ import {
   parseCommaList,
   parseContentExpression,
   parseMany,
+  throwParseError,
 } from "./ParseUtil.ts";
 import type { ParsingContext } from "./ParsingContext.ts";
 
@@ -259,8 +260,9 @@ function parseAttrParam(ctx: ParsingContext): UnknownExpressionElem {
   const { stream } = ctx;
   const start = stream.checkpoint();
   beginElem(ctx, "expression");
-  parseContentExpression(ctx);
+  const expression = parseContentExpression(ctx);
+  if (!expression) throwParseError(stream, "Expected attribute parameter");
   const end = stream.checkpoint();
   const contents = finishContents(ctx, start, end);
-  return { kind: "expression", start, end, contents };
+  return { kind: "expression", expression, start, end, contents };
 }

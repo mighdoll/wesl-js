@@ -1,5 +1,5 @@
 import type { FnElem, WeslAST } from "wesl";
-import { findAnnotation } from "wesl-reflect";
+import { findAnnotation, firstRefName } from "wesl-reflect";
 
 export interface TestFunctionInfo {
   name: string;
@@ -59,17 +59,13 @@ export function findSnapshotFunctions(ast: WeslAST): SnapshotFunctionInfo[] {
 
 /** Extract description from @test(description) attribute. */
 function getTestDescription(fn: FnElem): string | undefined {
-  const param = findAnnotation(fn, "test")?.params?.[0];
-  const ref = param?.contents.find(c => c.kind === "ref");
-  return ref?.kind === "ref" ? ref.ident.originalName : undefined;
+  return firstRefName(findAnnotation(fn, "test")?.params?.[0]);
 }
 
 /** Extract snapshot name from @snapshot(name) or fall back to fn name. */
 function extractSnapshotName(fn: FnElem): string {
   const param = findAnnotation(fn, "snapshot")?.params?.[0];
-  const ref = param?.contents.find(c => c.kind === "ref");
-  if (ref?.kind === "ref") return ref.ident.originalName;
-  return fn.name.ident.originalName;
+  return firstRefName(param) ?? fn.name.ident.originalName;
 }
 
 /** Extract extent from @extent(w, h), default [256, 256]. */

@@ -313,6 +313,7 @@ export interface ConstElem extends AbstractElemBase, HasAttributes {
 /** An expression without special handling, used in attribute parameters. */
 export interface UnknownExpressionElem extends ElemWithContentsBase {
   kind: "expression";
+  expression: ExpressionElem;
 }
 
 /** An expression that can be safely evaluated at compile time. */
