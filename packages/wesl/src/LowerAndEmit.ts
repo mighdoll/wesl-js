@@ -52,6 +52,30 @@ interface EmitContext {
   indent: number;
 }
 
+/** Declarations emitted structurally (var/let/const/override/gvar/alias/assert),
+ *  in either local-statement or root-declaration position. */
+type ValueDeclElem = Extract<
+  AbstractElem,
+  { kind: "var" | "gvar" | "let" | "const" | "override" | "alias" | "assert" }
+>;
+
+/** Statement kinds that emitStatement must not follow with a ';': compound
+ *  statements take none, locals already carry their own, empty needs none. */
+const noSemicolon = new Set<Statement["kind"]>([
+  "block",
+  "if",
+  "for",
+  "while",
+  "loop",
+  "continuing",
+  "switch",
+  "empty",
+  "var",
+  "let",
+  "const",
+  "assert",
+]);
+
 /** Traverse the AST, starting from root elements, emitting WGSL for each. */
 export function lowerAndEmit(params: EmitParams): void {
   const { srcBuilder, rootElems, conditions } = params;
@@ -328,9 +352,61 @@ function emitExpression(e: ExpressionElem, ctx: EmitContext): void {
   }
 }
 
+function emitAttributes(
+  attributes: AttributeElem[] | undefined,
+  ctx: EmitContext,
+): void {
+  attributes?.forEach(a => {
+    const emitted = emitAttribute(a, ctx);
+    if (emitted) {
+      ctx.srcBuilder.add(" ", a.start, a.end);
+    }
+  });
+}
+
+/** Emit a declared identifier with its optional `: type` annotation. */
+function emitTypedDecl(name: TypedDeclElem, ctx: EmitContext): void {
+  emitDeclIdent(name.decl, ctx);
+  if (name.typeRef) {
+    ctx.srcBuilder.appendNext(": ");
+    emitTypeRefElem(name.typeRef, ctx);
+  }
+}
+
+/** Emit a struct member from its typed fields: `[attrs] name: type`. */
+function emitMember(member: StructMemberElem, ctx: EmitContext): void {
+  emitAttributes(member.attributes, ctx);
+  emitName(member.name, ctx);
+  ctx.srcBuilder.appendNext(": ");
+  emitTypeRefElem(member.typeRef, ctx);
+}
+
 function emitContents(elem: ContainerElem, ctx: EmitContext): void {
   const validElements = filterValidElements(elem.contents, ctx.conditions);
   for (const e of validElements) lowerAndEmitElem(e, ctx);
+}
+
+/** A `case sel, ...:` or `default:` clause with its `{ ... }` body. The selector
+ *  colon is optional in WGSL but kept here as the canonical form. */
+function emitSwitchClause(e: SwitchClauseElem, ctx: EmitContext): void {
+  const builder = ctx.srcBuilder;
+  emitLeadingComments(e, ctx);
+  newLine(ctx);
+  emitAttributes(e.attributes, ctx);
+  const defaultOnly = e.selectors.length === 1 && e.selectors[0] === "default";
+  if (defaultOnly) {
+    builder.appendNext("default");
+  } else {
+    builder.appendNext("case ");
+    e.selectors.forEach((sel, i) => {
+      if (i > 0) builder.appendNext(", ");
+      if (sel === "default") builder.appendNext("default");
+      else emitExpression(sel, ctx);
+    });
+  }
+  builder.appendNext(": ");
+  emitBlock(e.body, ctx);
+  emitTrailingComments(e, ctx);
 }
 
 /**
@@ -359,327 +435,12 @@ function emitModule(e: ContainerElem, ctx: EmitContext): void {
   }
 }
 
-/** Statement kinds that emitStatement must not follow with a ';': compound
- *  statements take none, locals already carry their own, empty needs none. */
-const noSemicolon = new Set<Statement["kind"]>([
-  "block",
-  "if",
-  "for",
-  "while",
-  "loop",
-  "continuing",
-  "switch",
-  "empty",
-  "var",
-  "let",
-  "const",
-  "assert",
-]);
-
-/** Emit a `{ ... }` block, one statement per indented line. A block with no
- *  statements collapses to `{ }` unless it holds dangling inner comments. */
-function emitBlock(e: BlockElem, ctx: EmitContext): void {
-  emitAttributes(e.attributes, ctx);
-  const stmts = filterValidElements(e.body, ctx.conditions);
-  if (stmts.length === 0 && !e.innerComments?.length) {
-    ctx.srcBuilder.appendNext("{ }");
-    return;
-  }
-  ctx.srcBuilder.appendNext("{");
-  const inner = childIndent(ctx);
-  for (const comment of e.innerComments ?? []) {
-    newLine(inner);
-    emitComment(comment, inner);
-  }
-  for (const stmt of stmts) emitStatement(stmt, inner);
-  newLine(ctx);
-  ctx.srcBuilder.appendNext("}");
-}
-
 /** Emit one statement on its own line, with attached leading/trailing comments. */
 function emitStatement(stmt: Statement, ctx: EmitContext): void {
   emitLeadingComments(stmt, ctx);
   newLine(ctx);
   emitCoreSemi(stmt, ctx);
   emitTrailingComments(stmt, ctx);
-}
-
-/** Emit a statement's syntax followed by ';' unless its kind takes none. */
-function emitCoreSemi(stmt: Statement, ctx: EmitContext): void {
-  emitStatementCore(stmt, ctx);
-  if (!noSemicolon.has(stmt.kind)) ctx.srcBuilder.appendNext(";");
-}
-
-/** Emit a statement's syntax, without surrounding line breaks, ';', or comments. */
-function emitStatementCore(stmt: Statement, ctx: EmitContext): void {
-  if (
-    stmt.kind === "var" ||
-    stmt.kind === "let" ||
-    stmt.kind === "const" ||
-    stmt.kind === "assert"
-  ) {
-    emitValueDecl(stmt, ctx);
-    return;
-  }
-  // a block prints its own attributes (before its '{'); everything else prints
-  // them before its keyword.
-  if (stmt.kind !== "block") emitAttributes(stmt.attributes, ctx);
-  const builder = ctx.srcBuilder;
-  switch (stmt.kind) {
-    case "block":
-      emitBlock(stmt, ctx);
-      return;
-    case "if":
-      emitIf(stmt, ctx);
-      return;
-    case "for":
-      emitFor(stmt, ctx);
-      return;
-    case "while":
-      emitWhile(stmt, ctx);
-      return;
-    case "loop":
-      builder.appendNext("loop ");
-      emitBlock(stmt.body, ctx);
-      return;
-    case "continuing":
-      builder.appendNext("continuing ");
-      emitBlock(stmt.body, ctx);
-      return;
-    case "switch":
-      emitSwitch(stmt, ctx);
-      return;
-    case "return":
-      builder.appendNext("return");
-      if (stmt.value) {
-        builder.appendNext(" ");
-        emitExpression(stmt.value, ctx);
-      }
-      return;
-    case "break":
-      builder.appendNext("break");
-      if (stmt.condition) {
-        builder.appendNext(" if ");
-        emitExpression(stmt.condition, ctx);
-      }
-      return;
-    case "continue":
-      builder.appendNext("continue");
-      return;
-    case "discard":
-      builder.appendNext("discard");
-      return;
-    case "assign":
-      emitAssign(stmt, ctx);
-      return;
-    case "increment":
-      emitExpression(stmt.target, ctx);
-      builder.appendNext("++");
-      return;
-    case "decrement":
-      emitExpression(stmt.target, ctx);
-      builder.appendNext("--");
-      return;
-    case "call":
-      emitExpression(stmt.call, ctx);
-      return;
-    case "empty":
-      return;
-    default:
-      assertUnreachable(stmt);
-  }
-}
-
-/** Declarations emitted structurally (var/let/const/override/gvar/alias/assert),
- *  in either local-statement or root-declaration position. */
-type ValueDeclElem = Extract<
-  AbstractElem,
-  { kind: "var" | "gvar" | "let" | "const" | "override" | "alias" | "assert" }
->;
-
-/** Emit a declaration from its typed fields, including its trailing ';':
- *  `[attrs] var<...> name: T = init;`, `const name = init;`, `override n;`,
- *  `alias name = T;`, `const_assert expr;`. */
-function emitValueDecl(e: ValueDeclElem, ctx: EmitContext): void {
-  emitAttributes(e.attributes, ctx);
-  const builder = ctx.srcBuilder;
-  switch (e.kind) {
-    case "var":
-    case "gvar":
-      builder.appendNext("var");
-      if (e.template) emitVarTemplate(e.template, ctx);
-      builder.appendNext(" ");
-      emitTypedDecl(e.name, ctx);
-      emitInit(e.init, ctx);
-      break;
-    case "let":
-    case "const":
-    case "override":
-      builder.appendNext(`${e.kind} `);
-      emitTypedDecl(e.name, ctx);
-      emitInit(e.init, ctx);
-      break;
-    case "alias":
-      builder.appendNext("alias ");
-      emitDeclIdent(e.name, ctx);
-      builder.appendNext(" = ");
-      emitTypeRefElem(e.typeRef, ctx);
-      break;
-    case "assert":
-      builder.appendNext("const_assert ");
-      emitExpression(e.expression, ctx);
-      break;
-    default:
-      assertUnreachable(e);
-  }
-  builder.appendNext(";");
-}
-
-/** Emit a var's `<address_space[, access_mode]>` enumerant template. */
-function emitVarTemplate(template: NameElem[], ctx: EmitContext): void {
-  const builder = ctx.srcBuilder;
-  builder.appendNext("<");
-  template.forEach((name, i) => {
-    if (i > 0) builder.appendNext(", ");
-    emitName(name, ctx);
-  });
-  builder.appendNext(">");
-}
-
-/** Emit a declared identifier with its optional `: type` annotation. */
-function emitTypedDecl(name: TypedDeclElem, ctx: EmitContext): void {
-  emitDeclIdent(name.decl, ctx);
-  if (name.typeRef) {
-    ctx.srcBuilder.appendNext(": ");
-    emitTypeRefElem(name.typeRef, ctx);
-  }
-}
-
-/** Emit a ` = init` clause, if present. */
-function emitInit(init: ExpressionElem | undefined, ctx: EmitContext): void {
-  if (!init) return;
-  ctx.srcBuilder.appendNext(" = ");
-  emitExpression(init, ctx);
-}
-
-/** if / else-if / else: a nested IfElem prints as `else if`, a BlockElem as `else`. */
-function emitIf(e: IfElem, ctx: EmitContext): void {
-  const builder = ctx.srcBuilder;
-  builder.appendNext("if ");
-  emitExpression(e.condition, ctx);
-  builder.appendNext(" ");
-  emitBlock(e.body, ctx);
-  if (e.else) {
-    builder.appendNext(" else ");
-    if (e.else.kind === "if") emitIf(e.else, ctx);
-    else emitBlock(e.else, ctx);
-  }
-}
-
-/** for (init; condition; update) { ... }. The init takes a ';' like any
- *  statement; the update is the last clause before ')', so it gets none. */
-function emitFor(e: ForElem, ctx: EmitContext): void {
-  const builder = ctx.srcBuilder;
-  builder.appendNext("for (");
-  if (e.init) emitCoreSemi(e.init, ctx);
-  else builder.appendNext(";");
-  builder.appendNext(" ");
-  if (e.condition) emitExpression(e.condition, ctx);
-  builder.appendNext("; ");
-  if (e.update) emitStatementCore(e.update, ctx);
-  builder.appendNext(") ");
-  emitBlock(e.body, ctx);
-}
-
-function emitWhile(e: WhileElem, ctx: EmitContext): void {
-  ctx.srcBuilder.appendNext("while ");
-  emitExpression(e.condition, ctx);
-  ctx.srcBuilder.appendNext(" ");
-  emitBlock(e.body, ctx);
-}
-
-function emitSwitch(e: SwitchElem, ctx: EmitContext): void {
-  const builder = ctx.srcBuilder;
-  builder.appendNext("switch ");
-  emitExpression(e.selector, ctx);
-  builder.appendNext(" ");
-  emitAttributes(e.bodyAttributes, ctx);
-  builder.appendNext("{");
-  const inner = childIndent(ctx);
-  for (const clause of filterValidElements(e.clauses, ctx.conditions)) {
-    emitSwitchClause(clause, inner);
-  }
-  newLine(ctx);
-  builder.appendNext("}");
-}
-
-/** A `case sel, ...:` or `default:` clause with its `{ ... }` body. The selector
- *  colon is optional in WGSL but kept here as the canonical form. */
-function emitSwitchClause(e: SwitchClauseElem, ctx: EmitContext): void {
-  const builder = ctx.srcBuilder;
-  emitLeadingComments(e, ctx);
-  newLine(ctx);
-  emitAttributes(e.attributes, ctx);
-  const defaultOnly = e.selectors.length === 1 && e.selectors[0] === "default";
-  if (defaultOnly) {
-    builder.appendNext("default");
-  } else {
-    builder.appendNext("case ");
-    e.selectors.forEach((sel, i) => {
-      if (i > 0) builder.appendNext(", ");
-      if (sel === "default") builder.appendNext("default");
-      else emitExpression(sel, ctx);
-    });
-  }
-  builder.appendNext(": ");
-  emitBlock(e.body, ctx);
-  emitTrailingComments(e, ctx);
-}
-
-/** lhs op rhs, with the phony target printed as `_`. */
-function emitAssign(e: AssignElem, ctx: EmitContext): void {
-  if (e.lhs.kind === "phony") {
-    ctx.srcBuilder.add("_", e.lhs.span[0], e.lhs.span[1]);
-  } else {
-    emitExpression(e.lhs, ctx);
-  }
-  const [start, end] = e.op.span;
-  ctx.srcBuilder.add(` ${e.op.value} `, start, end);
-  emitExpression(e.rhs, ctx);
-}
-
-/** A child context indented one level deeper. */
-function childIndent(ctx: EmitContext): EmitContext {
-  return { ...ctx, indent: ctx.indent + 1 };
-}
-
-/** Start a fresh line at the current indent. */
-function newLine(ctx: EmitContext): void {
-  ctx.srcBuilder.addNl();
-  if (ctx.indent > 0) ctx.srcBuilder.appendNext("  ".repeat(ctx.indent));
-}
-
-/** Leading comments: each on its own indented line above the element. */
-function emitLeadingComments(e: AbstractElemBase, ctx: EmitContext): void {
-  if (!e.commentsBefore) return;
-  for (const c of e.commentsBefore) {
-    if (c.blankBefore) ctx.srcBuilder.addNl();
-    newLine(ctx);
-    emitComment(c, ctx);
-  }
-}
-
-/** Trailing comments: kept on the element's line, after its text. */
-function emitTrailingComments(e: AbstractElemBase, ctx: EmitContext): void {
-  if (!e.commentsAfter) return;
-  for (const c of e.commentsAfter) {
-    ctx.srcBuilder.appendNext(" ");
-    emitComment(c, ctx);
-  }
-}
-
-function emitComment(c: CommentElem, ctx: EmitContext): void {
-  ctx.srcBuilder.add(c.srcModule.src.slice(c.start, c.end), c.start, c.end);
 }
 
 function emitRootDecl(
@@ -770,14 +531,6 @@ function emitStruct(e: StructElem, ctx: EmitContext): void {
   }
 }
 
-/** Emit a struct member from its typed fields: `[attrs] name: type`. */
-function emitMember(member: StructMemberElem, ctx: EmitContext): void {
-  emitAttributes(member.attributes, ctx);
-  emitName(member.name, ctx);
-  ctx.srcBuilder.appendNext(": ");
-  emitTypeRefElem(member.typeRef, ctx);
-}
-
 function emitAttribute(e: AttributeElem, ctx: EmitContext): boolean {
   const { kind } = e.attribute;
 
@@ -855,6 +608,51 @@ function emitTemplateArgs(args: ExpressionElem[], ctx: EmitContext): void {
   ctx.srcBuilder.appendNext(">");
 }
 
+/** Leading comments: each on its own indented line above the element. */
+function emitLeadingComments(e: AbstractElemBase, ctx: EmitContext): void {
+  if (!e.commentsBefore) return;
+  for (const c of e.commentsBefore) {
+    if (c.blankBefore) ctx.srcBuilder.addNl();
+    newLine(ctx);
+    emitComment(c, ctx);
+  }
+}
+
+/** Start a fresh line at the current indent. */
+function newLine(ctx: EmitContext): void {
+  ctx.srcBuilder.addNl();
+  if (ctx.indent > 0) ctx.srcBuilder.appendNext("  ".repeat(ctx.indent));
+}
+
+/** Emit a `{ ... }` block, one statement per indented line. A block with no
+ *  statements collapses to `{ }` unless it holds dangling inner comments. */
+function emitBlock(e: BlockElem, ctx: EmitContext): void {
+  emitAttributes(e.attributes, ctx);
+  const stmts = filterValidElements(e.body, ctx.conditions);
+  if (stmts.length === 0 && !e.innerComments?.length) {
+    ctx.srcBuilder.appendNext("{ }");
+    return;
+  }
+  ctx.srcBuilder.appendNext("{");
+  const inner = childIndent(ctx);
+  for (const comment of e.innerComments ?? []) {
+    newLine(inner);
+    emitComment(comment, inner);
+  }
+  for (const stmt of stmts) emitStatement(stmt, inner);
+  newLine(ctx);
+  ctx.srcBuilder.appendNext("}");
+}
+
+/** Trailing comments: kept on the element's line, after its text. */
+function emitTrailingComments(e: AbstractElemBase, ctx: EmitContext): void {
+  if (!e.commentsAfter) return;
+  for (const c of e.commentsAfter) {
+    ctx.srcBuilder.appendNext(" ");
+    emitComment(c, ctx);
+  }
+}
+
 /** Emit a type reference structurally: name plus an optional <...> arg list. */
 function emitTypeRef(e: TypeRefElem, ctx: EmitContext): void {
   emitRefIdent(e.name.refIdentElem, ctx);
@@ -882,16 +680,48 @@ function emitContentsWithTrimming(elem: ContainerElem, ctx: EmitContext): void {
   });
 }
 
-function emitAttributes(
-  attributes: AttributeElem[] | undefined,
-  ctx: EmitContext,
-): void {
-  attributes?.forEach(a => {
-    const emitted = emitAttribute(a, ctx);
-    if (emitted) {
-      ctx.srcBuilder.add(" ", a.start, a.end);
-    }
-  });
+/** Emit a statement's syntax followed by ';' unless its kind takes none. */
+function emitCoreSemi(stmt: Statement, ctx: EmitContext): void {
+  emitStatementCore(stmt, ctx);
+  if (!noSemicolon.has(stmt.kind)) ctx.srcBuilder.appendNext(";");
+}
+
+/** Emit a declaration from its typed fields, including its trailing ';':
+ *  `[attrs] var<...> name: T = init;`, `const name = init;`, `override n;`,
+ *  `alias name = T;`, `const_assert expr;`. */
+function emitValueDecl(e: ValueDeclElem, ctx: EmitContext): void {
+  emitAttributes(e.attributes, ctx);
+  const builder = ctx.srcBuilder;
+  switch (e.kind) {
+    case "var":
+    case "gvar":
+      builder.appendNext("var");
+      if (e.template) emitVarTemplate(e.template, ctx);
+      builder.appendNext(" ");
+      emitTypedDecl(e.name, ctx);
+      emitInit(e.init, ctx);
+      break;
+    case "let":
+    case "const":
+    case "override":
+      builder.appendNext(`${e.kind} `);
+      emitTypedDecl(e.name, ctx);
+      emitInit(e.init, ctx);
+      break;
+    case "alias":
+      builder.appendNext("alias ");
+      emitDeclIdent(e.name, ctx);
+      builder.appendNext(" = ");
+      emitTypeRefElem(e.typeRef, ctx);
+      break;
+    case "assert":
+      builder.appendNext("const_assert ");
+      emitExpression(e.expression, ctx);
+      break;
+    default:
+      assertUnreachable(e);
+  }
+  builder.appendNext(";");
 }
 
 function warnEmptyStruct(e: StructElem): void {
@@ -920,8 +750,178 @@ function emitStandardAttribute(e: AttributeElem, ctx: EmitContext): void {
   ctx.srcBuilder.add(")", params[params.length - 1].end, e.end);
 }
 
+function emitComment(c: CommentElem, ctx: EmitContext): void {
+  ctx.srcBuilder.add(c.srcModule.src.slice(c.start, c.end), c.start, c.end);
+}
+
+/** A child context indented one level deeper. */
+function childIndent(ctx: EmitContext): EmitContext {
+  return { ...ctx, indent: ctx.indent + 1 };
+}
+
 function isConditionalAttr(e: AbstractElem): boolean {
   if (e.kind !== "attribute") return false;
   const { kind } = e.attribute;
   return kind === "@if" || kind === "@elif" || kind === "@else";
+}
+
+/** Emit a statement's syntax, without surrounding line breaks, ';', or comments. */
+function emitStatementCore(stmt: Statement, ctx: EmitContext): void {
+  if (
+    stmt.kind === "var" ||
+    stmt.kind === "let" ||
+    stmt.kind === "const" ||
+    stmt.kind === "assert"
+  ) {
+    emitValueDecl(stmt, ctx);
+    return;
+  }
+  // a block prints its own attributes (before its '{'); everything else prints
+  // them before its keyword.
+  if (stmt.kind !== "block") emitAttributes(stmt.attributes, ctx);
+  const builder = ctx.srcBuilder;
+  switch (stmt.kind) {
+    case "block":
+      emitBlock(stmt, ctx);
+      return;
+    case "if":
+      emitIf(stmt, ctx);
+      return;
+    case "for":
+      emitFor(stmt, ctx);
+      return;
+    case "while":
+      emitWhile(stmt, ctx);
+      return;
+    case "loop":
+      builder.appendNext("loop ");
+      emitBlock(stmt.body, ctx);
+      return;
+    case "continuing":
+      builder.appendNext("continuing ");
+      emitBlock(stmt.body, ctx);
+      return;
+    case "switch":
+      emitSwitch(stmt, ctx);
+      return;
+    case "return":
+      builder.appendNext("return");
+      if (stmt.value) {
+        builder.appendNext(" ");
+        emitExpression(stmt.value, ctx);
+      }
+      return;
+    case "break":
+      builder.appendNext("break");
+      if (stmt.condition) {
+        builder.appendNext(" if ");
+        emitExpression(stmt.condition, ctx);
+      }
+      return;
+    case "continue":
+      builder.appendNext("continue");
+      return;
+    case "discard":
+      builder.appendNext("discard");
+      return;
+    case "assign":
+      emitAssign(stmt, ctx);
+      return;
+    case "increment":
+      emitExpression(stmt.target, ctx);
+      builder.appendNext("++");
+      return;
+    case "decrement":
+      emitExpression(stmt.target, ctx);
+      builder.appendNext("--");
+      return;
+    case "call":
+      emitExpression(stmt.call, ctx);
+      return;
+    case "empty":
+      return;
+    default:
+      assertUnreachable(stmt);
+  }
+}
+
+/** Emit a var's `<address_space[, access_mode]>` enumerant template. */
+function emitVarTemplate(template: NameElem[], ctx: EmitContext): void {
+  const builder = ctx.srcBuilder;
+  builder.appendNext("<");
+  template.forEach((name, i) => {
+    if (i > 0) builder.appendNext(", ");
+    emitName(name, ctx);
+  });
+  builder.appendNext(">");
+}
+
+/** Emit a ` = init` clause, if present. */
+function emitInit(init: ExpressionElem | undefined, ctx: EmitContext): void {
+  if (!init) return;
+  ctx.srcBuilder.appendNext(" = ");
+  emitExpression(init, ctx);
+}
+
+/** if / else-if / else: a nested IfElem prints as `else if`, a BlockElem as `else`. */
+function emitIf(e: IfElem, ctx: EmitContext): void {
+  const builder = ctx.srcBuilder;
+  builder.appendNext("if ");
+  emitExpression(e.condition, ctx);
+  builder.appendNext(" ");
+  emitBlock(e.body, ctx);
+  if (e.else) {
+    builder.appendNext(" else ");
+    if (e.else.kind === "if") emitIf(e.else, ctx);
+    else emitBlock(e.else, ctx);
+  }
+}
+
+/** for (init; condition; update) { ... }. The init takes a ';' like any
+ *  statement; the update is the last clause before ')', so it gets none. */
+function emitFor(e: ForElem, ctx: EmitContext): void {
+  const builder = ctx.srcBuilder;
+  builder.appendNext("for (");
+  if (e.init) emitCoreSemi(e.init, ctx);
+  else builder.appendNext(";");
+  builder.appendNext(" ");
+  if (e.condition) emitExpression(e.condition, ctx);
+  builder.appendNext("; ");
+  if (e.update) emitStatementCore(e.update, ctx);
+  builder.appendNext(") ");
+  emitBlock(e.body, ctx);
+}
+
+function emitWhile(e: WhileElem, ctx: EmitContext): void {
+  ctx.srcBuilder.appendNext("while ");
+  emitExpression(e.condition, ctx);
+  ctx.srcBuilder.appendNext(" ");
+  emitBlock(e.body, ctx);
+}
+
+function emitSwitch(e: SwitchElem, ctx: EmitContext): void {
+  const builder = ctx.srcBuilder;
+  builder.appendNext("switch ");
+  emitExpression(e.selector, ctx);
+  builder.appendNext(" ");
+  emitAttributes(e.bodyAttributes, ctx);
+  builder.appendNext("{");
+  const inner = childIndent(ctx);
+  for (const clause of filterValidElements(e.clauses, ctx.conditions)) {
+    emitSwitchClause(clause, inner);
+  }
+  newLine(ctx);
+  builder.appendNext("}");
+}
+
+/** lhs op rhs, with the phony target printed as `_`. */
+function emitAssign(e: AssignElem, ctx: EmitContext): void {
+  if (e.lhs.kind === "phony") {
+    ctx.srcBuilder.add("_", e.lhs.span[0], e.lhs.span[1]);
+  } else {
+    emitExpression(e.lhs, ctx);
+  }
+  const [start, end] = e.op.span;
+  ctx.srcBuilder.add(` ${e.op.value} `, start, end);
+  emitExpression(e.rhs, ctx);
 }

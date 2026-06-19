@@ -25,6 +25,20 @@ import { textureStorage } from "./Reflection.ts";
 import type { DeclIdent, Ident, RefIdent } from "./Scope.ts";
 import { filterMap } from "./Util.ts";
 
+interface LoweredVarTypes {
+  storage: string;
+  varType: string;
+}
+
+interface MemberRefToStruct extends StructTrace {
+  memberRef: SimpleMemberRef; // e.g. the memberRef 'b.particles'
+}
+
+interface StructTrace {
+  struct: StructElem; // e.g. the struct Bindings
+  intermediates: FnParamElem[]; // e.g. the fn param b:Bindings from 'fn(b:Bindings)'
+}
+
 export function bindingStructsPlugin(): WeslJsPlugin {
   return {
     transform: lowerBindingStructs,
@@ -80,30 +94,6 @@ export function markEntryTypes(
   }
 }
 
-function fnReferencesBindingStruct(
-  fns: FnElem[],
-  bindingStructs: BindingStructElem[],
-): { fn: FnElem; struct: BindingStructElem } | undefined {
-  for (const fn of fns) {
-    const { params } = fn;
-    for (const p of params) {
-      const ref = p.name?.typeRef?.name as RefIdent | undefined;
-      const referencedElem = (ref?.refersTo as DeclIdent)
-        ?.declElem as StructElem;
-      const struct = bindingStructs.find(s => s === referencedElem);
-      if (struct) {
-        return { fn, struct };
-      }
-    }
-  }
-}
-
-function removeBindingStructs(moduleElem: ModuleElem): AbstractElem[] {
-  return moduleElem.contents.filter(
-    elem => elem.kind !== "struct" || !elem.bindingStruct,
-  );
-}
-
 /** Mark and return structs with @group/@binding members as binding structs. */
 export function markBindingStructs(
   moduleElem: ModuleElem,
@@ -115,20 +105,6 @@ export function markBindingStructs(
   });
   // LATER also mark structs that reference a binding struct..
   return bindingStructs as BindingStructElem[];
-}
-
-/** @return true if any struct member is marked with @binding or @group */
-function containsBinding(struct: StructElem): boolean {
-  return struct.members.some(({ attributes }) => bindingAttribute(attributes));
-}
-
-function bindingAttribute(attributes?: AttributeElem[]): boolean {
-  if (!attributes) return false;
-  return attributes.some(
-    ({ attribute }) =>
-      attribute.kind === "@attribute" &&
-      (attribute.name === "binding" || attribute.name === "group"),
-  );
 }
 
 /** convert each member of the binding struct into a synthetic global variable */
@@ -161,9 +137,65 @@ export function transformBindingStruct(
   });
 }
 
-interface LoweredVarTypes {
-  storage: string;
-  varType: string;
+/** find all simple member references in the module that refer to binding structs */
+export function findRefsToBindingStructs(
+  moduleElem: ModuleElem,
+): MemberRefToStruct[] {
+  const members: SimpleMemberRef[] = [];
+  visitAst(moduleElem, elem => {
+    if (elem.kind === "memberRef") members.push(elem);
+  });
+  return filterMap(members, refersToBindingStruct);
+}
+
+/** Mutate the member reference elem to instead contain synthetic elem text.
+ * The new text is the mangled var name of the struct member that the memberRef refers to. */
+export function transformBindingReference(
+  memberRef: SimpleMemberRef,
+  struct: StructElem,
+): SyntheticElem {
+  const refName = memberRef.member.name;
+  const structMember = struct.members.find(m => m.name.name === refName)!;
+  if (!structMember || !structMember.mangledVarName) {
+    if (debug) console.log(`missing mangledVarName for ${refName}`);
+    return { kind: "synthetic", text: refName };
+  }
+  const { extraComponents } = memberRef;
+  const extraText = extraComponents ? contentsToString(extraComponents) : "";
+
+  const text = structMember.mangledVarName + extraText;
+  const synthElem: SyntheticElem = { kind: "synthetic", text };
+  memberRef.contents = [synthElem];
+  return synthElem;
+}
+
+function removeBindingStructs(moduleElem: ModuleElem): AbstractElem[] {
+  return moduleElem.contents.filter(
+    elem => elem.kind !== "struct" || !elem.bindingStruct,
+  );
+}
+
+function fnReferencesBindingStruct(
+  fns: FnElem[],
+  bindingStructs: BindingStructElem[],
+): { fn: FnElem; struct: BindingStructElem } | undefined {
+  for (const fn of fns) {
+    const { params } = fn;
+    for (const p of params) {
+      const ref = p.name?.typeRef?.name as RefIdent | undefined;
+      const referencedElem = (ref?.refersTo as DeclIdent)
+        ?.declElem as StructElem;
+      const struct = bindingStructs.find(s => s === referencedElem);
+      if (struct) {
+        return { fn, struct };
+      }
+    }
+  }
+}
+
+/** @return true if any struct member is marked with @binding or @group */
+function containsBinding(struct: StructElem): boolean {
+  return struct.members.some(({ attributes }) => bindingAttribute(attributes));
 }
 
 function lowerPtrMember(
@@ -215,26 +247,6 @@ function syntheticVar(
   return { kind: "synthetic", text };
 }
 
-interface MemberRefToStruct extends StructTrace {
-  memberRef: SimpleMemberRef; // e.g. the memberRef 'b.particles'
-}
-
-interface StructTrace {
-  struct: StructElem; // e.g. the struct Bindings
-  intermediates: FnParamElem[]; // e.g. the fn param b:Bindings from 'fn(b:Bindings)'
-}
-
-/** find all simple member references in the module that refer to binding structs */
-export function findRefsToBindingStructs(
-  moduleElem: ModuleElem,
-): MemberRefToStruct[] {
-  const members: SimpleMemberRef[] = [];
-  visitAst(moduleElem, elem => {
-    if (elem.kind === "memberRef") members.push(elem);
-  });
-  return filterMap(members, refersToBindingStruct);
-}
-
 /** @return true if this memberRef refers to a binding struct */
 function refersToBindingStruct(
   memberRef: SimpleMemberRef,
@@ -244,6 +256,15 @@ function refersToBindingStruct(
   if (found?.struct.bindingStruct) {
     return { memberRef, ...found };
   }
+}
+
+function bindingAttribute(attributes?: AttributeElem[]): boolean {
+  if (!attributes) return false;
+  return attributes.some(
+    ({ attribute }) =>
+      attribute.kind === "@attribute" &&
+      (attribute.name === "binding" || attribute.name === "group"),
+  );
 }
 
 /** If this identifier ultimately refers to a struct type, return the struct declaration */
@@ -258,25 +279,4 @@ function traceToStruct(ident: RefIdent): StructTrace | undefined {
   const structElem = findDecl(name as Ident).declElem;
   if (structElem?.kind !== "struct") return undefined;
   return { struct: structElem, intermediates: [declElem] };
-}
-
-/** Mutate the member reference elem to instead contain synthetic elem text.
- * The new text is the mangled var name of the struct member that the memberRef refers to. */
-export function transformBindingReference(
-  memberRef: SimpleMemberRef,
-  struct: StructElem,
-): SyntheticElem {
-  const refName = memberRef.member.name;
-  const structMember = struct.members.find(m => m.name.name === refName)!;
-  if (!structMember || !structMember.mangledVarName) {
-    if (debug) console.log(`missing mangledVarName for ${refName}`);
-    return { kind: "synthetic", text: refName };
-  }
-  const { extraComponents } = memberRef;
-  const extraText = extraComponents ? contentsToString(extraComponents) : "";
-
-  const text = structMember.mangledVarName + extraText;
-  const synthElem: SyntheticElem = { kind: "synthetic", text };
-  memberRef.contents = [synthElem];
-  return synthElem;
 }

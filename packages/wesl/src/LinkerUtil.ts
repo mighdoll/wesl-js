@@ -27,6 +27,17 @@ export function childElems(elem: AbstractElem): readonly AbstractElem[] {
   return [...((elem as HasAttributes).attributes ?? []), ...fields];
 }
 
+export function identElemLog(
+  identElem: DeclIdentElem | RefIdentElem,
+  ...messages: any[]
+): void {
+  srcLog(
+    identElem.srcModule.src,
+    [identElem.start, identElem.end],
+    ...messages,
+  );
+}
+
 /** The child elems held in a statement's or declaration's typed fields, in
  *  source order, or undefined for any kind that still keeps `contents`. */
 function structuralFields(elem: AbstractElem): AbstractElem[] | undefined {
@@ -107,15 +118,4 @@ function exprSelectors(
   selectors: (ExpressionElem | "default")[],
 ): ExpressionElem[] {
   return selectors.filter((s): s is ExpressionElem => s !== "default");
-}
-
-export function identElemLog(
-  identElem: DeclIdentElem | RefIdentElem,
-  ...messages: any[]
-): void {
-  srcLog(
-    identElem.srcModule.src,
-    [identElem.start, identElem.end],
-    ...messages,
-  );
 }
