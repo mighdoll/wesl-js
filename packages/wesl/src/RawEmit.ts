@@ -66,13 +66,6 @@ export function typeRefToString(t?: TypeRefElem): string {
   return `${refToString(name)}${params}`;
 }
 
-function refToString(ref: RefIdent | string): string {
-  if (typeof ref === "string") return ref;
-  if (ref.std) return ref.originalName;
-  const decl = findDecl(ref);
-  return decl.mangledName || decl.originalName;
-}
-
 export function contentsToString(
   elem:
     | TranslateTimeExpressionElem
@@ -101,4 +94,11 @@ export function contentsToString(
   } else {
     assertUnreachable(elem);
   }
+}
+
+function refToString(ref: RefIdent | string): string {
+  if (typeof ref === "string") return ref;
+  if (ref.std) return ref.originalName;
+  const decl = findDecl(ref);
+  return decl.mangledName || decl.originalName;
 }

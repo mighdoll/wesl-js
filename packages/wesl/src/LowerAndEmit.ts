@@ -418,6 +418,27 @@ function emitTypeRef(e: TypeRefElem, ctx: EmitContext): void {
   if (e.templateParams) emitTemplateArgs(e.templateParams, ctx);
 }
 
+/** Emit contents with leading/trailing whitespace trimmed. */
+function emitContentsWithTrimming(elem: ContainerElem, ctx: EmitContext): void {
+  const validElements = filterValidElements(elem.contents, ctx.conditions);
+
+  // Trim against the first/last elements that actually emit; conditional
+  // attributes produce no output, so skip them when locating the edges.
+  const firstEmit = validElements.findIndex(e => !isConditionalAttr(e));
+  const lastEmit = validElements.findLastIndex(e => !isConditionalAttr(e));
+
+  validElements.forEach((elem, i) => {
+    if (elem.kind === "text") {
+      let text = elem.srcModule.src.slice(elem.start, elem.end);
+      if (i === firstEmit) text = text.trimStart();
+      if (i === lastEmit) text = text.trimEnd();
+      if (text) ctx.srcBuilder.add(text, elem.start, elem.end);
+    } else {
+      lowerAndEmitElem(elem, ctx);
+    }
+  });
+}
+
 function emitModule(e: ContainerElem, ctx: EmitContext): void {
   // Skip whitespace-only text elements at module level
   const validElements = filterValidElements(e.contents, ctx.conditions);
@@ -648,25 +669,10 @@ function emitTrailingComments(e: AbstractElemBase, ctx: EmitContext): void {
   }
 }
 
-/** Emit contents with leading/trailing whitespace trimmed. */
-function emitContentsWithTrimming(elem: ContainerElem, ctx: EmitContext): void {
-  const validElements = filterValidElements(elem.contents, ctx.conditions);
-
-  // Trim against the first/last elements that actually emit; conditional
-  // attributes produce no output, so skip them when locating the edges.
-  const firstEmit = validElements.findIndex(e => !isConditionalAttr(e));
-  const lastEmit = validElements.findLastIndex(e => !isConditionalAttr(e));
-
-  validElements.forEach((elem, i) => {
-    if (elem.kind === "text") {
-      let text = elem.srcModule.src.slice(elem.start, elem.end);
-      if (i === firstEmit) text = text.trimStart();
-      if (i === lastEmit) text = text.trimEnd();
-      if (text) ctx.srcBuilder.add(text, elem.start, elem.end);
-    } else {
-      lowerAndEmitElem(elem, ctx);
-    }
-  });
+function isConditionalAttr(e: AbstractElem): boolean {
+  if (e.kind !== "attribute") return false;
+  const { kind } = e.attribute;
+  return kind === "@if" || kind === "@elif" || kind === "@else";
 }
 
 /** Emit a statement's syntax followed by ';' unless its kind takes none. */
@@ -744,12 +750,6 @@ function emitComment(c: CommentElem, ctx: EmitContext): void {
 /** A child context indented one level deeper. */
 function childIndent(ctx: EmitContext): EmitContext {
   return { ...ctx, indent: ctx.indent + 1 };
-}
-
-function isConditionalAttr(e: AbstractElem): boolean {
-  if (e.kind !== "attribute") return false;
-  const { kind } = e.attribute;
-  return kind === "@if" || kind === "@elif" || kind === "@else";
 }
 
 /** Emit a statement's syntax, without surrounding line breaks, ';', or comments. */

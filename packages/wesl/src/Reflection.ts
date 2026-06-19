@@ -17,7 +17,18 @@ import {
 import { findMap } from "./Util.ts";
 
 export type BindingStructReportFn = (structs: BindingStructElem[]) => void;
+
+export type WgslTexelType = "f32" | "u32" | "i32";
 export const textureStorage = matchOneOf(textureStorageTypes);
+
+const stageVisibility: Record<string, string> = {
+  compute: "GPUShaderStage.COMPUTE",
+  vertex: "GPUShaderStage.VERTEX",
+  fragment: "GPUShaderStage.FRAGMENT",
+};
+
+const textureTypes = matchOneOf(sampledTextureTypes);
+const multiNames = matchOneOf(multisampledTextureTypes);
 
 export function reportBindingStructsPlugin(
   fn: BindingStructReportFn,
@@ -61,10 +72,6 @@ export function reportBindingStructs(
   };
 }
 
-function firstLetterLower(s: string): string {
-  return s[0].toLowerCase() + s.slice(1);
-}
-
 /** Generate TypeScript source for a function that builds the
  *  GPUBindGroupLayout matching one WESL binding struct. */
 export function bindingGroupLayoutTs(
@@ -102,11 +109,60 @@ export const layouts = { ${entriesName} };
   return src;
 }
 
-const stageVisibility: Record<string, string> = {
-  compute: "GPUShaderStage.COMPUTE",
-  vertex: "GPUShaderStage.VERTEX",
-  fragment: "GPUShaderStage.FRAGMENT",
-};
+export function formatToTextureSampleType(
+  format: GPUTextureFormat,
+  float32Filterable = false,
+): GPUTextureSampleType {
+  if (format.includes("32float")) {
+    return float32Filterable ? "float" : "unfilterable-float";
+  }
+  if (format.includes("float") || format.includes("unorm")) {
+    return "float";
+  }
+  if (format.includes("uint")) {
+    return "uint";
+  }
+  if (format.includes("sint")) {
+    return "sint";
+  }
+  throw new Error(`native sample type unknwon for texture format ${format}`);
+}
+
+/** return the wgsl element type for a given texture format */
+export function formatToTexelType(format: GPUTextureFormat): WgslTexelType {
+  if (format.includes("float")) return "f32";
+  if (format.includes("unorm")) return "f32";
+  if (format.includes("uint")) return "u32";
+  if (format.includes("sint")) return "i32";
+  throw new Error(`unknown format ${format}`);
+}
+
+/** @return the webgpu GPUTextureSampleType from the wgsl texel type */
+export function texelTypeToSampleType(
+  type: WgslTexelType,
+): GPUTextureSampleType {
+  if (type === "f32") return "float";
+  if (type === "u32") return "uint";
+  if (type === "i32") return "sint";
+  throw new Error(`unknown texel type ${type}`);
+}
+
+export function accessMode(access: string): GPUStorageTextureAccess {
+  if (access === "read") {
+    return "read-only";
+  }
+  if (access === "write") {
+    return "write-only";
+  }
+  if (access === "read_write") {
+    return "read-write";
+  }
+  throw new Error(`unknown access mode: ${access}`);
+}
+
+function firstLetterLower(s: string): string {
+  return s[0].toLowerCase() + s.slice(1);
+}
 
 /** Shader stage visibility for a binding struct, from the attributes of its
  *  entry function (attached to the struct by the enableBindingStructs transform). */
@@ -188,6 +244,21 @@ function ptrLayoutEntry(typeRef: TypeRefElem): string | undefined {
   }
 }
 
+function storageTextureLayoutEntry(typeRef: TypeRefElem): string | undefined {
+  if (textureStorage.test(typeRef.name.originalName)) {
+    const firstParam = typeRef.templateParams?.[0];
+    const secondParam = typeRef.templateParams?.[1];
+    assertThat(firstParam?.kind === "type"); // LATER: Temp hack
+    assertThat(secondParam?.kind === "type"); // LATER: Temp hack
+    const sampleType = formatToTextureSampleType(
+      firstParam.name.originalName as GPUTextureFormat,
+    );
+    const access = accessMode(secondParam.name.originalName);
+    return `storageTexture: { format: "${firstParam.name.originalName}", sampleType: "${sampleType}", access: "${access}" }`;
+  }
+  return undefined;
+}
+
 function samplerLayoutEntry(typeRef: TypeRefElem): string | undefined {
   const { originalName } = typeRef.name as RefIdent;
   if (originalName === "sampler") {
@@ -199,9 +270,6 @@ function samplerLayoutEntry(typeRef: TypeRefElem): string | undefined {
     return `sampler: { type: "comparison" }`;
   }
 }
-
-const textureTypes = matchOneOf(sampledTextureTypes);
-const multiNames = matchOneOf(multisampledTextureTypes);
 
 function textureLayoutEntry(typeRef: TypeRefElem): string | undefined {
   const { originalName } = typeRef.name as RefIdent;
@@ -223,78 +291,10 @@ function textureLayoutEntry(typeRef: TypeRefElem): string | undefined {
   }
 }
 
-function storageTextureLayoutEntry(typeRef: TypeRefElem): string | undefined {
-  if (textureStorage.test(typeRef.name.originalName)) {
-    const firstParam = typeRef.templateParams?.[0];
-    const secondParam = typeRef.templateParams?.[1];
-    assertThat(firstParam?.kind === "type"); // LATER: Temp hack
-    assertThat(secondParam?.kind === "type"); // LATER: Temp hack
-    const sampleType = formatToTextureSampleType(
-      firstParam.name.originalName as GPUTextureFormat,
-    );
-    const access = accessMode(secondParam.name.originalName);
-    return `storageTexture: { format: "${firstParam.name.originalName}", sampleType: "${sampleType}", access: "${access}" }`;
-  }
-  return undefined;
-}
-
 function externalTextureLayoutEntry(typeRef: TypeRefElem): string | undefined {
   const { originalName } = typeRef.name as RefIdent;
   if (originalName === "texture_external") {
     // LATER. how would we set the required source: HTMLVideoElement or VideoFrame?
   }
   return undefined;
-}
-
-export function formatToTextureSampleType(
-  format: GPUTextureFormat,
-  float32Filterable = false,
-): GPUTextureSampleType {
-  if (format.includes("32float")) {
-    return float32Filterable ? "float" : "unfilterable-float";
-  }
-  if (format.includes("float") || format.includes("unorm")) {
-    return "float";
-  }
-  if (format.includes("uint")) {
-    return "uint";
-  }
-  if (format.includes("sint")) {
-    return "sint";
-  }
-  throw new Error(`native sample type unknwon for texture format ${format}`);
-}
-
-export type WgslTexelType = "f32" | "u32" | "i32";
-
-/** return the wgsl element type for a given texture format */
-export function formatToTexelType(format: GPUTextureFormat): WgslTexelType {
-  if (format.includes("float")) return "f32";
-  if (format.includes("unorm")) return "f32";
-  if (format.includes("uint")) return "u32";
-  if (format.includes("sint")) return "i32";
-  throw new Error(`unknown format ${format}`);
-}
-
-/** @return the webgpu GPUTextureSampleType from the wgsl texel type */
-export function texelTypeToSampleType(
-  type: WgslTexelType,
-): GPUTextureSampleType {
-  if (type === "f32") return "float";
-  if (type === "u32") return "uint";
-  if (type === "i32") return "sint";
-  throw new Error(`unknown texel type ${type}`);
-}
-
-export function accessMode(access: string): GPUStorageTextureAccess {
-  if (access === "read") {
-    return "read-only";
-  }
-  if (access === "write") {
-    return "write-only";
-  }
-  if (access === "read_write") {
-    return "read-write";
-  }
-  throw new Error(`unknown access mode: ${access}`);
 }
