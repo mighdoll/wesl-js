@@ -8,7 +8,7 @@ import type {
   TypeRefElem,
 } from "../AbstractElems.ts";
 import type { Scope } from "../Scope.ts";
-import { beginElem, finishContents } from "./ContentsHelpers.ts";
+import { beginElem, discardOpenElem } from "./ContentsHelpers.ts";
 import { finishStatement, getStartWithAttributes } from "./ParseStatement.ts";
 import { parseSimpleTypeRef } from "./ParseType.ts";
 import {
@@ -55,8 +55,8 @@ export function parseTypedDecl(
   const { typeRef, typeScope } = parseOptionalType(ctx);
 
   const end = ctx.stream.checkpoint();
-  const contents = finishContents(ctx, start, end);
-  return { kind: "typeDecl", decl, typeRef, typeScope, start, end, contents };
+  discardOpenElem(ctx);
+  return { kind: "typeDecl", decl, typeRef, typeScope, start, end };
 }
 
 /** Shared parser for const/override declarations. */

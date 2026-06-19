@@ -46,6 +46,21 @@ function structuralFields(elem: AbstractElem): AbstractElem[] | undefined {
       return [elem.name, elem.typeRef];
     case "assert":
       return [elem.expression];
+    case "struct":
+      return [elem.name, ...elem.members];
+    case "member":
+      return [elem.name, elem.typeRef];
+    case "param":
+      return [elem.name];
+    case "typeDecl":
+      return elem.typeRef ? [elem.decl, elem.typeRef] : [elem.decl];
+    case "fn":
+      return [
+        elem.name,
+        ...elem.params,
+        ...(elem.returnType ? [elem.returnType] : []),
+        elem.body,
+      ];
     case "block":
       return elem.body;
     case "if":

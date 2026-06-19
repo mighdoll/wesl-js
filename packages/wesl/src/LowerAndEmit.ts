@@ -16,6 +16,7 @@ import type {
   RefIdentElem,
   Statement,
   StructElem,
+  StructMemberElem,
   SwitchClauseElem,
   SwitchElem,
   SyntheticElem,
@@ -160,8 +161,16 @@ function lowerAndEmitElem(e: AbstractElem, ctx: EmitContext): void {
       return;
 
     case "param":
+      emitAttributes(e.attributes, ctx);
+      emitTypedDecl(e.name, ctx);
+      return;
     case "typeDecl":
+      emitTypedDecl(e, ctx);
+      return;
     case "member":
+      emitMember(e, ctx);
+      return;
+
     case "memberRef":
     case "expression":
       emitContents(e, ctx);
@@ -715,16 +724,12 @@ function emitFn(e: FnElem, ctx: EmitContext): void {
   emitDeclIdent(name, ctx);
 
   builder.appendNext("(");
-  const validParams = filterValidElements(params, conditions);
+  const validParams = filterValidElements(params, conditions).filter(
+    p => !p.skip,
+  );
   validParams.forEach((p, i) => {
-    // Emit attributes separately only if not already in contents
-    // LATER stop including attributes in contents when we emit from ast
-    const attrsInContents =
-      p.contents.length > 0 && p.contents[0].kind === "attribute";
-    if (!attrsInContents) {
-      emitAttributes(p.attributes, ctx);
-    }
-    emitContentsNoWs(p as ContainerElem, ctx);
+    emitAttributes(p.attributes, ctx);
+    emitTypedDecl(p.name, ctx);
     if (i < validParams.length - 1) {
       builder.appendNext(", ");
     }
@@ -734,7 +739,7 @@ function emitFn(e: FnElem, ctx: EmitContext): void {
   if (returnType) {
     builder.appendNext("-> ");
     emitAttributes(returnAttributes, ctx);
-    emitContentsNoWs(returnType, ctx);
+    emitTypeRefElem(returnType, ctx);
     builder.appendNext(" ");
   }
 
@@ -760,7 +765,7 @@ function emitStruct(e: StructElem, ctx: EmitContext): void {
 
   if (validLength === 1) {
     srcBuilder.appendNext(" { ");
-    emitContentsWithTrimming(validMembers[0] as ContainerElem, ctx);
+    emitMember(validMembers[0], ctx);
     srcBuilder.appendNext(" }");
     srcBuilder.addNl();
   } else {
@@ -769,7 +774,7 @@ function emitStruct(e: StructElem, ctx: EmitContext): void {
 
     validMembers.forEach(m => {
       srcBuilder.appendNext("  ");
-      emitContentsNoWs(m as ContainerElem, ctx);
+      emitMember(m, ctx);
       srcBuilder.appendNext(",");
       srcBuilder.addNl();
     });
@@ -777,6 +782,14 @@ function emitStruct(e: StructElem, ctx: EmitContext): void {
     srcBuilder.appendNext("}");
     srcBuilder.addNl();
   }
+}
+
+/** Emit a struct member from its typed fields: `[attrs] name: type`. */
+function emitMember(member: StructMemberElem, ctx: EmitContext): void {
+  emitAttributes(member.attributes, ctx);
+  emitName(member.name, ctx);
+  ctx.srcBuilder.appendNext(": ");
+  emitTypeRefElem(member.typeRef, ctx);
 }
 
 function emitAttribute(e: AttributeElem, ctx: EmitContext): boolean {
@@ -891,18 +904,6 @@ function emitAttributes(
     if (emitted) {
       ctx.srcBuilder.add(" ", a.start, a.end);
     }
-  });
-}
-
-/** Emit contents without whitespace. */
-function emitContentsNoWs(elem: ContainerElem, ctx: EmitContext): void {
-  const validElements = filterValidElements(elem.contents, ctx.conditions);
-  validElements.forEach(e => {
-    if (e.kind === "text") {
-      const text = e.srcModule.src.slice(e.start, e.end);
-      if (text.trim() === "") return;
-    }
-    lowerAndEmitElem(e, ctx);
   });
 }
 

@@ -305,31 +305,20 @@ test("@else with struct member", () => {
       text '
         '
       struct Point
-        text 'struct '
         decl %Point
-        text ' {
-          '
         member @if x: f32
           attribute @if(DIMENSIONS_2)
-          text ' '
           name x
-          text ': '
           type f32
             ref f32
-        text ',
-          '
         member @else x: vec3<ref f32>
           attribute @else
-          text ' '
           name x
-          text ': '
           type vec3<ref f32>
             ref vec3
             text '<'
             ref f32
             text '>'
-        text ',
-        }'
       text '
       '"
   `);

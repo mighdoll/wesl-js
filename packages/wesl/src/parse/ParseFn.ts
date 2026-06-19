@@ -1,15 +1,16 @@
 import type {
   AttributeElem,
-  BlockElem,
-  DeclIdentElem,
   FnElem,
   FnParamElem,
-  GrammarElem,
   TypeRefElem,
 } from "../AbstractElems.ts";
-import { beginElem, finishElem } from "./ContentsHelpers.ts";
+import { beginElem } from "./ContentsHelpers.ts";
 import { parseAttributeList } from "./ParseAttribute.ts";
-import { getStartWithAttributes, parseFunctionBody } from "./ParseStatement.ts";
+import {
+  finishStatement,
+  getStartWithAttributes,
+  parseFunctionBody,
+} from "./ParseStatement.ts";
 import { parseSimpleTypeRef } from "./ParseType.ts";
 import {
   attachAttributes,
@@ -69,13 +70,6 @@ export function parseFnDecl(
     returnAttributes,
     start: startPos,
     end: stream.checkpoint(),
-    contents: buildFnContents(
-      attributes,
-      declIdentElem,
-      params,
-      returnType,
-      body,
-    ),
   };
   attachAttributes(fnElem, attributes);
   linkDeclIdentElem(declIdentElem, fnElem);
@@ -118,20 +112,6 @@ function parseFnReturn(ctx: ParsingContext): {
   return { returnType, returnAttributes: attrs.length > 0 ? attrs : undefined };
 }
 
-/** Build contents array for function element */
-function buildFnContents(
-  attributes: AttributeElem[] | undefined,
-  decl: DeclIdentElem,
-  params: FnParamElem[],
-  returnType: TypeRefElem | undefined,
-  body: BlockElem,
-): GrammarElem[] {
-  const base = returnType
-    ? [decl, ...params, returnType, body]
-    : [decl, ...params, body];
-  return attributes?.length ? [...attributes, ...base] : base;
-}
-
 /** Grammar: param : attribute* optionally_typed_ident */
 function parseFnParam(ctx: ParsingContext): FnParamElem | null {
   const attributes = parseAttributeList(ctx);
@@ -144,8 +124,13 @@ function parseFnParam(ctx: ParsingContext): FnParamElem | null {
   ctx.addElem(name);
 
   const startPos = getStartWithAttributes(attributes, name.start);
-  const elem = finishElem("param", startPos, ctx, { name });
+  const elem = finishStatement(
+    "param",
+    startPos,
+    ctx,
+    { name },
+    attributes.length > 0 ? attributes : undefined,
+  );
   linkDeclIdent(name, elem);
-  attachAttributes(elem, attributes.length > 0 ? attributes : undefined);
   return elem;
 }

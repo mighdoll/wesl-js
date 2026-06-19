@@ -16,24 +16,24 @@ export type GrammarElem =
   | AliasElem
   | GlobalVarElem
   | OverrideElem
+  | StructElem
+  | StructMemberElem
+  | FnElem
+  | FnParamElem
+  | TypedDeclElem
   | TerminalElem
   | DoBlockElem;
 
 /**
  * Elements that still carry a `contents` array (child elems plus gap-covering
- * TextElems). Statements and declarations emit structurally from their typed
- * fields instead and so are absent here.
+ * TextElems). Statements, declarations, and the struct/fn family emit
+ * structurally from their typed fields instead and so are absent here.
  */
 export type ContainerElem =
   | AttributeElem
   | UnknownExpressionElem
   | SimpleMemberRef
-  | FnElem
-  | TypedDeclElem
   | ModuleElem
-  | FnParamElem
-  | StructElem
-  | StructMemberElem
   | StuffElem
   | TypeRefElem;
 
@@ -49,7 +49,12 @@ export type OpenElemKind =
   | "switch-clause"
   | "gvar"
   | "override"
-  | "alias";
+  | "alias"
+  | "struct"
+  | "member"
+  | "fn"
+  | "param"
+  | "typeDecl";
 
 /** Map from element kind string to element type, for type-safe element construction. */
 export type ElemKindMap = {
@@ -224,7 +229,7 @@ export interface SyntheticElem {
 /* ------   Container Elements  (contain other elements)  ------   */
 
 /** A declaration identifier with an optional type. */
-export interface TypedDeclElem extends ElemWithContentsBase {
+export interface TypedDeclElem extends AbstractElemBase {
   kind: "typeDecl";
   decl: DeclIdentElem;
   typeRef?: TypeRefElem; // LATER Consider a variant for fn params and alias where typeRef is required
@@ -431,8 +436,7 @@ export interface DoBlockElem extends AbstractElemBase, HasAttributes {
 }
 
 /** A function declaration. */
-export interface FnElem extends ElemWithContentsBase, HasAttributes {
-  // LATER doesn't need contents
+export interface FnElem extends AbstractElemBase, HasAttributes {
   kind: "fn";
   name: DeclIdentElem;
   params: FnParamElem[];
@@ -463,9 +467,12 @@ export interface OverrideElem extends AbstractElemBase, HasAttributes {
 }
 
 /** A parameter in a function declaration. */
-export interface FnParamElem extends ElemWithContentsBase, HasAttributes {
+export interface FnParamElem extends AbstractElemBase, HasAttributes {
   kind: "param";
   name: TypedDeclElem;
+  /** Set by the binding-struct transform to drop an intermediate `b: Bindings`
+   *  param; `emitFn` skips params flagged this way. */
+  skip?: true;
 }
 
 /** Simple struct references like `myStruct.bar` (for binding struct transforms). */
@@ -477,7 +484,7 @@ export interface SimpleMemberRef extends ElemWithContentsBase {
 }
 
 /** A struct declaration. */
-export interface StructElem extends ElemWithContentsBase, HasAttributes {
+export interface StructElem extends AbstractElemBase, HasAttributes {
   kind: "struct";
   name: DeclIdentElem;
   members: StructMemberElem[];
@@ -496,7 +503,7 @@ export interface BindingStructElem extends StructElem {
 }
 
 /** A member of a struct declaration. */
-export interface StructMemberElem extends ElemWithContentsBase, HasAttributes {
+export interface StructMemberElem extends AbstractElemBase, HasAttributes {
   kind: "member";
   name: NameElem;
   typeRef: TypeRefElem;

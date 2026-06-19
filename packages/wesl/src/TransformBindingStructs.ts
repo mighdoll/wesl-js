@@ -73,9 +73,10 @@ export function lowerBindingStructs(ast: TransformedAST): TransformedAST {
     transformBindingReference(memberRef, struct);
   });
   // remove intermediate fn param declaration b:Bindings from 'fn(b:Bindings)'
+  // by marking it skipped; emitFn drops skipped params.
   bindingRefs.forEach(({ intermediates }) => {
     intermediates.forEach(e => {
-      e.contents = [];
+      e.skip = true;
     });
   });
   const contents = removeBindingStructs(moduleElem);
