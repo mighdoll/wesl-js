@@ -99,7 +99,7 @@ function parseValueDecl<K extends ValueDeclKind>(
   const elem: ConstElem | OverrideElem = {
     kind: keyword,
     name: typedDecl,
-    ...(keyword === "const" ? { init } : {}),
+    init,
     start: startPos,
     end: endPos,
     contents,

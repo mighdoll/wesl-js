@@ -298,6 +298,7 @@ export type ConditionalAttribute = IfAttribute | ElifAttribute | ElseAttribute;
 /** A const_assert statement. */
 export interface ConstAssertElem extends ElemWithContentsBase, HasAttributes {
   kind: "assert";
+  expression: ExpressionElem;
 }
 
 /** A const declaration. */
@@ -446,6 +447,9 @@ export interface FnElem extends ElemWithContentsBase, HasAttributes {
 export interface GlobalVarElem extends ElemWithContentsBase, HasAttributes {
   kind: "gvar";
   name: TypedDeclElem;
+  /** Address-space / access-mode enumerants, e.g. `<storage, read_write>`. */
+  template?: NameElem[];
+  init?: ExpressionElem;
 }
 
 /** An entire file. */
@@ -457,6 +461,7 @@ export interface ModuleElem extends ElemWithContentsBase {
 export interface OverrideElem extends ElemWithContentsBase, HasAttributes {
   kind: "override";
   name: TypedDeclElem;
+  init?: ExpressionElem;
 }
 
 /** A parameter in a function declaration. */
@@ -513,6 +518,8 @@ export interface TypeRefElem extends ElemWithContentsBase {
 export interface VarElem extends ElemWithContentsBase, HasAttributes {
   kind: "var";
   name: TypedDeclElem;
+  /** Address-space / access-mode enumerants, e.g. `<storage, read_write>`. */
+  template?: NameElem[];
   init?: ExpressionElem;
 }
 

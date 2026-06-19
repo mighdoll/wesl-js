@@ -2,7 +2,9 @@ import type {
   AliasElem,
   AttributeElem,
   ConstAssertElem,
+  ExpressionElem,
   GlobalVarElem,
+  NameElem,
 } from "../AbstractElems.ts";
 import { beginElem, finishElem } from "./ContentsHelpers.ts";
 import { getStartWithAttributes } from "./ParseStatement.ts";
@@ -15,6 +17,7 @@ import {
   expectWord,
   linkDeclIdent,
   linkDeclIdentElem,
+  makeNameElem,
   throwParseError,
 } from "./ParseUtil.ts";
 import { parseTypedDecl } from "./ParseValueDeclaration.ts";
@@ -36,21 +39,26 @@ export function parseGlobalVarDecl(
   ctx.pushScope("partial");
   beginElem(ctx, "gvar", attributes);
 
-  skipTemplateList(ctx);
+  const template = parseTemplateList(ctx);
 
   const typedDecl = parseTypedDecl(ctx);
   if (!typedDecl) throwParseError(stream, "Expected identifier after 'var'");
   ctx.addElem(typedDecl);
 
+  let init: ExpressionElem | undefined;
   if (stream.matchText("=")) {
-    expectExpression(ctx);
+    init = expectExpression(ctx);
   }
   expect(stream, ";", "var declaration");
 
   typedDecl.decl.ident.dependentScope = ctx.currentScope();
   ctx.popScope();
 
-  const varElem = finishElem("gvar", startPos, ctx, { name: typedDecl });
+  const varElem = finishElem("gvar", startPos, ctx, {
+    name: typedDecl,
+    template,
+    init,
+  });
   attachAttributes(varElem, attributes);
   linkDeclIdent(typedDecl, varElem);
   return varElem;
@@ -106,26 +114,34 @@ export function parseConstAssert(
 
   const startPos = getStartWithAttributes(attributes, assertToken.span[0]);
   beginElem(ctx, "assert", attributes);
-  expectExpression(ctx);
+  const expression = expectExpression(ctx);
   expect(ctx.stream, ";", "const_assert expression");
 
-  const elem = finishElem("assert", startPos, ctx, {});
+  const elem = finishElem("assert", startPos, ctx, { expression });
   attachAttributes(elem, attributes);
   return elem;
 }
 
-/** Skip optional template list (e.g., <storage, read_write>). */
-export function skipTemplateList(ctx: ParsingContext): void {
+/**
+ * Parse an optional var template list `<storage, read_write>`, capturing the
+ * comma-separated enumerant names. They are predeclared enumerants (address
+ * space / access mode), not user idents, so they are captured as unbound
+ * NameElems.
+ */
+export function parseTemplateList(ctx: ParsingContext): NameElem[] | undefined {
   const { stream } = ctx;
-  if (!stream.nextTemplateStartToken()) return;
+  if (!stream.nextTemplateStartToken()) return undefined;
 
+  const names: NameElem[] = [];
   while (true) {
     const next = stream.peek();
     if (!next) throwParseError(stream, "Unclosed template in var declaration");
     if (next.text.startsWith(">")) {
       stream.nextTemplateEndToken();
-      return;
+      return names;
     }
-    stream.nextToken();
+    const word = stream.matchKind("word");
+    if (word) names.push(makeNameElem(word));
+    else stream.nextToken(); // skip comma separator
   }
 }

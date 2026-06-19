@@ -5,7 +5,7 @@ import type {
   VarElem,
 } from "../AbstractElems.ts";
 import { beginElem, finishElem } from "./ContentsHelpers.ts";
-import { skipTemplateList } from "./ParseGlobalVar.ts";
+import { parseTemplateList } from "./ParseGlobalVar.ts";
 import { getStartWithAttributes } from "./ParseStatement.ts";
 import {
   attachAttributes,
@@ -50,7 +50,7 @@ function parseVarOrLet(
 
   const startPos = getStartWithAttributes(attributes, token.span[0]);
   beginElem(ctx, keyword, attributes);
-  if (hasTemplate) skipTemplateList(ctx);
+  const template = hasTemplate ? parseTemplateList(ctx) : undefined;
 
   const typedDecl = parseTypedDecl(ctx, false);
   if (!typedDecl)
@@ -69,6 +69,7 @@ function parseVarOrLet(
   expect(stream, ";", `${keyword} declaration`);
 
   const elem = finishElem(keyword, startPos, ctx, { name: typedDecl, init });
+  if (template && elem.kind === "var") elem.template = template;
   attachAttributes(elem, attributes);
   linkDeclIdent(typedDecl, elem);
   return elem;
