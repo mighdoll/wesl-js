@@ -6,6 +6,7 @@ import type {
   OpenElemKind,
   TextElem,
 } from "../AbstractElems.ts";
+import type { OpenElem } from "../ParseWESL.ts";
 import type { SrcModule } from "../Scope.ts";
 import type { ParsingContext } from "./ParsingContext.ts";
 import type { CommentTrivia } from "./WeslStream.ts";
@@ -22,9 +23,7 @@ export function beginElem(
 /** Pop the open element, discarding its collected contents. Used by statements,
  *  which capture their children in typed fields and keep no `contents`. */
 export function discardOpenElem(ctx: ParsingContext): void {
-  if (!ctx.state.context.openElems.pop()) {
-    throw new Error("No open element to close");
-  }
+  popOpenElem(ctx);
 }
 
 /** Pop element from stack, fill gaps with TextElems, return contents. */
@@ -33,9 +32,15 @@ export function finishContents(
   start: number,
   end: number,
 ): GrammarElem[] {
+  const open = popOpenElem(ctx);
+  return coverWithText(ctx, open.contents as GrammarElem[], start, end);
+}
+
+/** Pop the top open element, throwing if the stack is empty. */
+function popOpenElem(ctx: ParsingContext): OpenElem {
   const open = ctx.state.context.openElems.pop();
   if (!open) throw new Error("No open element to close");
-  return coverWithText(ctx, open.contents as GrammarElem[], start, end);
+  return open;
 }
 
 /** Finish element: get end position, close contents, return complete element. */
