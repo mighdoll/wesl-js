@@ -114,23 +114,18 @@ function parseFnReturn(ctx: ParsingContext): {
 
 /** Grammar: param : attribute* optionally_typed_ident */
 function parseFnParam(ctx: ParsingContext): FnParamElem | null {
-  const attributes = parseAttributeList(ctx);
+  const attrs = parseAttributeList(ctx);
   if (ctx.stream.peek()?.kind !== "word") return null;
+  const attributes = attrs.length ? attrs : undefined;
 
-  beginElem(ctx, "param", attributes.length ? attributes : undefined);
+  beginElem(ctx, "param", attributes);
   const name = parseTypedDecl(ctx, false);
   if (!name)
     throw new Error("Unexpected: peek succeeded but parseTypedDecl failed");
   ctx.addElem(name);
 
   const startPos = getStartWithAttributes(attributes, name.start);
-  const elem = finishStatement(
-    "param",
-    startPos,
-    ctx,
-    { name },
-    attributes.length > 0 ? attributes : undefined,
-  );
+  const elem = finishStatement("param", startPos, ctx, { name }, attributes);
   linkDeclIdent(name, elem);
   return elem;
 }

@@ -69,16 +69,17 @@ function parseStructMembers(ctx: ParsingContext): StructMemberElem[] {
 function parseStructMember(ctx: ParsingContext): StructMemberElem | null {
   const { stream } = ctx;
   const checkpoint = stream.checkpoint();
-  const attributes = parseAttributeList(ctx);
+  const attrs = parseAttributeList(ctx);
 
   const nameToken = stream.matchKind("word");
   if (!nameToken) {
     stream.reset(checkpoint);
     return null;
   }
+  const attributes = attrs.length ? attrs : undefined;
 
   const start = getStartWithAttributes(attributes, nameToken.span[0]);
-  beginElem(ctx, "member", attributes.length ? attributes : undefined);
+  beginElem(ctx, "member", attributes);
   const name = makeNameElem(nameToken);
   ctx.addElem(name);
   expect(stream, ":", "struct member name");
@@ -87,11 +88,5 @@ function parseStructMember(ctx: ParsingContext): StructMemberElem | null {
   if (!typeRef) throwParseError(stream, "Expected type after ':'");
   ctx.addElem(typeRef);
 
-  return finishStatement(
-    "member",
-    start,
-    ctx,
-    { name, typeRef },
-    attributes.length ? attributes : undefined,
-  );
+  return finishStatement("member", start, ctx, { name, typeRef }, attributes);
 }

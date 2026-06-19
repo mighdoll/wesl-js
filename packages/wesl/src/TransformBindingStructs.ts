@@ -231,13 +231,8 @@ function syntheticVar(
   storageTemplate: string,
   varType: string,
 ): SyntheticElem {
-  const varText = `${attributes} var${storageTemplate} ${varName} : ${varType};\n`;
-
-  const elem: SyntheticElem = {
-    kind: "synthetic",
-    text: varText,
-  };
-  return elem;
+  const text = `${attributes} var${storageTemplate} ${varName} : ${varType};\n`;
+  return { kind: "synthetic", text };
 }
 
 interface MemberRefToStruct extends StructTrace {
