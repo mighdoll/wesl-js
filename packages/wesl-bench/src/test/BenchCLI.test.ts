@@ -8,7 +8,9 @@ import { baselineDir } from "../BaselineVariations.ts";
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const benchPath = join(__dirname, "../../bin/bench.ts");
 
-test("runs without errors", () => {
+// Spawning node with --experimental-strip-types recompiles the whole bench import
+// graph on each run; under parallel test CPU contention that can exceed the 5s default.
+test("runs without errors", { timeout: 30000 }, () => {
   const result = execSync(
     `node --expose-gc --experimental-strip-types ${benchPath} --profile`,
     { encoding: "utf8" },
@@ -36,7 +38,7 @@ test.skip("supports --baseline flag", { timeout: 30000 }, () => {
 
 // --list resolves the matrix cases/variants without running any benchmark,
 // so it's a fast check that wesl-bench is wired into benchforge correctly.
-test("--list shows matrix cases and variants", () => {
+test("--list shows matrix cases and variants", { timeout: 30000 }, () => {
   const result = execSync(
     `node --expose-gc --experimental-strip-types ${benchPath} --list`,
     { encoding: "utf8" },
