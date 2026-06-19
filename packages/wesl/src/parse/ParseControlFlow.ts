@@ -14,7 +14,12 @@ import {
   finishStatement,
   parseCompoundStatement,
 } from "./ParseStatement.ts";
-import { expect, expectExpression, throwParseError } from "./ParseUtil.ts";
+import {
+  attrsOrUndef,
+  expect,
+  expectExpression,
+  throwParseError,
+} from "./ParseUtil.ts";
 import type { ParsingContext } from "./ParsingContext.ts";
 
 /**
@@ -106,7 +111,7 @@ function expectSwitchClauses(ctx: ParsingContext): {
   while (!stream.matchText("}")) {
     const clauseStart = stream.checkpoint();
     const clauseAttrs = parseAttributeList(ctx);
-    const attrs = clauseAttrs.length ? clauseAttrs : undefined;
+    const attrs = attrsOrUndef(clauseAttrs);
     beginElem(ctx, "switch-clause", attrs);
 
     let selectors: (ExpressionElem | "default")[];
@@ -131,7 +136,7 @@ function expectSwitchClauses(ctx: ParsingContext): {
     ctx.addElem(clauseElem);
     clauses.push(clauseElem);
   }
-  return { bodyAttributes: bodyAttrs.length ? bodyAttrs : undefined, clauses };
+  return { bodyAttributes: attrsOrUndef(bodyAttrs), clauses };
 }
 
 /** Grammar: case_selectors : case_selector (',' case_selector)* ','? */
@@ -156,7 +161,7 @@ function parseCaseBody(ctx: ParsingContext, errorMsg: string): BlockElem {
   ctx.stream.matchText(":");
 
   const bodyAttrs = parseAttributeList(ctx);
-  const attrs = bodyAttrs.length > 0 ? bodyAttrs : undefined;
+  const attrs = attrsOrUndef(bodyAttrs);
 
   const body = parseCompoundStatement(ctx, attrs);
   if (!body) throwParseError(ctx.stream, errorMsg);
