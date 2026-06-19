@@ -378,6 +378,7 @@ const noSemicolon = new Set<Statement["kind"]>([
 /** Emit a `{ ... }` block, one statement per indented line. A block with no
  *  statements collapses to `{ }` unless it holds dangling inner comments. */
 function emitBlock(e: BlockElem, ctx: EmitContext): void {
+  emitAttributes(e.attributes, ctx);
   const stmts = filterValidElements(e.body, ctx.conditions);
   if (stmts.length === 0 && !e.innerComments?.length) {
     ctx.srcBuilder.appendNext("{ }");
@@ -419,7 +420,9 @@ function emitStatementCore(stmt: Statement, ctx: EmitContext): void {
     emitLocalDecl(stmt, ctx);
     return;
   }
-  emitAttributes(stmt.attributes, ctx);
+  // a block prints its own attributes (before its '{'); everything else prints
+  // them before its keyword.
+  if (stmt.kind !== "block") emitAttributes(stmt.attributes, ctx);
   const builder = ctx.srcBuilder;
   switch (stmt.kind) {
     case "block":
@@ -538,7 +541,9 @@ function emitSwitch(e: SwitchElem, ctx: EmitContext): void {
   const builder = ctx.srcBuilder;
   builder.appendNext("switch ");
   emitExpression(e.selector, ctx);
-  builder.appendNext(" {");
+  builder.appendNext(" ");
+  emitAttributes(e.bodyAttributes, ctx);
+  builder.appendNext("{");
   const inner = childIndent(ctx);
   for (const clause of filterValidElements(e.clauses, ctx.conditions)) {
     emitSwitchClause(clause, inner);

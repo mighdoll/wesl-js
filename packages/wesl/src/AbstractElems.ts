@@ -594,6 +594,8 @@ export interface SwitchElem extends ElemWithContentsBase, HasAttributes {
   kind: "switch";
   selector: ExpressionElem;
   clauses: SwitchClauseElem[];
+  /** Attributes on the switch body, between the selector and `{`. */
+  bodyAttributes?: AttributeElem[];
 }
 
 /** A case or default clause. `"default"` sentinel marks the default selector. */

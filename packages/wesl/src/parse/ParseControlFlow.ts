@@ -51,9 +51,9 @@ export function parseSwitchStatement(
   if (startPos === null) return null;
 
   const selector = expectExpression(ctx, "Expected expression after 'switch'");
-  const clauses = expectSwitchClauses(ctx);
+  const { bodyAttributes, clauses } = expectSwitchClauses(ctx);
 
-  const params = { selector, clauses };
+  const params = { selector, clauses, bodyAttributes };
   return finishStatement("switch", startPos, ctx, params, attributes);
 }
 
@@ -101,9 +101,12 @@ function parseElseChain(ctx: ParsingContext): IfElem | BlockElem | undefined {
  * Grammar: case_clause : 'case' case_selectors ':'? compound_statement
  * Grammar: default_alone_clause : 'default' ':'? compound_statement
  */
-function expectSwitchClauses(ctx: ParsingContext): SwitchClauseElem[] {
+function expectSwitchClauses(ctx: ParsingContext): {
+  bodyAttributes?: AttributeElem[];
+  clauses: SwitchClauseElem[];
+} {
   const { stream } = ctx;
-  parseAttributeList(ctx);
+  const bodyAttrs = parseAttributeList(ctx);
   expect(stream, "{", "switch expression");
   const clauses: SwitchClauseElem[] = [];
   while (!stream.matchText("}")) {
@@ -135,7 +138,7 @@ function expectSwitchClauses(ctx: ParsingContext): SwitchClauseElem[] {
     ctx.addElem(clauseElem);
     clauses.push(clauseElem);
   }
-  return clauses;
+  return { bodyAttributes: bodyAttrs.length ? bodyAttrs : undefined, clauses };
 }
 
 /** Grammar: case_selectors : case_selector (',' case_selector)* ','? */

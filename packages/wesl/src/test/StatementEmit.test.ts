@@ -32,6 +32,23 @@ test("linked WGSL keeps a comment in an otherwise empty block", async () => {
   expectTrimmedMatch(result, src);
 });
 
+test("keeps attributes on compound statement bodies", async () => {
+  const src = `
+    fn main() {
+      for (var i = 0; i < 4; i++) @diagnostic(off, derivative_uniformity) {
+        let x = i;
+      }
+      switch 0 @diagnostic(off, derivative_uniformity) {
+        default: {
+          let y = 1;
+        }
+      }
+    }
+  `;
+  const result = await linkTest(src);
+  expectTrimmedMatch(result, src);
+});
+
 test("structural emit of control flow", async () => {
   const src = `
     fn main() {
