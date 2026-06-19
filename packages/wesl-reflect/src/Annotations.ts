@@ -16,7 +16,7 @@ export function findAnnotation(
   }
 }
 
-/** Extract string params from an annotation's UnknownExpressionElem params. */
+/** The string value of each of an annotation's params. */
 export function annotationParams(attr: StandardAttribute): string[] {
   return attr.params?.map(param => exprToString(param.expression)) ?? [];
 }

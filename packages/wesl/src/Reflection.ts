@@ -26,17 +26,16 @@ export function reportBindingStructsPlugin(
     transform: reportBindingStructs(fn),
   };
 }
-/** 
+/**
  * Linker plugin that generates TypeScript strings for GPUBindingGroupLayouts
- * based on the binding structs in the WESL source
- * 
- * requires the enableBindingStructs() transform to be enabled
- * 
- * @param fn a function that will be called with the binding structs
- * (Normally the caller will pass a function that uses bindingGroupLayoutTs() 
- * to generate the TypeScript)
+ * based on the binding structs in the WESL source.
  *
- * The generated TypeScript looks looks roughly like this 
+ * Requires the enableBindingStructs() transform to be enabled.
+ *
+ * @param fn called with the binding structs. Normally the caller passes a
+ * function that uses bindingGroupLayoutTs() to generate the TypeScript.
+ *
+ * The generated TypeScript looks roughly like this:
 
   export function MyBindingLayout(device: GPUDevice): GPUBindGroupLayout {
     return device.createBindGroupLayout({
@@ -66,11 +65,8 @@ function firstLetterLower(s: string): string {
   return s[0].toLowerCase() + s.slice(1);
 }
 
-/**
- * @return a string containing a generated TypeScript function that creates
- * a GPUBindingGroupLayout instance to align with the binding structures
- * in wesl source.
- */
+/** Generate TypeScript source for a function that builds the
+ *  GPUBindGroupLayout matching one WESL binding struct. */
 export function bindingGroupLayoutTs(
   struct: BindingStructElem,
   typeScript = true,
@@ -106,12 +102,8 @@ export const layouts = { ${entriesName} };
   return src;
 }
 
-/** return the shader stage visibility for a binding struct, based on
- * the shader entry function that has the binding struct as a parameter.
- *
- * The shader entry function is attached to the binding struct
- * by the enableBindingStructs() transform.
- */
+/** Shader stage visibility for a binding struct, from the attributes of its
+ *  entry function (attached to the struct by the enableBindingStructs transform). */
 function shaderVisiblity(struct: BindingStructElem): string {
   const { entryFn } = struct;
   if (!entryFn) {
@@ -144,10 +136,7 @@ function shaderVisiblity(struct: BindingStructElem): string {
   return "GPUShaderStage.COMPUTE";
 }
 
-/**
- * @return a GPUBindGroupLayoutEntry corresponding to one member
- * of a WESL binding struct.
- */
+/** @return a GPUBindGroupLayoutEntry for one member of a WESL binding struct. */
 function memberToLayoutEntry(
   member: StructMemberElem,
   visibility: string,
@@ -169,7 +158,7 @@ function memberToLayoutEntry(
 }
 
 /** @return the guts of the GPUBindGroupLayoutEntry for this binding struct member.
- * ptr references to storage arrays become 'buffer' GPUBufferBindingLayout intances,
+ * ptr references to storage arrays become 'buffer' GPUBufferBindingLayout instances,
  * references to WGSL samplers become 'sampler' GPUSamplerBindingLayout instances, etc.
  */
 function layoutEntry(member: StructMemberElem): string {
