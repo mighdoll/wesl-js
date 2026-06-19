@@ -36,7 +36,9 @@ function structuralFields(elem: AbstractElem): AbstractElem[] | undefined {
     case "if":
       return [elem.condition, elem.body, ...(elem.else ? [elem.else] : [])];
     case "for":
-      return [elem.init, elem.condition, elem.update, elem.body].filter(isElem);
+      return [elem.init, elem.condition, elem.update, elem.body].filter(
+        isDefined,
+      );
     case "while":
       return [elem.condition, elem.body];
     case "loop":
@@ -66,8 +68,8 @@ function structuralFields(elem: AbstractElem): AbstractElem[] | undefined {
   }
 }
 
-function isElem<T>(elem: T | undefined): elem is T {
-  return elem !== undefined;
+function isDefined<T>(value: T | undefined): value is T {
+  return value !== undefined;
 }
 
 /** Drop the `"default"` sentinel, keeping only real case-selector expressions. */
