@@ -14,6 +14,7 @@ import type {
   UnknownExpressionElem,
 } from "../AbstractElems.ts";
 import { assertUnreachable } from "../Assertions.ts";
+import { childElems } from "../LinkerUtil.ts";
 import {
   diagnosticControlToString,
   expressionToString,
@@ -29,13 +30,13 @@ export function astToString(elem: AbstractElem, indent = 0): string {
   str.add(kind);
   addElemFields(elem, str);
   addCommentFields(elem, str);
-  let childStrings: string[] = [];
-  if ("contents" in elem) {
-    childStrings = elem.contents.map(e => astToString(e, indent + 2));
-  }
-  if (childStrings.length) {
+  const children = childElems(elem);
+  if (children.length) {
     str.nl();
-    str.addBlock(childStrings.join("\n"), false);
+    str.addBlock(
+      children.map(e => astToString(e, indent + 2)).join("\n"),
+      false,
+    );
   }
 
   return str.result;
@@ -162,6 +163,8 @@ function addCommentFields(elem: AbstractElem, str: LineWrapper): void {
   if (commentsBefore?.length)
     str.add(commentsToString("before", commentsBefore));
   if (commentsAfter?.length) str.add(commentsToString("after", commentsAfter));
+  if ("innerComments" in elem && elem.innerComments?.length)
+    str.add(commentsToString("inner", elem.innerComments));
 }
 
 function commentsToString(label: string, comments: CommentElem[]): string {

@@ -15,7 +15,7 @@ import type {
   Statement,
 } from "../AbstractElems.ts";
 import type { Span } from "../Span.ts";
-import { beginElem, finishContents } from "./ContentsHelpers.ts";
+import { beginElem, discardOpenElem } from "./ContentsHelpers.ts";
 import { parseExpression } from "./ParseExpression.ts";
 import { finishStatement, getStartWithAttributes } from "./ParseStatement.ts";
 import {
@@ -159,7 +159,7 @@ function parseDiscardStmt(
 function parseEmptyStmt(stream: WeslStream, start: number): EmptyElem | null {
   if (!stream.matchText(";")) return null;
   const end = stream.checkpoint();
-  return { kind: "empty", start, end, contents: [] };
+  return { kind: "empty", start, end };
 }
 
 /** Grammar: assignment_statement : '_' '=' expression ';' (phony assignment) */
@@ -196,7 +196,7 @@ function parseExpressionStmt(
   beginElem(ctx, "assign", attributes);
   const expr = parseExpression(ctx);
   if (!expr) {
-    finishContents(ctx, startPos, startPos);
+    discardOpenElem(ctx);
     stream.reset(startPos);
     return null;
   }

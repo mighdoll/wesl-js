@@ -55,7 +55,7 @@ test("parse do block: helper + entry, params, control flow", () => {
   const [block] = blocks;
   expect(block.name.name).toBe("test_jacobi");
   expect(block.params).toHaveLength(0);
-  expect(block.body.contents.length).toBeGreaterThan(0);
+  expect(block.body.body.length).toBeGreaterThan(0);
 });
 
 test("do body call-expressions expose structured .arguments", () => {
@@ -67,9 +67,7 @@ test("do body call-expressions expose structured .arguments", () => {
     }
   `;
   const [block] = doBlocks(src);
-  const stmt = block.body.contents.find(
-    (c): c is CallElem => c.kind === "call",
-  );
+  const stmt = block.body.body.find((c): c is CallElem => c.kind === "call");
   expect(stmt).toBeDefined();
   const call = stmt!.call;
   expect(call.arguments).toHaveLength(3);
@@ -89,7 +87,7 @@ test("parse do blocks: recursion, if/else, uniforms + slider params", () => {
     "u",
     "steps",
   ]);
-  expect(frame.body.contents.length).toBeGreaterThan(0);
+  expect(frame.body.body.length).toBeGreaterThan(0);
 });
 
 test("link drops the do block, keeps surrounding declarations", async () => {

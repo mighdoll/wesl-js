@@ -1,16 +1,20 @@
 import type {
   AttributeElem,
   BlockElem,
-  ContainerElem,
   ElemKindMap,
   ElifAttribute,
   ElseAttribute,
   HasAttributes,
   IfAttribute,
+  OpenElemKind,
   Statement,
 } from "../AbstractElems.ts";
 import { findMap } from "../Util.ts";
-import { attachComments, beginElem, finishElem } from "./ContentsHelpers.ts";
+import {
+  attachComments,
+  beginElem,
+  discardOpenElem,
+} from "./ContentsHelpers.ts";
 import { parseAttributeList } from "./ParseAttribute.ts";
 import { parseIfStatement, parseSwitchStatement } from "./ParseControlFlow.ts";
 import { parseConstAssert } from "./ParseGlobalVar.ts";
@@ -102,7 +106,7 @@ export function getStartWithAttributes(
 export function beginStatement(
   ctx: ParsingContext,
   keyword: string,
-  kind: ContainerElem["kind"],
+  kind: OpenElemKind,
   attributes?: AttributeElem[],
 ): number | null {
   const keywordPos = ctx.stream.checkpoint();
@@ -112,7 +116,9 @@ export function beginStatement(
   return startPos;
 }
 
-/** Finish a statement element and attach its attributes. */
+/** Finish a statement element from its typed fields and attach its attributes.
+ *  The open elem's collected contents are discarded: statements emit and dump
+ *  from their fields, not from `contents`. */
 export function finishStatement<K extends keyof ElemKindMap>(
   kind: K,
   start: number,
@@ -120,7 +126,9 @@ export function finishStatement<K extends keyof ElemKindMap>(
   params: Omit<ElemKindMap[K], "kind" | "start" | "end" | "contents">,
   attributes?: AttributeElem[],
 ): ElemKindMap[K] {
-  const elem = finishElem(kind, start, ctx, params);
+  const end = ctx.stream.checkpoint();
+  discardOpenElem(ctx);
+  const elem = { kind, start, end, ...params } as ElemKindMap[K];
   attachAttributes(elem as HasAttributes, attributes);
   return elem;
 }

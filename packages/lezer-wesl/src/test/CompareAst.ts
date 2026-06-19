@@ -1,5 +1,5 @@
 import type { Tree } from "@lezer/common";
-import { type AbstractElem, groupBy, type WeslAST } from "wesl";
+import { type AbstractElem, childElems, groupBy, type WeslAST } from "wesl";
 
 export interface NodeInfo {
   type: string;
@@ -95,12 +95,11 @@ function collectNodes(
   if (mapped && "start" in elem)
     nodes.push({ type: mapped, start: elem.start });
 
-  if (!("contents" in elem)) return;
   // a type's contents are template-param expressions (incl. nested type refs);
   // don't descend - lezer does not emit comparable nested nodes there
   if (elem.kind === "type") return;
   const childInFn = inFn || elem.kind === "fn";
-  for (const child of elem.contents) collectNodes(child, childInFn, nodes);
+  for (const child of childElems(elem)) collectNodes(child, childInFn, nodes);
 }
 
 /** @return lezer node type name for a wesl AST kind, or null if not mapped. */

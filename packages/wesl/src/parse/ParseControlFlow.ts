@@ -6,7 +6,7 @@ import type {
   SwitchClauseElem,
   SwitchElem,
 } from "../AbstractElems.ts";
-import { beginElem, finishElem } from "./ContentsHelpers.ts";
+import { beginElem } from "./ContentsHelpers.ts";
 import { parseAttributeList } from "./ParseAttribute.ts";
 import {
   beginStatement,
@@ -14,12 +14,7 @@ import {
   finishStatement,
   parseCompoundStatement,
 } from "./ParseStatement.ts";
-import {
-  attachAttributes,
-  expect,
-  expectExpression,
-  throwParseError,
-} from "./ParseUtil.ts";
+import { expect, expectExpression, throwParseError } from "./ParseUtil.ts";
 import type { ParsingContext } from "./ParsingContext.ts";
 
 /**
@@ -61,9 +56,9 @@ export function parseSwitchStatement(
  * Grammar: else_if_clause : 'else' 'if' expression compound_statement
  * Grammar: else_clause : 'else' compound_statement
  *
- * An else-if nests as an IfElem in the outer if's `else` field, but its body is
- * still added flat to the enclosing if's `contents` so emit walks them unchanged.
- * The nested IfElem holds structure in fields only, with empty `contents`.
+ * An else-if nests as an IfElem in the outer if's `else` field; a plain else is
+ * a BlockElem. Emit and the AST dump read these typed fields, so the nested
+ * IfElem carries only structure (its condition and body), no contents.
  */
 function parseElseChain(ctx: ParsingContext): IfElem | BlockElem | undefined {
   const { stream } = ctx;
@@ -86,7 +81,6 @@ function parseElseChain(ctx: ParsingContext): IfElem | BlockElem | undefined {
       else: elseBranch,
       start: elseStart,
       end,
-      contents: [],
     };
   }
 
@@ -130,11 +124,13 @@ function expectSwitchClauses(ctx: ParsingContext): {
       throwParseError(stream, "Expected 'case', 'default', or '}' in switch");
     }
 
-    const clauseElem = finishElem("switch-clause", clauseStart, ctx, {
-      selectors,
-      body,
-    });
-    attachAttributes(clauseElem, clauseAttrs.length ? clauseAttrs : undefined);
+    const clauseElem = finishStatement(
+      "switch-clause",
+      clauseStart,
+      ctx,
+      { selectors, body },
+      clauseAttrs.length ? clauseAttrs : undefined,
+    );
     ctx.addElem(clauseElem);
     clauses.push(clauseElem);
   }

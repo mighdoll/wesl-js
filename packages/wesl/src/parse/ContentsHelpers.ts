@@ -1,9 +1,9 @@
 import type {
   AbstractElem,
   CommentElem,
-  ContainerElem,
   ElemKindMap,
   GrammarElem,
+  OpenElemKind,
   TextElem,
 } from "../AbstractElems.ts";
 import type { SrcModule } from "../Scope.ts";
@@ -13,10 +13,18 @@ import type { CommentTrivia } from "./WeslStream.ts";
 /** Push partial element onto stack for content collection. */
 export function beginElem(
   ctx: ParsingContext,
-  kind: ContainerElem["kind"],
+  kind: OpenElemKind,
   contents: readonly GrammarElem[] = [],
 ): void {
   ctx.state.context.openElems.push({ kind, contents: [...contents] });
+}
+
+/** Pop the open element, discarding its collected contents. Used by statements,
+ *  which capture their children in typed fields and keep no `contents`. */
+export function discardOpenElem(ctx: ParsingContext): void {
+  if (!ctx.state.context.openElems.pop()) {
+    throw new Error("No open element to close");
+  }
 }
 
 /** Pop element from stack, fill gaps with TextElems, return contents. */

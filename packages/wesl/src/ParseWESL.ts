@@ -1,9 +1,10 @@
 import type {
+  AbstractElem,
   ConstAssertElem,
-  ContainerElem,
   ImportElem,
   ImportStatement,
   ModuleElem,
+  OpenElemKind,
 } from "./AbstractElems.ts";
 import { filterValidElements } from "./Conditions.ts";
 import { type FlatImport, flattenTreeImport } from "./FlattenTreeImport.ts";
@@ -16,11 +17,13 @@ import { errorHighlight, offsetToLineNumber } from "./Util.ts";
 
 export type { ParseOptions, WeslExtensions };
 
-/** Partial element being constructed during parsing. */
-export type OpenElem<T extends ContainerElem = ContainerElem> = Pick<
-  T,
-  "kind" | "contents"
->;
+/** Partial element being constructed during parsing: a kind tag plus the child
+ *  elems collected beneath it (gaps later covered with TextElems for the elems
+ *  that keep `contents`; discarded for statements, which emit from fields). */
+export interface OpenElem {
+  kind: OpenElemKind;
+  contents: AbstractElem[];
+}
 
 /**
  * Result of parsing one WESL module (e.g., one .wesl file).

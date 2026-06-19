@@ -15,8 +15,7 @@ test("parse fn foo() { }", () => {
     "module
       fn foo()
         decl %foo
-        block
-          text '{ }'"
+        block"
   `);
 });
 
@@ -28,16 +27,10 @@ test("parse fn with calls", () => {
       fn foo()
         decl %foo
         block
-          text '{'
           call
-            text ' '
             call-expression call
-            text ';'
           call
-            text ' '
-            call-expression call
-            text ';'
-          text ' }'"
+            call-expression call"
   `);
 });
 
@@ -186,7 +179,6 @@ test("parse global diagnostic", () => {
       fn main()
         decl %main
         block
-          text '{}'
       text '
         '"
   `);
@@ -202,7 +194,6 @@ test("parse @attribute before fn", () => {
         attribute @compute
         decl %main
         block
-          text '{}'
       text ' '"
   `);
 });
@@ -224,7 +215,6 @@ test("parse @compute @workgroup_size(a, b, 1) before fn", () => {
         attribute @workgroup_size(ref a, ' ' ref b, ' ' literal literal(1))
         decl %main
         block
-          text '{}'
       text '
         '"
   `);
@@ -259,7 +249,6 @@ test("parse top level var", () => {
       fn main()
         decl %main
         block
-          text '{}'
       text '
       '"
   `);
@@ -300,7 +289,6 @@ test("parse top level override and const", () => {
       fn main()
         decl %main
         block
-          text '{}'
       text '
       '"
   `);
@@ -369,8 +357,7 @@ test("fnDecl parses fn with return type", () => {
         decl %foo
         type MyType
           ref MyType
-        block
-          text '{ }'"
+        block"
   `);
 });
 
@@ -393,7 +380,6 @@ test("fnDecl parses :type specifier in fn args", () => {
             type MyType
               ref MyType
         block
-          text '{ }'
       text '
       '"
   `);
@@ -414,8 +400,6 @@ test("fnDecl parses :type specifier in fn block", () => {
       fn foo()
         decl %foo
         block
-          text '{ 
-          '
           var %b : MyType
             text 'var '
             typeDecl %b : MyType
@@ -424,8 +408,6 @@ test("fnDecl parses :type specifier in fn block", () => {
               type MyType
                 ref MyType
             text ';'
-          text '
-        }'
       text '
       '"
   `);
@@ -452,7 +434,6 @@ test("parse type in <template> in fn args", () => {
               ref MyStruct
               text '>'
         block
-          text '{ }'
       text ';'"
   `);
 });
@@ -477,8 +458,7 @@ test("parse simple templated type", () => {
               text ','
               literal literal(4)
               text '>'
-        block
-          text '{ }'"
+        block"
   `);
 });
 
@@ -501,8 +481,7 @@ test("parse with space before template", () => {
               text ','
               literal literal(4)
               text '>'
-        block
-          text '{ }'"
+        block"
   `);
 });
 
@@ -523,8 +502,7 @@ test("parse nested template that ends with >> ", () => {
               text '<'
               type array<ref MyStruct, literal literal(4)>
               text '>'
-        block
-          text '{ }'"
+        block"
   `);
 });
 
@@ -566,10 +544,7 @@ test("parse for(;;) {} not as a fn call", () => {
       fn main()
         decl %main
         block
-          text '{'
           for
-            text '
-          for ('
             var %a
               text 'var '
               typeDecl %a
@@ -577,15 +552,10 @@ test("parse for(;;) {} not as a fn call", () => {
               text ' = '
               literal literal(1)
               text ';'
-            text ' '
             binary-expression binop(<)
-            text '; '
-            ref a
-            text '++) '
+            increment
+              ref a
             block
-              text '{}'
-          text '
-        }'
       text '
       '"
   `);
@@ -604,7 +574,6 @@ test("eolf followed by blank line", () => {
       fn foo()
         decl %foo
         block
-          text '{ }'
       text '
       '"
   `);
@@ -649,7 +618,6 @@ test("parse fn with attributes and suffix comma", () => {
             type u32
               ref u32
         block
-          text '{ }'
       text '
       '"
   `);
@@ -678,12 +646,8 @@ test("parse fn", () => {
         type f32
           ref f32
         block
-          text '{'
           return
-            text ' return '
-            literal literal(1.0)
-            text ';'
-          text ' }'"
+            literal literal(1.0)"
   `);
 });
 
@@ -697,7 +661,6 @@ test("parse @attribute before fn", () => {
         attribute @compute
         decl %main
         block
-          text '{}'
       text ' '"
   `);
 });
@@ -721,12 +684,8 @@ test("parse foo::bar(); ", () => {
       fn main()
         decl %main
         block
-          text '{'
           call
-            text ' '
-            call-expression call
-            text ';'
-          text ' }'"
+            call-expression call"
   `);
 });
 
@@ -739,7 +698,6 @@ test("parse let x: foo::bar; ", () => {
       fn main()
         decl %main
         block
-          text '{ '
           let %x : foo::bar
             text 'let '
             typeDecl %x : foo::bar
@@ -749,8 +707,7 @@ test("parse let x: foo::bar; ", () => {
                 ref foo::bar
             text ' = '
             literal literal(1)
-            text ';'
-          text ' }'"
+            text ';'"
   `);
 });
 
@@ -779,7 +736,6 @@ test("parse var x: foo::bar;", () => {
       fn main()
         decl %main
         block
-          text '{ }'
       text '
       '"
   `);
@@ -809,34 +765,15 @@ test("parse switch statement", () => {
             type i32
               ref i32
         block
-          text '{'
           switch
-            text '
-          switch '
             parenthesized-expression parens
-            text ' {'
             switch-clause
-              text '
-            case '
               literal literal(1)
-              text ': '
               block
-                text '{'
                 break
-                  text ' break;'
-                text ' }'
             switch-clause
-              text '
-            default: '
               block
-                text '{'
                 break
-                  text ' break;'
-                text ' }'
-            text '
-          }'
-          text '
-        }'
       text '
       '"
   `);
@@ -868,38 +805,17 @@ test("parse switch statement-2", () => {
             type u32
               ref u32
         block
-          text '{'
           switch
-            text '
-          switch '
             parenthesized-expression parens
-            text ' {'
             switch-clause
-              text '
-            case '
               literal literal(5u)
-              text ': '
               block
-                text '{'
                 if
-                  text ' if '
                   binary-expression binop(>)
-                  text ' '
                   block
-                    text '{ }'
-                text ' }'
             switch-clause
-              text '
-            default: '
               block
-                text '{'
                 break
-                  text ' break;'
-                text ' }'
-            text '
-          }'
-          text '
-        }'
       text '
       '"
   `);
@@ -920,8 +836,6 @@ test("parse struct constructor in assignment", () => {
       fn main()
         decl %main
         block
-          text '{
-          '
           var %x
             text 'var '
             typeDecl %x
@@ -929,8 +843,6 @@ test("parse struct constructor in assignment", () => {
             text ' = '
             call-expression call
             text ';'
-          text '
-        }'
       text '
        '"
   `);
@@ -951,8 +863,6 @@ test("parse struct.member (component_or_swizzle)", () => {
       fn main()
         decl %main
         block
-          text '{
-            '
           let %x
             text 'let '
             typeDecl %x
@@ -960,8 +870,6 @@ test("parse struct.member (component_or_swizzle)", () => {
             text ' = '
             component-member-expression .
             text ';'
-          text '
-        }'
       text '
       '"
   `);
@@ -996,12 +904,8 @@ test("fn f() { _ = 1; }", ctx => {
       fn f()
         decl %f
         block
-          text '{'
           assign
-            text ' _ = '
-            literal literal(1)
-            text ';'
-          text ' }'"
+            literal literal(1)"
   `);
 });
 
@@ -1034,7 +938,6 @@ test("fn main() { var tmp: array<i32, 1 << 1>=array(1, 2); }", ctx => {
       fn main()
         decl %main
         block
-          text '{ '
           var %tmp : array<ref i32, binary-expression binop(<<)>
             text 'var '
             typeDecl %tmp : array<ref i32, binary-expression binop(<<)>
@@ -1049,8 +952,7 @@ test("fn main() { var tmp: array<i32, 1 << 1>=array(1, 2); }", ctx => {
                 text '>'
             text '='
             call-expression call
-            text ';'
-          text ' }'"
+            text ';'"
   `);
 });
 
@@ -1223,7 +1125,6 @@ test(`parse struct reference`, () => {
       fn f()
         decl %f
         block
-          text '{ '
           let %x
             text 'let '
             typeDecl %x
@@ -1231,7 +1132,6 @@ test(`parse struct reference`, () => {
             text ' = '
             component-expression []
             text ';'
-          text ' }'
       text ';
       '"
   `);
@@ -1252,16 +1152,9 @@ test("member reference with extra components", () => {
       fn foo()
         decl %foo
         block
-          text '{'
           assign
-            text '
-        '
             component-expression []
-            text ' = '
             component-member-expression .
-            text ';'
-          text '
-      }'
       text '
      '"
   `);
@@ -1282,8 +1175,6 @@ test("parse let declaration", () => {
       fn vertexMain()
         decl %vertexMain
         block
-          text '{
-          '
           let %char
             text 'let '
             typeDecl %char
@@ -1291,8 +1182,6 @@ test("parse let declaration", () => {
             text ' = '
             call-expression call
             text ';'
-          text '
-        }'
       text '
       '"
   `);
@@ -1313,8 +1202,6 @@ test("parse let declaration with type", () => {
       fn vertexMain()
         decl %vertexMain
         block
-          text '{
-          '
           let %char : u32
             text 'let '
             typeDecl %char : u32
@@ -1325,8 +1212,6 @@ test("parse let declaration with type", () => {
             text ' = '
             literal literal(0)
             text ';'
-          text '
-        }'
       text '
       '"
   `);
@@ -1347,8 +1232,6 @@ test("separator in let assignment", () => {
       fn vertexMain()
         decl %vertexMain
         block
-          text '{
-          '
           let %a
             text 'let '
             typeDecl %a
@@ -1356,8 +1239,6 @@ test("separator in let assignment", () => {
             text ' = '
             ref b::c
             text ';'
-          text '
-        }'
       text '
       '"
   `);
@@ -1378,14 +1259,8 @@ test("separator in fn call ", () => {
       fn vertexMain()
         decl %vertexMain
         block
-          text '{'
           call
-            text '
-          '
             call-expression call
-            text ';'
-          text '
-        }'
       text '
       '"
   `);
@@ -1490,16 +1365,9 @@ test("memberRefs with extra components", () => {
       fn main()
         decl %main
         block
-          text '{'
           assign
-            text '
-          '
             component-expression []
-            text ' = '
             component-member-expression .
-            text ';'
-          text '
-        }'
       text '
       '"
   `);
@@ -1520,16 +1388,9 @@ test("memberRef with ref in array", () => {
       fn main()
         decl %main
         block
-          text '{'
           assign
-            text '
-          '
             component-expression []
-            text ' = '
             literal literal(1.0)
-            text ';'
-          text '
-        }'
       text '
       '"
   `);
@@ -1550,14 +1411,8 @@ test("parse inline package reference", () => {
       fn main()
         decl %main
         block
-          text '{'
           call
-            text '
-          '
             call-expression call
-            text ';'
-          text '
-        }'
       text '
       '"
   `);
@@ -1590,14 +1445,8 @@ test("parse @location", () => {
         type vec4f
           ref vec4f
         block
-          text '{'
           return
-            text ' 
-            return '
             ref pos
-            text ';'
-          text '
-          }'
       text '
       '"
   `);

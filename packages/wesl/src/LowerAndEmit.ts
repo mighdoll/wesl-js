@@ -163,8 +163,13 @@ function lowerAndEmitElem(e: AbstractElem, ctx: EmitContext): void {
     case "member":
     case "memberRef":
     case "expression":
-    case "switch-clause":
       emitContents(e, ctx);
+      return;
+
+    // Switch clauses are normally emitted structurally by emitSwitch; handle the
+    // standalone case (e.g. a clause reached via a container walk) the same way.
+    case "switch-clause":
+      emitSwitchClause(e, ctx);
       return;
 
     case "type":

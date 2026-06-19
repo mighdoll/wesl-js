@@ -9,8 +9,7 @@ test("parse complex condition", () => {
       fn a() @if
         attribute @if(true || (!foo && !!false))
         decl %a
-        block
-          text '{}'"
+        block"
   `);
 });
 
@@ -89,8 +88,6 @@ test("conditional statement", () => {
       fn main()
         decl %main
         block
-          text '{
-          '
           var %x
             text 'var '
             typeDecl %x
@@ -98,17 +95,10 @@ test("conditional statement", () => {
             text ' = '
             literal literal(1)
             text ';'
-          text '
-          '
           assign @if
             attribute @if(true)
-            text ' '
             ref x
-            text ' = '
             literal literal(2)
-            text ' ;'
-          text '
-        }'
       text '
       '"
   `);
@@ -131,12 +121,8 @@ test("compound statement", () => {
       fn main()
         decl %main
         block
-          text '{
-          '
           block @if
             attribute @if(false)
-            text ' {
-            '
             let %x
               text 'let '
               typeDecl %x
@@ -144,10 +130,6 @@ test("compound statement", () => {
               text ' = '
               literal literal(1)
               text ';'
-            text '
-          }'
-          text '
-        }'
       text '
       '"
   `);
@@ -168,8 +150,6 @@ test("conditional local var", () => {
       fn main()
         decl %main
         block
-          text '{
-          '
           var %x @if
             attribute @if(true)
             text ' var '
@@ -178,8 +158,6 @@ test("conditional local var", () => {
             text ' = '
             literal literal(1)
             text ';'
-          text '
-        }'
       text '
       '"
   `);
@@ -257,24 +235,16 @@ test("@else with function", () => {
         attribute @if(DEBUG)
         decl %foo
         block
-          text '{'
           return
-            text ' return '
             literal literal(1)
-            text ';'
-          text ' }'
       text '
         '
       fn foo() @else
         attribute @else
         decl %foo
         block
-          text '{'
           return
-            text ' return '
             literal literal(2)
-            text ';'
-          text ' }'
       text '
       '"
   `);
@@ -296,8 +266,6 @@ test("@else with statement", () => {
       fn main()
         decl %main
         block
-          text '{
-          '
           let %x @if
             attribute @if(A)
             text ' let '
@@ -306,8 +274,6 @@ test("@else with statement", () => {
             text ' = '
             literal literal(1.0)
             text ';'
-          text '
-          '
           let %x @else
             attribute @else
             text ' let '
@@ -316,8 +282,6 @@ test("@else with statement", () => {
             text ' = '
             literal literal(2.0)
             text ';'
-          text '
-        }'
       text '
       '"
   `);
@@ -339,11 +303,8 @@ test("@else compound statement", () => {
       fn test()
         decl %test
         block
-          text '{
-          '
           block @if
             attribute @if(MOBILE)
-            text ' { '
             let %a
               text 'let '
               typeDecl %a
@@ -351,12 +312,8 @@ test("@else compound statement", () => {
               text ' = '
               literal literal(1)
               text ';'
-            text ' }'
-          text '
-          '
           block @else
             attribute @else
-            text ' { '
             let %a
               text 'let '
               typeDecl %a
@@ -364,9 +321,6 @@ test("@else compound statement", () => {
               text ' = '
               literal literal(2)
               text ';'
-            text ' }'
-          text '
-        }'
       text '
       '"
   `);
@@ -472,7 +426,6 @@ test("parse @else fn", () => {
         attribute @if(FOO)
         decl %testFn
         block
-          text '{ '
           let %a
             text 'let '
             typeDecl %a
@@ -480,14 +433,12 @@ test("parse @else fn", () => {
             text ' = '
             literal literal(0)
             text ';'
-          text ' }'
       text '
         '
       fn testFn() @else
         attribute @else
         decl %testFn
         block
-          text '{ '
           let %a
             text 'let '
             typeDecl %a
@@ -495,7 +446,6 @@ test("parse @else fn", () => {
             text ' = '
             literal literal(1)
             text ';'
-          text ' }'
       text '
       '"
   `,

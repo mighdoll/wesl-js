@@ -162,9 +162,9 @@ function finishForUpdate(
 }
 
 /**
- * Construct a for-header sub-node (assign/increment/decrement/call). Its lhs/rhs
- * already live in the for statement's `contents`, so this node carries empty
- * `contents` and is not separately emitted.
+ * Construct a for-header sub-node (assign/increment/decrement/call) from its
+ * already-parsed lhs/rhs. Emit reads those typed fields, so the node keeps no
+ * `contents`.
  */
 function makeForNode<K extends "assign" | "increment" | "decrement" | "call">(
   ctx: ParsingContext,
@@ -172,6 +172,6 @@ function makeForNode<K extends "assign" | "increment" | "decrement" | "call">(
   params: object,
 ): Extract<ForUpdate, { kind: K }> {
   const start = ctx.stream.checkpoint();
-  const node = { kind, ...params, start, end: start, contents: [] };
+  const node = { kind, ...params, start, end: start };
   return node as unknown as Extract<ForUpdate, { kind: K }>;
 }

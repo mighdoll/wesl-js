@@ -9,8 +9,19 @@ import type { Span } from "./Span.ts";
  */
 export type AbstractElem = GrammarElem | SyntheticElem | ExpressionElem;
 
-export type GrammarElem = ContainerElem | TerminalElem | DoBlockElem;
+export type GrammarElem =
+  | ContainerElem
+  | Statement
+  | SwitchClauseElem
+  | TerminalElem
+  | DoBlockElem;
 
+/**
+ * Elements that still carry a `contents` array (child elems plus gap-covering
+ * TextElems). Statements emit structurally from their typed fields instead, so
+ * they are not here (var/let/const/assert excepted: they still emit from
+ * contents via emitLocalDecl).
+ */
 export type ContainerElem =
   | AttributeElem
   | AliasElem
@@ -29,9 +40,18 @@ export type ContainerElem =
   | StructMemberElem
   | StuffElem
   | TypeRefElem
-  | VarElem
-  | Statement
-  | SwitchClauseElem;
+  | VarElem;
+
+/**
+ * Kinds that can be pushed as an open element during parsing. Statements use the
+ * open-elem stack as a scratch buffer for the child elems parsed beneath them
+ * (so they don't leak into the enclosing block's contents) even though the
+ * finished statement keeps no `contents`.
+ */
+export type OpenElemKind =
+  | ContainerElem["kind"]
+  | Statement["kind"]
+  | "switch-clause";
 
 /** Map from element kind string to element type, for type-safe element construction. */
 export type ElemKindMap = {
@@ -529,12 +549,12 @@ export type Statement =
 
 /** A bare `;` statement. Spans the `;` and emits nothing; kept so the parent's
  * gap-filling does not re-insert a `;` of its own. */
-export interface EmptyElem extends ElemWithContentsBase, HasAttributes {
+export interface EmptyElem extends AbstractElemBase, HasAttributes {
   kind: "empty";
 }
 
 /** A `{ ... }` compound statement. */
-export interface BlockElem extends ElemWithContentsBase, HasAttributes {
+export interface BlockElem extends AbstractElemBase, HasAttributes {
   kind: "block";
   body: Statement[];
   /** Comments inside an otherwise empty block, with no statement to attach to. */
@@ -542,7 +562,7 @@ export interface BlockElem extends ElemWithContentsBase, HasAttributes {
 }
 
 /** An if / else-if / else chain. `else` nests: else-if is an IfElem, plain else a BlockElem. */
-export interface IfElem extends ElemWithContentsBase, HasAttributes {
+export interface IfElem extends AbstractElemBase, HasAttributes {
   kind: "if";
   condition: ExpressionElem;
   body: BlockElem;
@@ -550,7 +570,7 @@ export interface IfElem extends ElemWithContentsBase, HasAttributes {
 }
 
 /** A for loop. */
-export interface ForElem extends ElemWithContentsBase, HasAttributes {
+export interface ForElem extends AbstractElemBase, HasAttributes {
   kind: "for";
   init?: ForInit;
   condition?: ExpressionElem;
@@ -569,28 +589,28 @@ export type ForInit =
 export type ForUpdate = AssignElem | IncrementElem | DecrementElem | CallElem;
 
 /** A while loop. */
-export interface WhileElem extends ElemWithContentsBase, HasAttributes {
+export interface WhileElem extends AbstractElemBase, HasAttributes {
   kind: "while";
   condition: ExpressionElem;
   body: BlockElem;
 }
 
 /** A loop, optionally ending with a continuing block. */
-export interface LoopElem extends ElemWithContentsBase, HasAttributes {
+export interface LoopElem extends AbstractElemBase, HasAttributes {
   kind: "loop";
   body: BlockElem;
   continuing?: ContinuingElem;
 }
 
 /** A continuing block, optionally ending with `break if expr`. */
-export interface ContinuingElem extends ElemWithContentsBase, HasAttributes {
+export interface ContinuingElem extends AbstractElemBase, HasAttributes {
   kind: "continuing";
   body: BlockElem;
   breakIf?: ExpressionElem;
 }
 
 /** A switch statement. */
-export interface SwitchElem extends ElemWithContentsBase, HasAttributes {
+export interface SwitchElem extends AbstractElemBase, HasAttributes {
   kind: "switch";
   selector: ExpressionElem;
   clauses: SwitchClauseElem[];
@@ -599,36 +619,36 @@ export interface SwitchElem extends ElemWithContentsBase, HasAttributes {
 }
 
 /** A case or default clause. `"default"` sentinel marks the default selector. */
-export interface SwitchClauseElem extends ElemWithContentsBase, HasAttributes {
+export interface SwitchClauseElem extends AbstractElemBase, HasAttributes {
   kind: "switch-clause";
   selectors: (ExpressionElem | "default")[];
   body: BlockElem;
 }
 
 /** A return statement, with an optional value. */
-export interface ReturnElem extends ElemWithContentsBase, HasAttributes {
+export interface ReturnElem extends AbstractElemBase, HasAttributes {
   kind: "return";
   value?: ExpressionElem;
 }
 
 /** A break statement, or `break if expr`. */
-export interface BreakElem extends ElemWithContentsBase, HasAttributes {
+export interface BreakElem extends AbstractElemBase, HasAttributes {
   kind: "break";
   condition?: ExpressionElem;
 }
 
 /** A continue statement. */
-export interface ContinueElem extends ElemWithContentsBase, HasAttributes {
+export interface ContinueElem extends AbstractElemBase, HasAttributes {
   kind: "continue";
 }
 
 /** A discard statement. */
-export interface DiscardElem extends ElemWithContentsBase, HasAttributes {
+export interface DiscardElem extends AbstractElemBase, HasAttributes {
   kind: "discard";
 }
 
 /** Assignment, compound assignment, or phony `_ = expr`. */
-export interface AssignElem extends ElemWithContentsBase, HasAttributes {
+export interface AssignElem extends AbstractElemBase, HasAttributes {
   kind: "assign";
   lhs: ExpressionElem | PhonyTarget;
   op: AssignOp;
@@ -636,19 +656,19 @@ export interface AssignElem extends ElemWithContentsBase, HasAttributes {
 }
 
 /** `i++` */
-export interface IncrementElem extends ElemWithContentsBase, HasAttributes {
+export interface IncrementElem extends AbstractElemBase, HasAttributes {
   kind: "increment";
   target: ExpressionElem;
 }
 
 /** `i--` */
-export interface DecrementElem extends ElemWithContentsBase, HasAttributes {
+export interface DecrementElem extends AbstractElemBase, HasAttributes {
   kind: "decrement";
   target: ExpressionElem;
 }
 
 /** A bare function call statement. */
-export interface CallElem extends ElemWithContentsBase, HasAttributes {
+export interface CallElem extends AbstractElemBase, HasAttributes {
   kind: "call";
   call: FunctionCallExpression;
 }

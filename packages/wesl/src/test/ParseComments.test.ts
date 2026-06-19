@@ -14,9 +14,7 @@ test("parse fn with line comment", () => {
         '
       fn binaryOp()
         decl %binaryOp
-        block
-          text '{ // binOpImpl
-        }'"
+        block inner['// binOpImpl']"
   `);
 });
 
@@ -48,18 +46,13 @@ test("attach leading and trailing comments to a statement", () => {
       fn f()
         decl %f
         block
-          text '{
-          // leading
-          '
           let %x before['// leading'] after['// trailing']
             text 'let '
             typeDecl %x
               decl %x
             text ' = '
             literal literal(1)
-            text ';'
-          text ' // trailing
-        }'"
+            text ';'"
   `);
 });
 
@@ -78,8 +71,6 @@ test("split comments between two statements", () => {
       fn f()
         decl %f
         block
-          text '{
-          '
           let %x after['// after x']
             text 'let '
             typeDecl %x
@@ -87,18 +78,13 @@ test("split comments between two statements", () => {
             text ' = '
             literal literal(1)
             text ';'
-          text ' // after x
-          // before y
-          '
           let %y before['// before y']
             text 'let '
             typeDecl %y
               decl %y
             text ' = '
             literal literal(2)
-            text ';'
-          text '
-        }'"
+            text ';'"
   `);
 });
 
@@ -116,18 +102,13 @@ test("attach a dangling comment before the closing brace", () => {
       fn f()
         decl %f
         block
-          text '{
-          '
           let %x after['// dangling']
             text 'let '
             typeDecl %x
               decl %x
             text ' = '
             literal literal(1)
-            text ';'
-          text '
-          // dangling
-        }'"
+            text ';'"
   `);
 });
 

@@ -1,7 +1,8 @@
 import type {
   AbstractElem,
-  ContainerElem,
   DeclIdentElem,
+  ExpressionElem,
+  HasAttributes,
   RefIdentElem,
 } from "./AbstractElems.ts";
 import { srcLog } from "./Logging.ts";
@@ -11,12 +12,69 @@ export function visitAst(
   visitor: (elem: AbstractElem) => void,
 ) {
   visitor(elem);
-  if ((elem as ContainerElem).contents) {
-    const container = elem as ContainerElem;
-    container.contents.forEach(child => {
-      visitAst(child, visitor);
-    });
+  for (const child of childElems(elem)) visitAst(child, visitor);
+}
+
+/**
+ * Child elems of any AST node: the `contents` array for elems that keep it, or
+ * the typed structural fields (attributes plus body / condition / ...) for
+ * statements, which carry no `contents`. Returns [] for leaf elems.
+ */
+export function childElems(elem: AbstractElem): readonly AbstractElem[] {
+  if ("contents" in elem) return elem.contents;
+  const fields = structuralFields(elem);
+  if (!fields) return [];
+  return [...((elem as HasAttributes).attributes ?? []), ...fields];
+}
+
+/** The child elems held in a statement's typed fields, in source order, or
+ *  undefined for any non-statement kind. */
+function structuralFields(elem: AbstractElem): AbstractElem[] | undefined {
+  switch (elem.kind) {
+    case "block":
+      return elem.body;
+    case "if":
+      return [elem.condition, elem.body, ...(elem.else ? [elem.else] : [])];
+    case "for":
+      return [elem.init, elem.condition, elem.update, elem.body].filter(isElem);
+    case "while":
+      return [elem.condition, elem.body];
+    case "loop":
+    case "continuing":
+      return [elem.body];
+    case "switch":
+      return [elem.selector, ...(elem.bodyAttributes ?? []), ...elem.clauses];
+    case "switch-clause":
+      return [...exprSelectors(elem.selectors), elem.body];
+    case "return":
+      return elem.value ? [elem.value] : [];
+    case "break":
+      return elem.condition ? [elem.condition] : [];
+    case "assign":
+      return elem.lhs.kind === "phony" ? [elem.rhs] : [elem.lhs, elem.rhs];
+    case "increment":
+    case "decrement":
+      return [elem.target];
+    case "call":
+      return [elem.call];
+    case "continue":
+    case "discard":
+    case "empty":
+      return [];
+    default:
+      return undefined;
   }
+}
+
+function isElem<T>(elem: T | undefined): elem is T {
+  return elem !== undefined;
+}
+
+/** Drop the `"default"` sentinel, keeping only real case-selector expressions. */
+function exprSelectors(
+  selectors: (ExpressionElem | "default")[],
+): ExpressionElem[] {
+  return selectors.filter((s): s is ExpressionElem => s !== "default");
 }
 
 export function identElemLog(
