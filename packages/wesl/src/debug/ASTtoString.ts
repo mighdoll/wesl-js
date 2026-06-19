@@ -89,10 +89,7 @@ function addElemFields(elem: AbstractElem, str: LineWrapper): void {
   } else if (kind === "attribute") {
     addAttributeFields(elem.attribute, str);
   } else if (kind === "type") {
-    const nameStr =
-      typeof elem.name === "string" ? elem.name : elem.name.originalName;
-    const params = elem.templateParams?.map(templateParamToString).join(", ");
-    str.add(params ? ` ${nameStr}<${params}>` : ` ${nameStr}`);
+    str.add(" " + typeRefElemToString(elem));
   } else if (kind === "synthetic") {
     str.add(` '${elem.text}'`);
   } else if (kind === "import") {
