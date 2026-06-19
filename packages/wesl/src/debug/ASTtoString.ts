@@ -7,7 +7,6 @@ import type {
   DoBlockElem,
   FnElem,
   FnParamElem,
-  StuffElem,
   TypedDeclElem,
   TypeRefElem,
   TypeTemplateParameter,
@@ -47,16 +46,6 @@ export function attributeToString(attr: Attribute): string {
   return str.result;
 }
 
-export function debugContentsToString(elem: StuffElem): string {
-  return elem.contents
-    .map(c => {
-      if (c.kind === "text") return c.srcModule.src.slice(c.start, c.end);
-      if (c.kind === "ref") return c.ident.originalName; // not using mapped decl name for debug
-      return `?${c.kind}?`;
-    })
-    .join(" ");
-}
-
 // LATER rewrite to be shorter and easier to read
 function addElemFields(elem: AbstractElem, str: LineWrapper): void {
   const { kind } = elem;
@@ -66,7 +55,6 @@ function addElemFields(elem: AbstractElem, str: LineWrapper): void {
     kind === "expression" ||
     kind === "module" ||
     kind === "param" ||
-    kind === "stuff" ||
     kind === "switch-clause"
   ) {
     return;
@@ -89,11 +77,6 @@ function addElemFields(elem: AbstractElem, str: LineWrapper): void {
     str.add(` ${elem.name.name}: ${typeRefElemToString(elem.typeRef)}`);
   } else if (kind === "name") {
     str.add(" " + elem.name);
-  } else if (kind === "memberRef") {
-    const extra = elem.extraComponents
-      ? debugContentsToString(elem.extraComponents)
-      : "";
-    str.add(` ${elem.name.ident.originalName}.${elem.member.name}${extra}`);
   } else if (kind === "fn") {
     addFnFields(elem, str);
   } else if (kind === "do") {

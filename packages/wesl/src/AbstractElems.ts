@@ -33,11 +33,7 @@ export type GrammarElem =
  * TextElems). Statements, declarations, and the struct/fn family emit
  * structurally from their typed fields instead and so are absent here.
  */
-export type ContainerElem =
-  | AttributeElem
-  | SimpleMemberRef
-  | ModuleElem
-  | StuffElem;
+export type ContainerElem = AttributeElem | ModuleElem;
 
 /**
  * Kinds that can be pushed as an open element during parsing. Statements and
@@ -473,17 +469,6 @@ export interface OverrideElem extends AbstractElemBase, HasAttributes {
 export interface FnParamElem extends AbstractElemBase, HasAttributes {
   kind: "param";
   name: TypedDeclElem;
-  /** Set by the binding-struct transform to drop an intermediate `b: Bindings`
-   *  param; `emitFn` skips params flagged this way. */
-  skip?: true;
-}
-
-/** Simple struct references like `myStruct.bar` (for binding struct transforms). */
-export interface SimpleMemberRef extends ElemWithContentsBase {
-  kind: "memberRef";
-  name: RefIdentElem;
-  member: NameElem;
-  extraComponents?: StuffElem;
 }
 
 /** A struct declaration. */
@@ -492,11 +477,6 @@ export interface StructElem extends AbstractElemBase, HasAttributes {
   name: DeclIdentElem;
   members: StructMemberElem[];
   bindingStruct?: true; // used later during binding struct transformation
-}
-
-/** Generic container of other elements. */
-export interface StuffElem extends ElemWithContentsBase {
-  kind: "stuff";
 }
 
 /** A struct declaration marked as a binding struct. */

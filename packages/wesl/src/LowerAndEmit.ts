@@ -195,10 +195,6 @@ function lowerAndEmitElem(e: AbstractElem, ctx: EmitContext): void {
       emitMember(e, ctx);
       return;
 
-    case "memberRef":
-      emitContents(e, ctx);
-      return;
-
     case "expression":
       emitExpression(e.expression, ctx);
       return;
@@ -211,12 +207,6 @@ function lowerAndEmitElem(e: AbstractElem, ctx: EmitContext): void {
 
     case "type":
       emitTypeRef(e, ctx);
-      return;
-
-    // "stuff" is a generic element container; trim its edge whitespace on emit
-    // LATER get rid of "stuff" elements
-    case "stuff":
-      emitContentsWithTrimming(e, ctx);
       return;
 
     case "module":
@@ -384,11 +374,6 @@ function emitMember(member: StructMemberElem, ctx: EmitContext): void {
   emitTypeRef(member.typeRef, ctx);
 }
 
-function emitContents(elem: ContainerElem, ctx: EmitContext): void {
-  const validElements = filterValidElements(elem.contents, ctx.conditions);
-  for (const e of validElements) lowerAndEmitElem(e, ctx);
-}
-
 /** A `case sel, ...:` or `default:` clause with its `{ ... }` body. The selector
  *  colon is optional in WGSL but kept here as the canonical form. */
 function emitSwitchClause(e: SwitchClauseElem, ctx: EmitContext): void {
@@ -416,27 +401,6 @@ function emitSwitchClause(e: SwitchClauseElem, ctx: EmitContext): void {
 function emitTypeRef(e: TypeRefElem, ctx: EmitContext): void {
   emitRefIdent(e.name.refIdentElem, ctx);
   if (e.templateParams) emitTemplateArgs(e.templateParams, ctx);
-}
-
-/** Emit contents with leading/trailing whitespace trimmed. */
-function emitContentsWithTrimming(elem: ContainerElem, ctx: EmitContext): void {
-  const validElements = filterValidElements(elem.contents, ctx.conditions);
-
-  // Trim against the first/last elements that actually emit; conditional
-  // attributes produce no output, so skip them when locating the edges.
-  const firstEmit = validElements.findIndex(e => !isConditionalAttr(e));
-  const lastEmit = validElements.findLastIndex(e => !isConditionalAttr(e));
-
-  validElements.forEach((elem, i) => {
-    if (elem.kind === "text") {
-      let text = elem.srcModule.src.slice(elem.start, elem.end);
-      if (i === firstEmit) text = text.trimStart();
-      if (i === lastEmit) text = text.trimEnd();
-      if (text) ctx.srcBuilder.add(text, elem.start, elem.end);
-    } else {
-      lowerAndEmitElem(elem, ctx);
-    }
-  });
 }
 
 function emitModule(e: ContainerElem, ctx: EmitContext): void {
@@ -487,9 +451,7 @@ function emitFn(e: FnElem, ctx: EmitContext): void {
   emitDeclIdent(name, ctx);
 
   builder.appendNext("(");
-  const validParams = filterValidElements(params, conditions).filter(
-    p => !p.skip,
-  );
+  const validParams = filterValidElements(params, conditions);
   validParams.forEach((p, i) => {
     emitAttributes(p.attributes, ctx);
     emitTypedDecl(p.name, ctx);
@@ -667,12 +629,6 @@ function emitTrailingComments(e: AbstractElemBase, ctx: EmitContext): void {
     ctx.srcBuilder.appendNext(" ");
     emitComment(c, ctx);
   }
-}
-
-function isConditionalAttr(e: AbstractElem): boolean {
-  if (e.kind !== "attribute") return false;
-  const { kind } = e.attribute;
-  return kind === "@if" || kind === "@elif" || kind === "@else";
 }
 
 /** Emit a statement's syntax followed by ';' unless its kind takes none. */
