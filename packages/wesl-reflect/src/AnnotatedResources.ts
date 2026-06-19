@@ -54,7 +54,7 @@ export type DiscoveredResource =
 export function findAnnotatedResources(ast: WeslAST): DiscoveredResource[] {
   const src = ast.srcModule.src;
   const structs = buildStructRegistry(ast);
-  return ast.moduleElem.contents
+  return ast.moduleElem.decls
     .filter((e): e is GlobalVarElem => e.kind === "gvar")
     .flatMap(gvar => discoverResource(gvar, src, structs));
 }
@@ -72,7 +72,7 @@ export function annotatedResourcesPlugin(
   );
   return {
     transform: ast => {
-      for (const elem of ast.moduleElem.contents) {
+      for (const elem of ast.moduleElem.decls) {
         if (elem.kind !== "gvar") continue;
         const varName = elem.name.decl.ident.originalName;
         const binding = bindingByName.get(varName);
@@ -142,7 +142,6 @@ function makeStandardAttr(
     kind: "attribute",
     start,
     end,
-    contents: [],
     attribute: {
       kind: "@attribute",
       name,

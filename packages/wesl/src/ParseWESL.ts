@@ -101,8 +101,8 @@ export function flatImports(
   // TODO cache per condition set?
   if (ast._flatImports && !conditions) return ast._flatImports;
 
-  // Get ImportElem elements from moduleElem contents
-  const importElems = ast.moduleElem.contents.filter(
+  // Get ImportElem elements from the module's top-level decls
+  const importElems = ast.moduleElem.decls.filter(
     (elem): elem is ImportElem => elem.kind === "import",
   );
 

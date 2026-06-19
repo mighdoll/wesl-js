@@ -44,9 +44,7 @@ do frame(u: Uniforms, @slider(1, 100) steps: u32) {
 
 function doBlocks(src: string): DoBlockElem[] {
   const ast = parseTest(src, doExt);
-  return ast.moduleElem.contents.filter(
-    (e): e is DoBlockElem => e.kind === "do",
-  );
+  return ast.moduleElem.decls.filter((e): e is DoBlockElem => e.kind === "do");
 }
 
 test("parse do block: helper + entry, params, control flow", () => {
@@ -137,7 +135,7 @@ test("freshResolver preserves weslExtensions across re-parse", () => {
   const inner = new RecordResolver({ "package::main": src }, doExt);
   const wrapped = freshResolver(freshResolver(inner));
   const ast = wrapped.resolveModule("package::main")!;
-  const blocks = ast.moduleElem.contents.filter(
+  const blocks = ast.moduleElem.decls.filter(
     (e): e is DoBlockElem => e.kind === "do",
   );
   expect(blocks.map(b => b.name.name)).toEqual(["tick"]);

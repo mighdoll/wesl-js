@@ -457,6 +457,10 @@ export interface GlobalVarElem extends AbstractElemBase, HasAttributes {
 /** An entire file. */
 export interface ModuleElem extends ElemWithContentsBase {
   kind: "module";
+  /** Top-level children (imports, directives, declarations, and any synthetic
+   *  vars added by transforms) in source order, excluding the gap-covering
+   *  TextElems still held in `contents`. */
+  decls: AbstractElem[];
 }
 
 /** An override declaration. */

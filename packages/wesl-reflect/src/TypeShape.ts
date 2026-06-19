@@ -215,7 +215,7 @@ function findGlobalVar(
   ast: WeslAST,
   varName: string,
 ): GlobalVarElem | undefined {
-  return ast.moduleElem.contents.find(
+  return ast.moduleElem.decls.find(
     (e): e is GlobalVarElem =>
       e.kind === "gvar" && e.name.decl.ident.originalName === varName,
   );

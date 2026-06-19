@@ -45,8 +45,11 @@ export function lowerBindingStructs(ast: TransformedAST): TransformedAST {
   const newVars = bindingStructs.flatMap(s =>
     transformBindingStruct(s, globalNames),
   );
-  const contents = removeBindingStructs(moduleElem);
-  moduleElem.contents = [...newVars, ...contents];
+  moduleElem.contents = [
+    ...newVars,
+    ...keepNonBindingStructs(moduleElem.contents),
+  ];
+  moduleElem.decls = [...newVars, ...keepNonBindingStructs(moduleElem.decls)];
   notableElems.bindingStructs = bindingStructs;
   return { ...clonedAst, moduleElem };
 }
@@ -55,7 +58,7 @@ export function markEntryTypes(
   moduleElem: ModuleElem,
   bindingStructs: BindingStructElem[],
 ): void {
-  const fns = moduleElem.contents.filter(e => e.kind === "fn");
+  const fns = moduleElem.decls.filter(e => e.kind === "fn");
   const fnFound = fnReferencesBindingStruct(fns, bindingStructs);
   if (fnFound) {
     const { fn, struct } = fnFound;
@@ -67,7 +70,7 @@ export function markEntryTypes(
 export function markBindingStructs(
   moduleElem: ModuleElem,
 ): BindingStructElem[] {
-  const structs = moduleElem.contents.filter(elem => elem.kind === "struct");
+  const structs = moduleElem.decls.filter(elem => elem.kind === "struct");
   const bindingStructs = structs.filter(containsBinding);
   bindingStructs.forEach(struct => {
     struct.bindingStruct = true;
@@ -106,10 +109,9 @@ export function transformBindingStruct(
   });
 }
 
-function removeBindingStructs(moduleElem: ModuleElem): AbstractElem[] {
-  return moduleElem.contents.filter(
-    elem => elem.kind !== "struct" || !elem.bindingStruct,
-  );
+/** Drop binding structs (the ones lowered to synthetic vars) from a top-level list. */
+function keepNonBindingStructs<T extends AbstractElem>(elems: T[]): T[] {
+  return elems.filter(elem => elem.kind !== "struct" || !elem.bindingStruct);
 }
 
 function fnReferencesBindingStruct(

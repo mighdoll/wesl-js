@@ -55,7 +55,7 @@ function findUniformsStruct(
   modulePath: string,
 ): StructElem | undefined {
   const ast = parseSrcModule({ modulePath, debugFilePath: "entry", src });
-  return ast.moduleElem.contents
+  return ast.moduleElem.decls
     .filter((e): e is StructElem => e.kind === "struct")
     .find(isUniformsStruct);
 }

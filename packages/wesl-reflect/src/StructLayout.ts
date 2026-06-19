@@ -98,7 +98,7 @@ export function structLayout(
 /** Build a StructRegistry from all top-level struct declarations in `ast`. */
 export function buildStructRegistry(ast: WeslAST): StructRegistry {
   const reg = new Map<string, StructElem>();
-  for (const e of ast.moduleElem.contents) {
+  for (const e of ast.moduleElem.decls) {
     if (e.kind === "struct") reg.set(e.name.ident.originalName, e);
   }
   return reg;

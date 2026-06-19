@@ -54,12 +54,12 @@ export function parseModule(ctx: ParsingContext): void {
  * small module-local pass, deliberately not part of bindIdents.
  */
 export function checkDoBlockNames(moduleElem: ModuleElem): void {
-  const doBlocks = moduleElem.contents.filter(
+  const doBlocks = moduleElem.decls.filter(
     (e): e is DoBlockElem => e.kind === "do",
   );
   if (doBlocks.length === 0) return;
 
-  const declNames = new Set(moduleElem.contents.map(globalDeclName));
+  const declNames = new Set(moduleElem.decls.map(globalDeclName));
   const conflict = doBlocks.find(b => declNames.has(b.name.name));
   if (conflict) {
     const { name, start, end } = conflict.name;

@@ -15,7 +15,7 @@ const stageNames: EntryPointStage[] = ["compute", "fragment", "vertex"];
 
 /** Classify all functions in a parsed WESL module by entry-point stage. */
 export function classifyEntryPoints(ast: WeslAST): EntryPoint[] {
-  return ast.moduleElem.contents
+  return ast.moduleElem.decls
     .filter((e): e is FnElem => e.kind === "fn")
     .flatMap(fn => entryPointFor(fn));
 }

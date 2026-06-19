@@ -21,7 +21,7 @@ export function simpleReflect(
     emitFn: async (_baseId: string, api: PluginExtensionApi) => {
       const registry = await api.weslRegistry();
       const astStructs = [...registry.allModules()].flatMap(([, module]) =>
-        module.moduleElem.contents.filter(
+        module.moduleElem.decls.filter(
           (e): e is StructElem => e.kind === "struct",
         ),
       );
