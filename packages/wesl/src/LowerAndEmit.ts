@@ -410,7 +410,7 @@ function emitStatementCore(stmt: Statement, ctx: EmitContext): void {
     return;
   }
   emitAttributes(stmt.attributes, ctx);
-  const b = ctx.srcBuilder;
+  const builder = ctx.srcBuilder;
   switch (stmt.kind) {
     case "block":
       emitBlock(stmt, ctx);
@@ -425,46 +425,46 @@ function emitStatementCore(stmt: Statement, ctx: EmitContext): void {
       emitWhile(stmt, ctx);
       return;
     case "loop":
-      b.appendNext("loop ");
+      builder.appendNext("loop ");
       emitBlock(stmt.body, ctx);
       return;
     case "continuing":
-      b.appendNext("continuing ");
+      builder.appendNext("continuing ");
       emitBlock(stmt.body, ctx);
       return;
     case "switch":
       emitSwitch(stmt, ctx);
       return;
     case "return":
-      b.appendNext("return");
+      builder.appendNext("return");
       if (stmt.value) {
-        b.appendNext(" ");
+        builder.appendNext(" ");
         emitExpression(stmt.value, ctx);
       }
       return;
     case "break":
-      b.appendNext("break");
+      builder.appendNext("break");
       if (stmt.condition) {
-        b.appendNext(" if ");
+        builder.appendNext(" if ");
         emitExpression(stmt.condition, ctx);
       }
       return;
     case "continue":
-      b.appendNext("continue");
+      builder.appendNext("continue");
       return;
     case "discard":
-      b.appendNext("discard");
+      builder.appendNext("discard");
       return;
     case "assign":
       emitAssign(stmt, ctx);
       return;
     case "increment":
       emitExpression(stmt.target, ctx);
-      b.appendNext("++");
+      builder.appendNext("++");
       return;
     case "decrement":
       emitExpression(stmt.target, ctx);
-      b.appendNext("--");
+      builder.appendNext("--");
       return;
     case "call":
       emitExpression(stmt.call, ctx);
@@ -490,13 +490,13 @@ function emitLocalDecl(
 
 /** if / else-if / else: a nested IfElem prints as `else if`, a BlockElem as `else`. */
 function emitIf(e: IfElem, ctx: EmitContext): void {
-  const b = ctx.srcBuilder;
-  b.appendNext("if ");
+  const builder = ctx.srcBuilder;
+  builder.appendNext("if ");
   emitExpression(e.condition, ctx);
-  b.appendNext(" ");
+  builder.appendNext(" ");
   emitBlock(e.body, ctx);
   if (e.else) {
-    b.appendNext(" else ");
+    builder.appendNext(" else ");
     if (e.else.kind === "if") emitIf(e.else, ctx);
     else emitBlock(e.else, ctx);
   }
@@ -505,19 +505,19 @@ function emitIf(e: IfElem, ctx: EmitContext): void {
 /** for (init; condition; update) { ... }. A var/let/const init carries its own
  *  ';'; an expression init/update does not, so add it explicitly. */
 function emitFor(e: ForElem, ctx: EmitContext): void {
-  const b = ctx.srcBuilder;
-  b.appendNext("for (");
+  const builder = ctx.srcBuilder;
+  builder.appendNext("for (");
   if (e.init) {
     emitStatementCore(e.init, ctx);
-    if (!noSemicolon.has(e.init.kind)) b.appendNext(";");
+    if (!noSemicolon.has(e.init.kind)) builder.appendNext(";");
   } else {
-    b.appendNext(";");
+    builder.appendNext(";");
   }
-  b.appendNext(" ");
+  builder.appendNext(" ");
   if (e.condition) emitExpression(e.condition, ctx);
-  b.appendNext("; ");
+  builder.appendNext("; ");
   if (e.update) emitStatementCore(e.update, ctx);
-  b.appendNext(") ");
+  builder.appendNext(") ");
   emitBlock(e.body, ctx);
 }
 
@@ -529,37 +529,37 @@ function emitWhile(e: WhileElem, ctx: EmitContext): void {
 }
 
 function emitSwitch(e: SwitchElem, ctx: EmitContext): void {
-  const b = ctx.srcBuilder;
-  b.appendNext("switch ");
+  const builder = ctx.srcBuilder;
+  builder.appendNext("switch ");
   emitExpression(e.selector, ctx);
-  b.appendNext(" {");
+  builder.appendNext(" {");
   const inner = childIndent(ctx);
   for (const clause of filterValidElements(e.clauses, ctx.conditions)) {
     emitSwitchClause(clause, inner);
   }
   newLine(ctx);
-  b.appendNext("}");
+  builder.appendNext("}");
 }
 
 /** A `case sel, ...:` or `default:` clause with its `{ ... }` body. The selector
  *  colon is optional in WGSL but kept here as the canonical form. */
 function emitSwitchClause(e: SwitchClauseElem, ctx: EmitContext): void {
-  const b = ctx.srcBuilder;
+  const builder = ctx.srcBuilder;
   emitLeadingComments(e, ctx);
   newLine(ctx);
   emitAttributes(e.attributes, ctx);
   const defaultOnly = e.selectors.length === 1 && e.selectors[0] === "default";
   if (defaultOnly) {
-    b.appendNext("default");
+    builder.appendNext("default");
   } else {
-    b.appendNext("case ");
+    builder.appendNext("case ");
     e.selectors.forEach((sel, i) => {
-      if (i > 0) b.appendNext(", ");
-      if (sel === "default") b.appendNext("default");
+      if (i > 0) builder.appendNext(", ");
+      if (sel === "default") builder.appendNext("default");
       else emitExpression(sel, ctx);
     });
   }
-  b.appendNext(": ");
+  builder.appendNext(": ");
   emitBlock(e.body, ctx);
   emitTrailingComments(e, ctx);
 }
