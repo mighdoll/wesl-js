@@ -207,7 +207,7 @@ function lowerAndEmitElem(e: AbstractElem, ctx: EmitContext): void {
       return;
 
     case "type":
-      emitTypeRefElem(e, ctx);
+      emitTypeRef(e, ctx);
       return;
 
     // "stuff" elements (compound statements) need trimming for proper formatting
@@ -307,7 +307,7 @@ function emitExpression(e: ExpressionElem, ctx: EmitContext): void {
       emitRefIdent(e, ctx);
       return;
     case "type":
-      emitTypeRefElem(e, ctx);
+      emitTypeRef(e, ctx);
       return;
     case "binary-expression": {
       const [start, end] = e.operator.span;
@@ -369,7 +369,7 @@ function emitTypedDecl(name: TypedDeclElem, ctx: EmitContext): void {
   emitDeclIdent(name.decl, ctx);
   if (name.typeRef) {
     ctx.srcBuilder.appendNext(": ");
-    emitTypeRefElem(name.typeRef, ctx);
+    emitTypeRef(name.typeRef, ctx);
   }
 }
 
@@ -378,7 +378,7 @@ function emitMember(member: StructMemberElem, ctx: EmitContext): void {
   emitAttributes(member.attributes, ctx);
   emitName(member.name, ctx);
   ctx.srcBuilder.appendNext(": ");
-  emitTypeRefElem(member.typeRef, ctx);
+  emitTypeRef(member.typeRef, ctx);
 }
 
 function emitContents(elem: ContainerElem, ctx: EmitContext): void {
@@ -410,7 +410,7 @@ function emitSwitchClause(e: SwitchClauseElem, ctx: EmitContext): void {
 }
 
 /** Emit a type reference structurally: name plus an optional <...> arg list. */
-function emitTypeRefElem(e: TypeRefElem, ctx: EmitContext): void {
+function emitTypeRef(e: TypeRefElem, ctx: EmitContext): void {
   emitRefIdent(e.name.refIdentElem, ctx);
   if (e.templateParams) emitTemplateArgs(e.templateParams, ctx);
 }
@@ -482,7 +482,7 @@ function emitFn(e: FnElem, ctx: EmitContext): void {
   if (returnType) {
     builder.appendNext("-> ");
     emitAttributes(returnAttributes, ctx);
-    emitTypeRefElem(returnType, ctx);
+    emitTypeRef(returnType, ctx);
     builder.appendNext(" ");
   }
 
@@ -702,7 +702,7 @@ function emitValueDecl(e: ValueDeclElem, ctx: EmitContext): void {
       builder.appendNext("alias ");
       emitDeclIdent(e.name, ctx);
       builder.appendNext(" = ");
-      emitTypeRefElem(e.typeRef, ctx);
+      emitTypeRef(e.typeRef, ctx);
       break;
     case "assert":
       builder.appendNext("const_assert ");
