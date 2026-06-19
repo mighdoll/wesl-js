@@ -30,19 +30,22 @@ test.skipIf(!inBuiltTest)("compute shader math", async () => {
   expect(results[0]).toBe(4);
 });
 
-test.skipIf(!inBuiltTest || isCI)("fragment shader renders gradient", async () => {
-  const { getGPUDevice, testFragmentImage } = await import("wgsl-test");
-  const device = await getGPUDevice();
-  const imageData = await testFragmentImage({
-    device,
-    src: `
+test.skipIf(!inBuiltTest || isCI)(
+  "fragment shader renders gradient",
+  async () => {
+    const { getGPUDevice, testFragmentImage } = await import("wgsl-test");
+    const device = await getGPUDevice();
+    const imageData = await testFragmentImage({
+      device,
+      src: `
       @fragment
       fn main(@builtin(position) pos: vec4f) -> @location(0) vec4f {
         let uv = pos.xy / vec2f(64.0);
         return vec4f(uv.x, uv.y, 0.5, 1.0);
       }
     `,
-    size: [64, 64],
-  });
-  await expect(imageData).toMatchImage({ name: "gradient" });
-});
+      size: [64, 64],
+    });
+    await expect(imageData).toMatchImage({ name: "gradient" });
+  },
+);
