@@ -33,10 +33,8 @@ export function astToString(elem: AbstractElem, indent = 0): string {
   const children = childElems(elem);
   if (children.length) {
     str.nl();
-    str.addBlock(
-      children.map(e => astToString(e, indent + 2)).join("\n"),
-      false,
-    );
+    const childStrings = children.map(e => astToString(e, indent + 2));
+    str.addBlock(childStrings.join("\n"), false);
   }
 
   return str.result;

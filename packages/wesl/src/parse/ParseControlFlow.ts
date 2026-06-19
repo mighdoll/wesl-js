@@ -106,11 +106,8 @@ function expectSwitchClauses(ctx: ParsingContext): {
   while (!stream.matchText("}")) {
     const clauseStart = stream.checkpoint();
     const clauseAttrs = parseAttributeList(ctx);
-    beginElem(
-      ctx,
-      "switch-clause",
-      clauseAttrs.length ? clauseAttrs : undefined,
-    );
+    const attrs = clauseAttrs.length ? clauseAttrs : undefined;
+    beginElem(ctx, "switch-clause", attrs);
 
     let selectors: (ExpressionElem | "default")[];
     let body: BlockElem;
@@ -129,7 +126,7 @@ function expectSwitchClauses(ctx: ParsingContext): {
       clauseStart,
       ctx,
       { selectors, body },
-      clauseAttrs.length ? clauseAttrs : undefined,
+      attrs,
     );
     ctx.addElem(clauseElem);
     clauses.push(clauseElem);
