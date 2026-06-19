@@ -6,7 +6,6 @@ import type {
   DiagnosticRule,
   ElifAttribute,
   ElseAttribute,
-  ExpressionElem,
   IfAttribute,
   InterpolateAttribute,
   NameElem,
@@ -100,11 +99,13 @@ function parseConditionalAttribute<T>(
   stream.matchText(",");
   expect(stream, ")", `@${keyword} expression`);
 
-  const translateTimeExpr = makeTranslateTimeExpressionElem({
-    value: expr,
+  // TODO remove translate-time once we drop v1
+  const translateTimeExpr: TranslateTimeExpressionElem = {
+    kind: "translate-time-expression",
+    expression: expr,
     start: startPos,
     end: stream.checkpoint(),
-  });
+  };
   return makeAttr(translateTimeExpr);
 }
 
@@ -166,20 +167,6 @@ function parseStandardAttribute(ctx: ParsingContext): AttributeElem | null {
 
   const stdAttr: StandardAttribute = { kind: "@attribute", name, params };
   return attributeElem(stdAttr, startPos, stream.checkpoint());
-}
-
-// TODO remove translate-time once we drop v1
-function makeTranslateTimeExpressionElem(args: {
-  value: ExpressionElem;
-  start: number;
-  end: number;
-}): TranslateTimeExpressionElem {
-  return {
-    kind: "translate-time-expression",
-    expression: args.value,
-    start: args.start,
-    end: args.end,
-  };
 }
 
 function parseBuiltinAttribute(

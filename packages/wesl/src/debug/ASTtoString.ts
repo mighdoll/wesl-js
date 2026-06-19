@@ -263,7 +263,6 @@ function unknownExpressionToString(elem: UnknownExpressionElem): string {
 function templateParamToString(p: TypeTemplateParameter): string {
   if (typeof p === "string") return p;
   if (p.kind === "type") return typeRefElemToString(p);
-  // ExpressionElem - use astToString for expression elements
   return astToString(p);
 }
 

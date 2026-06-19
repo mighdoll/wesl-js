@@ -213,10 +213,10 @@ function lowerAndEmitElem(e: AbstractElem, ctx: EmitContext): void {
       emitTypeRef(e, ctx);
       return;
 
-    // "stuff" elements (compound statements) need trimming for proper formatting
+    // "stuff" is a generic element container; trim its edge whitespace on emit
     // LATER get rid of "stuff" elements
     case "stuff":
-      emitStuff(e, ctx);
+      emitContentsWithTrimming(e, ctx);
       return;
 
     case "module":
@@ -416,10 +416,6 @@ function emitSwitchClause(e: SwitchClauseElem, ctx: EmitContext): void {
 function emitTypeRef(e: TypeRefElem, ctx: EmitContext): void {
   emitRefIdent(e.name.refIdentElem, ctx);
   if (e.templateParams) emitTemplateArgs(e.templateParams, ctx);
-}
-
-function emitStuff(e: ContainerElem, ctx: EmitContext): void {
-  emitContentsWithTrimming(e, ctx);
 }
 
 function emitModule(e: ContainerElem, ctx: EmitContext): void {
