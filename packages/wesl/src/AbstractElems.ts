@@ -106,6 +106,25 @@ export interface AbstractElemBase {
   kind: AbstractElem["kind"];
   start: number;
   end: number;
+  /** Comments leading this element (on their own line above it). */
+  commentsBefore?: CommentElem[];
+  /** Comments trailing this element (on the same line after it). */
+  commentsAfter?: CommentElem[];
+}
+
+/**
+ * A source comment attached to an element as leading or trailing trivia.
+ * Not part of the {@link AbstractElem} union: comments are node metadata
+ * (in `commentsBefore` / `commentsAfter`), never `contents` children.
+ */
+export interface CommentElem {
+  kind: "comment";
+  style: "line" | "block";
+  start: number;
+  end: number;
+  srcModule: SrcModule;
+  /** Preserve one blank line above this comment (leading comments only). */
+  blankBefore?: boolean;
 }
 
 export interface ElemWithContentsBase extends AbstractElemBase {

@@ -2,6 +2,7 @@ import type {
   AbstractElem,
   Attribute,
   AttributeElem,
+  CommentElem,
   DirectiveElem,
   DoBlockElem,
   FnElem,
@@ -27,6 +28,7 @@ export function astToString(elem: AbstractElem, indent = 0): string {
   const str = new LineWrapper(indent, maxLineLength);
   str.add(kind);
   addElemFields(elem, str);
+  addCommentFields(elem, str);
   let childStrings: string[] = [];
   if ("contents" in elem) {
     childStrings = elem.contents.map(e => astToString(e, indent + 2));
@@ -150,6 +152,24 @@ function addElemFields(elem: AbstractElem, str: LineWrapper): void {
   } else {
     assertUnreachable(kind);
   }
+}
+
+/** Show attached leading/trailing comments to verify comment attachment. */
+function addCommentFields(elem: AbstractElem, str: LineWrapper): void {
+  // SyntheticElem has no source position and so carries no comments
+  if (!("start" in elem)) return;
+  const { commentsBefore, commentsAfter } = elem;
+  if (commentsBefore?.length)
+    str.add(commentsToString("before", commentsBefore));
+  if (commentsAfter?.length) str.add(commentsToString("after", commentsAfter));
+}
+
+function commentsToString(label: string, comments: CommentElem[]): string {
+  const texts = comments.map(c => {
+    const text = c.srcModule.src.slice(c.start, c.end);
+    return c.blankBefore ? `'${text}'(blank)` : `'${text}'`;
+  });
+  return ` ${label}[${texts.join(", ")}]`;
 }
 
 function addAttributeFields(attr: Attribute, str: LineWrapper) {

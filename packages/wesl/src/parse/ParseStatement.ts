@@ -10,7 +10,7 @@ import type {
   Statement,
 } from "../AbstractElems.ts";
 import { findMap } from "../Util.ts";
-import { beginElem, finishElem } from "./ContentsHelpers.ts";
+import { attachComments, beginElem, finishElem } from "./ContentsHelpers.ts";
 import { parseAttributeList } from "./ParseAttribute.ts";
 import { parseIfStatement, parseSwitchStatement } from "./ParseControlFlow.ts";
 import { parseConstAssert } from "./ParseGlobalVar.ts";
@@ -134,17 +134,23 @@ function parseBlockStatements(
 ): Statement[] {
   const { stream } = ctx;
   const body: Statement[] = [];
+  let closePos: number | undefined;
   while (true) {
-    if (stream.matchText("}")) break;
+    const close = stream.matchText("}");
+    if (close) {
+      closePos = close.span[0];
+      break;
+    }
     const stmt = parseStatement(ctx);
     if (!stmt) throwParseError(stream, "Expected statement or '}'");
     ctx.addElem(stmt);
     body.push(stmt);
     if (loopBody && stmt.kind === "continuing") {
-      expect(stream, "}", "continuing block");
+      closePos = expect(stream, "}", "continuing block").span[0];
       break;
     }
   }
+  attachComments(ctx, body, closePos);
   return body;
 }
 
