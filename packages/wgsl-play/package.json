@@ -11,9 +11,9 @@
     "build": "tsdown",
     "build:cases": "vite build test-page --config vite.config.ts",
     "deploy:cases": "pnpm build:cases && wrangler pages deploy --project-name wgsl-play-cases --branch main site",
-    "preview:cases": "vite preview test-page --config vite.config.ts",
     "dev": "vite test-page --config vite.config.ts",
     "prepublishOnly": "run-s build",
+    "preview:cases": "vite preview test-page --config vite.config.ts",
     "test": "vitest",
     "test:e2e": "playwright test",
     "typecheck": "tsgo && tsgo -p tsconfig.e2e.json"
