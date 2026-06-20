@@ -296,6 +296,161 @@ do test_continuing() {
   expect(result.data).toEqual([4, 0, 0, 0]);
 });
 
+test("else-if branch runs when the first condition is false", async () => {
+  // dispatch width selects the branch: width 2 => only the else-if ran.
+  const src = `
+@buffer var<storage, read_write> data: array<u32, 4>;
+
+@compute @workgroup_size(1) fn fill_at(@builtin(workgroup_id) g: vec3u) {
+  data[g.x] = g.x + 1u;
+}
+
+@test @entry
+do test_elif() {
+  if 0u > 1u { fill_at(1, 1, 1); }
+  else if 1u > 0u { fill_at(2, 1, 1); }
+  else { fill_at(3, 1, 1); }
+}
+`;
+  const ast = parseTest(src);
+  const result = await runDoBlock({
+    device,
+    ast,
+    shaderSrc: src,
+    blockName: "test_elif",
+  });
+  expect(result.data).toEqual([1, 2, 0, 0]);
+});
+
+test("plain else branch runs when every condition is false", async () => {
+  const src = `
+@buffer var<storage, read_write> data: array<u32, 4>;
+
+@compute @workgroup_size(1) fn fill_at(@builtin(workgroup_id) g: vec3u) {
+  data[g.x] = g.x + 1u;
+}
+
+@test @entry
+do test_else() {
+  if 0u > 1u { fill_at(1, 1, 1); } else { fill_at(3, 1, 1); }
+}
+`;
+  const ast = parseTest(src);
+  const result = await runDoBlock({
+    device,
+    ast,
+    shaderSrc: src,
+    blockName: "test_else",
+  });
+  expect(result.data).toEqual([1, 2, 3, 0]);
+});
+
+test("return (from a nested if) ends the do block early", async () => {
+  // fill_at(1) runs, then the return short-circuits the trailing fill_at(4).
+  const src = `
+@buffer var<storage, read_write> data: array<u32, 4>;
+
+@compute @workgroup_size(1) fn fill_at(@builtin(workgroup_id) g: vec3u) {
+  data[g.x] = g.x + 1u;
+}
+
+@test @entry
+do test_return() {
+  fill_at(1, 1, 1);
+  if 1u > 0u { return; }
+  fill_at(4, 1, 1);
+}
+`;
+  const ast = parseTest(src);
+  const result = await runDoBlock({
+    device,
+    ast,
+    shaderSrc: src,
+    blockName: "test_return",
+  });
+  expect(result.data).toEqual([1, 0, 0, 0]);
+});
+
+test("a var shadowed in a nested block leaves the outer binding intact", async () => {
+  // inner `var n` shadows; the outer n stays 2, so the dispatch width is 2.
+  const src = `
+@buffer var<storage, read_write> data: array<u32, 4>;
+
+@compute @workgroup_size(1) fn fill_at(@builtin(workgroup_id) g: vec3u) {
+  data[g.x] = g.x + 1u;
+}
+
+@test @entry
+do test_shadow() {
+  var n = 2u;
+  { var n = 4u; }
+  fill_at(n, 1, 1);
+}
+`;
+  const ast = parseTest(src);
+  const result = await runDoBlock({
+    device,
+    ast,
+    shaderSrc: src,
+    blockName: "test_shadow",
+  });
+  expect(result.data).toEqual([1, 2, 0, 0]);
+});
+
+test("mutating an outer var from a nested block is visible afterwards", async () => {
+  // the nested block mutates (not re-declares) n, so n is 3 after the block.
+  const src = `
+@buffer var<storage, read_write> data: array<u32, 4>;
+
+@compute @workgroup_size(1) fn fill_at(@builtin(workgroup_id) g: vec3u) {
+  data[g.x] = g.x + 1u;
+}
+
+@test @entry
+do test_nested_mut() {
+  var n = 1u;
+  { n += 2u; }
+  fill_at(n, 1, 1);
+}
+`;
+  const ast = parseTest(src);
+  const result = await runDoBlock({
+    device,
+    ast,
+    shaderSrc: src,
+    blockName: "test_nested_mut",
+  });
+  expect(result.data).toEqual([1, 2, 3, 0]);
+});
+
+test("a for loop with empty clauses (for(;;)) runs until break", async () => {
+  const src = `
+@buffer var<storage, read_write> data: array<u32, 4>;
+
+@compute @workgroup_size(1) fn fill_at(@builtin(workgroup_id) g: vec3u) {
+  data[g.x] = g.x + 1u;
+}
+
+@test @entry
+do test_empty_for() {
+  var i = 1u;
+  for (;;) {
+    if i > 3u { break; }
+    fill_at(i, 1, 1);
+    i++;
+  }
+}
+`;
+  const ast = parseTest(src);
+  const result = await runDoBlock({
+    device,
+    ast,
+    shaderSrc: src,
+    blockName: "test_empty_for",
+  });
+  expect(result.data).toEqual([1, 2, 3, 0]);
+});
+
 test("discard in a do block is rejected as fragment-only", async () => {
   const src = `
 @buffer var<storage, read_write> data: array<u32, 1>;
