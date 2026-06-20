@@ -177,6 +177,12 @@ function interpretStatement(
       return;
     case "empty":
       return;
+    case "discard":
+      throw blockError(
+        block,
+        "the `discard` statement has no meaning in a do block " +
+          "(`discard` terminates a fragment-shader invocation)",
+      );
     default:
       throw rejection(
         block,

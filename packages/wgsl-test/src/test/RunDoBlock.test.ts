@@ -296,6 +296,24 @@ do test_continuing() {
   expect(result.data).toEqual([4, 0, 0, 0]);
 });
 
+test("discard in a do block is rejected as fragment-only", async () => {
+  const src = `
+@buffer var<storage, read_write> data: array<u32, 1>;
+
+@compute @workgroup_size(1) fn step() { data[0] = 1u; }
+
+@test @entry
+do test_discard() {
+  discard;
+  step(1, 1, 1);
+}
+`;
+  const ast = parseTest(src);
+  await expect(
+    runDoBlock({ device, ast, shaderSrc: src, blockName: "test_discard" }),
+  ).rejects.toThrow(/discard.*has no meaning/);
+});
+
 test("integer division by zero is rejected, not silently NaN", async () => {
   const src = `
 @buffer var<storage, read_write> data: array<u32, 1>;
