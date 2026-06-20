@@ -31,6 +31,54 @@ button {
 h3 {
   margin-top: 0;
 }
+/* A demo section lays out the player and its source panel side by side. The
+   editor precedes the player in the DOM (so the player reads its source
+   synchronously on connect) but `order` renders the player on the left. The
+   section grows to fit the editor when the source panel is opened. */
+.demo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px 16px;
+}
+.demo > h3,
+.demo > p {
+  flex-basis: 100%;
+  margin: 0;
+}
+.demo > wgsl-play {
+  order: 1;
+  margin-bottom: 0;
+}
+.source-panel {
+  order: 2;
+}
+/* When open, fill the remaining row width (wrapping below the player when
+   space is tight) so long shader lines fit without horizontal scroll. The
+   collapsed panel stays content-sized (just the summary button). */
+.source-panel[open] {
+  flex: 1 1 560px;
+  min-width: 320px;
+  max-width: 960px;
+}
+.source-panel wgsl-edit {
+  width: 100%;
+  height: auto;
+  max-height: 70vh;
+  margin-bottom: 0;
+}
+.source-panel summary {
+  cursor: pointer;
+  width: max-content;
+  padding: 6px 12px;
+  background: #3a3a3a;
+  border-radius: 4px;
+  color: #8af;
+  user-select: none;
+}
+.source-panel[open] summary {
+  margin-bottom: 8px;
+}
 pre {
   background: #333;
   padding: 10px;

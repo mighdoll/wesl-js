@@ -11,11 +11,16 @@
     <nav class="test-nav"><a href="./">&larr; index</a></nav>
 
     <!-- @uniforms controls panel test -->
-    <div class="section">
+    <!-- Source lives in <wgsl-edit>; the player connects via `from` for live edits.
+         The editor precedes the player in the DOM (so the player reads its source on
+         connect) and is reordered below via .demo flex layout. -->
+    <div class="section demo">
       <h3>@uniforms controls</h3>
-      <p>Tests slider, color picker, and toggle from <code>@uniforms</code> annotations. Hover top-left for controls.</p>
-      <wgsl-play id="uniformsPlayer" resizable style="width: 256px; height: 256px">
-        <script type="text/wesl">
+      <p>Tests slider, color picker, and toggle from <code>@uniforms</code> annotations. Hover top-left for controls. Edit the source to update the shader live.</p>
+      <details class="source-panel">
+        <summary>Show source</summary>
+        <wgsl-edit id="uniformsSource" theme="dark">
+          <script type="text/wesl">
 import env::u;
 
 @uniforms struct Params {
@@ -34,8 +39,10 @@ import env::u;
   if u.invert == 1u { color = 1.0 - color; }
   return vec4f(color, 1.0);
 }
-        </script>
-      </wgsl-play>
+          </script>
+        </wgsl-edit>
+      </details>
+      <wgsl-play id="uniformsPlayer" from="uniformsSource" resizable style="width: 256px; height: 256px"></wgsl-play>
     </div>
 
     <!-- mouse tracking test (?link) -->
