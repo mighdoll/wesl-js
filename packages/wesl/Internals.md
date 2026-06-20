@@ -83,7 +83,6 @@ References inside filtered branches don't pull in declarations.
 
 ### 3. Transform (optional plugins)
 Plugins can transform the bound AST before emission.
-Example: `bindingStructsPlugin` rewrites WGSL binding structs.
 
 ### 4. Emit (`lowerAndEmit`)
 Traverse the AST, emitting WGSL text:

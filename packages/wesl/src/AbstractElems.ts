@@ -461,13 +461,6 @@ export interface StructElem extends AbstractElemBase, HasAttributes {
   kind: "struct";
   name: DeclIdentElem;
   members: StructMemberElem[];
-  bindingStruct?: true; // used later during binding struct transformation
-}
-
-/** A struct declaration marked as a binding struct. */
-export interface BindingStructElem extends StructElem {
-  bindingStruct: true;
-  entryFn?: FnElem;
 }
 
 /** A member of a struct declaration. */
@@ -475,9 +468,6 @@ export interface StructMemberElem extends AbstractElemBase, HasAttributes {
   kind: "member";
   name: NameElem;
   typeRef: TypeRefElem;
-  /** When a binding-struct member is lowered to a global var, the var's mangled
-   * name. Recorded for later use; member-access references are not rewritten. */
-  mangledVarName?: string;
 }
 
 export type TypeTemplateParameter = ExpressionElem;
