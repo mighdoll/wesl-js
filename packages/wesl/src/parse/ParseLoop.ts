@@ -142,36 +142,23 @@ function finishForUpdate(
   ctx: ParsingContext,
   expr: ExpressionElem,
 ): ForUpdate | undefined {
-  const incDec = parseIncDecOp(ctx.stream);
+  const { stream } = ctx;
+  const start = expr.start;
+  const incDec = parseIncDecOp(stream);
   if (incDec) {
-    const kind = incDec.op === "++" ? "increment" : "decrement";
-    return makeForNode(ctx, kind, { target: expr });
+    const end = stream.checkpoint();
+    if (incDec.op === "++")
+      return { kind: "increment", target: expr, start, end };
+    return { kind: "decrement", target: expr, start, end };
   }
   const assign = parseAssignmentRhs(ctx);
   if (assign) {
-    return makeForNode(ctx, "assign", {
-      lhs: expr,
-      op: assign.op,
-      rhs: assign.rhs,
-    });
+    const { op, rhs } = assign;
+    const end = stream.checkpoint();
+    return { kind: "assign", lhs: expr, op, rhs, start, end };
   }
   if (expr.kind === "call-expression") {
-    return makeForNode(ctx, "call", { call: expr });
+    return { kind: "call", call: expr, start, end: stream.checkpoint() };
   }
   return undefined;
-}
-
-/**
- * Construct a for-header sub-node (assign/increment/decrement/call) from its
- * already-parsed parts. Emit reads those typed fields, so the node keeps no
- * `contents`.
- */
-function makeForNode<K extends "assign" | "increment" | "decrement" | "call">(
-  ctx: ParsingContext,
-  kind: K,
-  params: object,
-): Extract<ForUpdate, { kind: K }> {
-  const start = ctx.stream.checkpoint();
-  const node = { kind, ...params, start, end: start };
-  return node as unknown as Extract<ForUpdate, { kind: K }>;
 }
