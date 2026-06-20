@@ -36,6 +36,8 @@ export interface RunDoInterpreterParams {
   renderFragment?: (entry: EntryPoint) => void;
   /** Recursion-depth ceiling. Default 256. */
   maxDepth?: number;
+  /** Per-loop iteration ceiling, guarding non-terminating loops. Default 1e6. */
+  maxIterations?: number;
 }
 
 /** A local binding. `let`/`const` are immutable; `var` may be reassigned. */
@@ -59,6 +61,7 @@ interface Env {
   renderFragment?: (entry: EntryPoint) => void;
   depth: number;
   maxDepth: number;
+  maxIterations: number;
 }
 
 /** Thrown by `break` / `continue`, caught at the enclosing loop so the jump is
@@ -87,6 +90,7 @@ export function runDoInterpreter(p: RunDoInterpreterParams): void {
     renderFragment: p.renderFragment,
     depth: 0,
     maxDepth: p.maxDepth ?? 256,
+    maxIterations: p.maxIterations ?? 1_000_000,
   };
   interpretDoBlock(block, env, new Map());
 }
@@ -208,10 +212,12 @@ function interpretFor(
 ): void {
   const loopScope: Scope = new Map(scope);
   if (stmt.init) interpretStatement(stmt.init, block, env, loopScope);
+  let iterations = 0;
   while (
     stmt.condition === undefined ||
     truthy(evalExpr(stmt.condition, block, loopScope))
   ) {
+    guardIterations(iterations++, block, env);
     try {
       runBlock(stmt.body, block, env, loopScope);
     } catch (e) {
@@ -228,7 +234,9 @@ function interpretWhile(
   env: Env,
   scope: Scope,
 ): void {
+  let iterations = 0;
   while (truthy(evalExpr(stmt.condition, block, scope))) {
+    guardIterations(iterations++, block, env);
     try {
       runBlock(stmt.body, block, env, scope);
     } catch (e) {
@@ -244,7 +252,8 @@ function interpretLoop(
   env: Env,
   scope: Scope,
 ): void {
-  for (;;) {
+  for (let iterations = 0; ; iterations++) {
+    guardIterations(iterations, block, env);
     const loopScope: Scope = new Map(scope);
     try {
       // skip the trailing continuing node when iterating the loop body
@@ -269,6 +278,21 @@ function interpretLoop(
         break;
       }
     }
+  }
+}
+
+/** Fail fast when a loop runs past the iteration ceiling, instead of hanging
+ *  the test process on a non-terminating loop. */
+function guardIterations(
+  iterations: number,
+  block: DoBlockElem,
+  env: Env,
+): void {
+  if (iterations >= env.maxIterations) {
+    throw blockError(
+      block,
+      `loop exceeded ${env.maxIterations} iterations (non-terminating loop?)`,
+    );
   }
 }
 

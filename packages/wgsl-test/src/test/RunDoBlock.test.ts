@@ -296,6 +296,29 @@ do test_continuing() {
   expect(result.data).toEqual([4, 0, 0, 0]);
 });
 
+test("a non-terminating loop fails fast at the iteration ceiling", async () => {
+  const src = `
+@buffer var<storage, read_write> data: array<u32, 1>;
+
+@compute @workgroup_size(1) fn step() { data[0] = 1u; }
+
+@test @entry
+do test_infinite() {
+  loop { }
+}
+`;
+  const ast = parseTest(src);
+  await expect(
+    runDoBlock({
+      device,
+      ast,
+      shaderSrc: src,
+      blockName: "test_infinite",
+      maxIterations: 1000,
+    }),
+  ).rejects.toThrow(/exceeded 1000 iterations/);
+});
+
 test("u32 subtraction underflow wraps modulo 2^32, not to a negative", async () => {
   // `i - 1u` with i == 0 is 4294967295 in WGSL u32, not -1. Observe via a
   // comparison so we don't dispatch billions of workgroups: only the wrapped

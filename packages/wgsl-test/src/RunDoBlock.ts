@@ -26,6 +26,8 @@ export interface RunDoBlockParams {
   constants?: LinkParams["constants"];
   /** Override recursion-depth limit (default 256). */
   maxDepth?: number;
+  /** Override per-loop iteration limit (default 1,000,000). */
+  maxIterations?: number;
 }
 
 interface ReadbackPair {
@@ -80,6 +82,7 @@ async function runDoBlockInner(
     bindGroup,
     pipelines,
     maxDepth: p.maxDepth,
+    maxIterations: p.maxIterations,
   });
 
   const readbackPlan = planReadbacks(device, buffers);
