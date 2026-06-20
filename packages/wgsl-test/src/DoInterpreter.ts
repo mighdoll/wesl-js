@@ -257,6 +257,9 @@ function interpretLoop(
     }
     if (stmt.continuing) {
       for (const s of stmt.continuing.body.body) {
+        // the trailing `break if` stays in the body too; its condition is
+        // replayed via breakIf below, so don't run it as a plain break here
+        if (s.kind === "break") continue;
         interpretStatement(s, block, env, loopScope);
       }
       if (

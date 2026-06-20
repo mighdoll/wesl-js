@@ -265,6 +265,37 @@ do test_continue() {
   expect(result.data).toEqual([3, 0, 0, 0]);
 });
 
+test("loop continuing { break if } honors its condition", async () => {
+  // bump() adds 1 to data[0] per pass. The continuing block increments i and
+  // breaks once i >= 4, so the body runs 4 times => data[0] == 4. A regression
+  // that treats `break if` as an unconditional break would stop after one pass.
+  const src = `
+@buffer var<storage, read_write> data: array<u32, 4>;
+
+@compute @workgroup_size(1) fn bump() { data[0] = data[0] + 1u; }
+
+@test @entry
+do test_continuing() {
+  var i = 0u;
+  loop {
+    bump(1, 1, 1);
+    continuing {
+      i++;
+      break if i >= 4u;
+    }
+  }
+}
+`;
+  const ast = parseTest(src);
+  const result = await runDoBlock({
+    device,
+    ast,
+    shaderSrc: src,
+    blockName: "test_continuing",
+  });
+  expect(result.data).toEqual([4, 0, 0, 0]);
+});
+
 test("a float literal is rejected with a Tier 3 message", async () => {
   const src = `
 @buffer var<storage, read_write> data: array<u32, 1>;
