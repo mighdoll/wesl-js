@@ -31,6 +31,12 @@ button {
 h3 {
   margin-top: 0;
 }
+pre {
+  background: #333;
+  padding: 10px;
+  overflow-x: auto;
+  font-size: 12px;
+}
 /* A demo section lays out the player and its source panel side by side. The
    editor precedes the player in the DOM (so the player reads its source
    synchronously on connect) but `order` renders the player on the left. The
@@ -41,17 +47,27 @@ h3 {
   align-items: flex-start;
   gap: 12px 16px;
 }
+/* Header lines, controls, and status text span the full row; the player and
+   source panel share a row between them (controls above, status below). */
+.demo > h3,
+.demo > p,
+.demo > .controls,
+.demo > pre {
+  flex-basis: 100%;
+}
 .demo > h3,
 .demo > p {
-  flex-basis: 100%;
   margin: 0;
 }
 .demo > wgsl-play {
   order: 1;
   margin-bottom: 0;
 }
-.source-panel {
+.demo > .source-panel {
   order: 2;
+}
+.demo > pre {
+  order: 3;
 }
 /* When open, fill the remaining row width (wrapping below the player when
    space is tight) so long shader lines fit without horizontal scroll. The
@@ -78,12 +94,6 @@ h3 {
 }
 .source-panel[open] summary {
   margin-bottom: 8px;
-}
-pre {
-  background: #333;
-  padding: 10px;
-  overflow-x: auto;
-  font-size: 12px;
 }
 nav.test-nav {
   margin-bottom: 30px;
