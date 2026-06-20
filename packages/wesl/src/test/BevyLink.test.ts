@@ -52,12 +52,12 @@ const emptyOutputFiles = [
   "./pbr/meshlet_visibility_buffer_resolve.wesl", // all decls behind @if(MESHLET_MESH_MATERIAL_PASS); enabling it needs binding_array (r64uint)
 ];
 
+await fetchBulkTest(bevyBulkTest, fixturesDir);
+
 const weslSrc = await loadBevyBundle();
 const allFiles = Object.keys(weslSrc)
   .filter(f => !skipFiles.includes(f))
   .sort();
-
-await fetchBulkTest(bevyBulkTest, fixturesDir);
 
 async function loadBevyBundle(): Promise<Record<string, string>> {
   const bevyDir = new URL(
