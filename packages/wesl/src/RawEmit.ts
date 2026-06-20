@@ -1,7 +1,6 @@
 import type {
   AttributeElem,
   NameElem,
-  StuffElem,
   TranslateTimeExpressionElem,
   TypeRefElem,
   TypeTemplateParameter,
@@ -26,9 +25,8 @@ export function attributeToString(e: AttributeElem): string {
     if (params === undefined || params.length === 0) {
       return "@" + e.attribute.name;
     } else {
-      return `@${e.attribute.name}(${params
-        .map(param => contentsToString(param))
-        .join(", ")})`;
+      const args = params.map(attrParamToString).join(", ");
+      return `@${e.attribute.name}(${args})`;
     }
   } else if (kind === "@builtin") {
     return "@builtin(" + e.attribute.param.name + ")";
@@ -67,37 +65,24 @@ export function typeRefToString(t?: TypeRefElem): string {
   return `${refToString(name)}${params}`;
 }
 
-function refToString(ref: RefIdent | string): string {
-  if (typeof ref === "string") return ref;
-  if (ref.std) return ref.originalName;
-  const decl = findDecl(ref);
-  return decl.mangledName || decl.originalName;
-}
-
-export function contentsToString(
-  elem:
-    | TranslateTimeExpressionElem
-    | UnknownExpressionElem
-    | NameElem
-    | StuffElem,
+/** Render a single `@attribute(...)` argument back to source text. */
+function attrParamToString(
+  elem: TranslateTimeExpressionElem | UnknownExpressionElem | NameElem,
 ): string {
   if (elem.kind === "translate-time-expression") {
     throw new Error("Not supported");
-  } else if (elem.kind === "expression" || elem.kind === "stuff") {
-    const parts = elem.contents.map(c => {
-      const { kind } = c;
-      if (kind === "text") {
-        return c.srcModule.src.slice(c.start, c.end);
-      } else if (kind === "ref") {
-        return refToString(c.ident);
-      } else {
-        return `?${c.kind}?`;
-      }
-    });
-    return parts.join(" ");
+  } else if (elem.kind === "expression") {
+    return expressionToString(elem.expression);
   } else if (elem.kind === "name") {
     return elem.name;
   } else {
     assertUnreachable(elem);
   }
+}
+
+function refToString(ref: RefIdent | string): string {
+  if (typeof ref === "string") return ref;
+  if (ref.std) return ref.originalName;
+  const decl = findDecl(ref);
+  return decl.mangledName || decl.originalName;
 }

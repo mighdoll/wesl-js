@@ -1,12 +1,13 @@
 import type {
+  AbstractElem,
   ConstAssertElem,
-  ContainerElem,
-  ImportElem,
   ImportStatement,
   ModuleElem,
+  OpenElemKind,
 } from "./AbstractElems.ts";
 import { filterValidElements } from "./Conditions.ts";
 import { type FlatImport, flattenTreeImport } from "./FlattenTreeImport.ts";
+import { declsOfKind } from "./LinkerUtil.ts";
 import type { ParseError } from "./ParseError.ts";
 import { parseWesl } from "./parse/ParseWesl.ts";
 import type { ParseOptions, WeslExtensions } from "./parse/ParsingContext.ts";
@@ -14,13 +15,13 @@ import type { Conditions, Scope, SrcModule } from "./Scope.ts";
 import type { Span } from "./Span.ts";
 import { errorHighlight, offsetToLineNumber } from "./Util.ts";
 
-export type { ParseOptions, WeslExtensions };
-
-/** Partial element being constructed during parsing. */
-export type OpenElem<T extends ContainerElem = ContainerElem> = Pick<
-  T,
-  "kind" | "contents"
->;
+/** Partial element being constructed during parsing: a kind tag plus the child
+ *  elems collected beneath it. The module keeps these as its `decls`; statements
+ *  discard them and emit from their own typed fields. */
+export interface OpenElem {
+  kind: OpenElemKind;
+  contents: AbstractElem[];
+}
 
 /**
  * Result of parsing one WESL module (e.g., one .wesl file).
@@ -66,6 +67,8 @@ export interface WeslParseContext {
   openElems: OpenElem[]; // elems that are collecting their contents
 }
 
+export type { ParseOptions, WeslExtensions };
+
 /** Human-readable error when parsing WESL fails. */
 export class WeslParseError extends Error {
   span: Span;
@@ -98,17 +101,10 @@ export function flatImports(
   // TODO cache per condition set?
   if (ast._flatImports && !conditions) return ast._flatImports;
 
-  // Get ImportElem elements from moduleElem contents
-  const importElems = ast.moduleElem.contents.filter(
-    (elem): elem is ImportElem => elem.kind === "import",
-  );
-
-  // Filter based on conditions if provided
+  const importElems = declsOfKind(ast.moduleElem, "import");
   const validImportElems = conditions
     ? filterValidElements(importElems, conditions)
     : importElems;
-
-  // Extract ImportStatement from valid ImportElem elements
   const importStatements = validImportElems.map(elem => elem.imports);
 
   const flat = importStatements.flatMap(flattenTreeImport);

@@ -4,7 +4,11 @@ import type { WeslAST, WeslParseState } from "../ParseWESL.ts";
 import { WeslParseError } from "../ParseWESL.ts";
 import type { SrcModule } from "../Scope.ts";
 import { emptyScope } from "../Scope.ts";
-import { beginElem, finishContents } from "./ContentsHelpers.ts";
+import {
+  attachComments,
+  beginElem,
+  finishCollected,
+} from "./ContentsHelpers.ts";
 import { checkDoBlockNames, parseModule } from "./ParseModule.ts";
 import { type ParseOptions, ParsingContext } from "./ParsingContext.ts";
 import { WeslStream } from "./WeslStream.ts";
@@ -19,7 +23,8 @@ export function parseWesl(
     beginElem(ctx, "module");
     parseModule(ctx);
     const moduleElem = state.stable.moduleElem;
-    moduleElem.contents = finishContents(ctx, 0, moduleElem.end);
+    moduleElem.decls = finishCollected(ctx);
+    attachComments(ctx, moduleElem.decls, srcModule.src.length);
     checkDoBlockNames(moduleElem);
     return state.stable;
   } catch (e) {
@@ -45,7 +50,7 @@ function createParseState(
   const rootScope = emptyScope(null);
   const moduleElem: ModuleElem = {
     kind: "module",
-    contents: [],
+    decls: [],
     start: 0,
     end: srcModule.src.length,
   };

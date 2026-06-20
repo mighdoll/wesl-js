@@ -1,4 +1,5 @@
 import { ParseError } from "../ParseError.ts";
+import type { Span } from "../Span.ts";
 import type { Stream, TypedToken } from "../Stream.ts";
 import { keywords, reservedWords } from "./Keywords.ts";
 import { CachingStream } from "./stream/CachingStream.ts";
@@ -9,9 +10,30 @@ export type WeslTokenKind = "word" | "keyword" | "number" | "symbol";
 export type WeslToken<Kind extends WeslTokenKind = WeslTokenKind> =
   TypedToken<Kind>;
 
+/** A comment skipped by the tokenizer, recorded as leading trivia of the next token. */
+export interface CommentTrivia {
+  style: "line" | "block";
+  /** Source span of the comment text (excluding the trailing newline of a line comment). */
+  span: Span;
+  /** A line break occurred since the previous token or comment. */
+  newlineBefore: boolean;
+  /** At least one fully blank line occurred since the previous token or comment. */
+  blankBefore: boolean;
+}
+
+type InternalTokenKind =
+  | "word"
+  | "number"
+  | "blankspaces"
+  | "commentStart"
+  | "symbol"
+  | "invalid";
+
 // https://www.w3.org/TR/WGSL/#blankspace-and-line-breaks
 /** Whitespaces including new lines */
 const blankspaces = /[ \t\n\v\f\r\u{0085}\u{200E}\u{200F}\u{2028}\u{2029}]+/u;
+/** One line break, treating \r\n as a single break. */
+const lineBreak = String.raw`\r\n?|[\n\v\f\u{0085}\u{2028}\u{2029}]`;
 const symbolSet =
   "& && -> @ / ! [ ] { } :: : , == = != >>= >> >= > <<= << <= < % - --" +
   " . + ++ | || ( ) ; * ~ ^ // /* */ += -= *= /= %= &= |= ^=" +
@@ -20,17 +42,6 @@ const symbolSet =
 
 const ident =
   /(?:(?:[_\p{XID_Start}][\p{XID_Continue}]+)|(?:[\p{XID_Start}]))/u;
-
-/** Checks if a word is a valid WGSL ident, and not a keyword */
-export function isIdent(text: string): boolean {
-  if (text.match(ident)?.[0] !== text) {
-    return false;
-  }
-  if (keywordOrReserved.has(text)) {
-    return false;
-  }
-  return true;
-}
 
 const keywordOrReserved = new Set(keywords.concat(reservedWords));
 
@@ -51,14 +62,6 @@ const digits = new RegExp(
 );
 
 const commentStart = /\/\/|\/\*/;
-
-type InternalTokenKind =
-  | "word"
-  | "number"
-  | "blankspaces"
-  | "commentStart"
-  | "symbol"
-  | "invalid";
 const weslMatcher = new RegexMatchers<InternalTokenKind>({
   word: ident,
   number: digits,
@@ -69,6 +72,19 @@ const weslMatcher = new RegexMatchers<InternalTokenKind>({
   invalid: /[^]/,
 });
 
+const lineBreaks = new RegExp(lineBreak, "gu");
+
+/** Checks if a word is a valid WGSL ident, and not a keyword */
+export function isIdent(text: string): boolean {
+  if (text.match(ident)?.[0] !== text) {
+    return false;
+  }
+  if (keywordOrReserved.has(text)) {
+    return false;
+  }
+  return true;
+}
+
 /** To mark parts of the grammar implementation that are WESL specific extensions */
 export function weslExtension<T>(combinator: T): T {
   return combinator;
@@ -77,9 +93,11 @@ export function weslExtension<T>(combinator: T): T {
 /** A stream that produces WESL tokens, skipping over comments and white space */
 export class WeslStream implements Stream<WeslToken> {
   private stream: Stream<TypedToken<InternalTokenKind>>;
-  /** New line */
-  private eolPattern = /[\n\v\f\u{0085}\u{2028}\u{2029}]|\r\n?/gu;
+  /** New line (stateful: scanned via lastIndex, so kept per-instance). */
+  private eolPattern = new RegExp(lineBreak, "gu");
   private blockCommentPattern = /\/\*|\*\//g;
+  /** Comments skipped before a real token, keyed by that token's start position. */
+  private triviaByPos = new Map<number, CommentTrivia[]>();
   public src: string;
   constructor(src: string) {
     this.src = src;
@@ -91,31 +109,60 @@ export class WeslStream implements Stream<WeslToken> {
   reset(position: number): void {
     this.stream.reset(position);
   }
+  /** Comments skipped immediately before the token that starts at `pos`. */
+  leadingTrivia(pos: number): CommentTrivia[] | undefined {
+    return this.triviaByPos.get(pos);
+  }
+  private recordTrivia(pos: number, pending?: CommentTrivia[]): void {
+    if (pending) this.triviaByPos.set(pos, pending);
+  }
+
   nextToken(): WeslToken | null {
+    let pending: CommentTrivia[] | undefined;
+    let newlineBefore = false; // line break since the previous token or comment
+    let blankBefore = false; // blank line since the previous token or comment
     while (true) {
       const token = this.stream.nextToken();
-      if (token === null) return null;
+      if (token === null) {
+        // trailing comments at end of file: key them past the last position
+        this.recordTrivia(this.src.length, pending);
+        return null;
+      }
 
       const kind = token.kind;
       if (kind === "blankspaces") {
+        const breaks = countLineBreaks(token.text);
+        if (breaks >= 1) newlineBefore = true;
+        if (breaks >= 2) blankBefore = true;
         continue;
       } else if (kind === "commentStart") {
         // SAFETY: The underlying streams can be seeked to any position
-        if (token.text === "//") {
-          this.stream.reset(this.skipToEol(token.span[1]));
-        } else {
-          this.stream.reset(this.skipBlockComment(token.span[1]));
-        }
-      } else if (kind === "word") {
-        const returnToken = token as TypedToken<typeof kind | "keyword">;
-        if (keywordOrReserved.has(token.text)) {
-          returnToken.kind = "keyword";
-        }
-        return returnToken;
+        const style = token.text === "//" ? "line" : "block";
+        const end =
+          style === "line"
+            ? this.lineCommentEnd(token.span[1])
+            : this.skipBlockComment(token.span[1]);
+        pending ??= [];
+        const span: Span = [token.span[0], end];
+        // WGSL forbids the null code point anywhere, including inside comments
+        // (a comment body is skipped here, so the `invalid` matcher never sees it).
+        const nullIdx = this.src.indexOf("\0", span[0]);
+        if (nullIdx >= 0 && nullIdx < end)
+          throw new ParseError("Invalid token \\0", [nullIdx, nullIdx + 1]);
+        pending.push({ style, span, newlineBefore, blankBefore });
+        // this comment is now the reference point for the next comment's flags
+        newlineBefore = false;
+        blankBefore = false;
+        this.stream.reset(end);
       } else if (kind === "invalid") {
         throw new ParseError("Invalid token " + token.text, token.span);
       } else {
-        return token as TypedToken<typeof kind>;
+        this.recordTrivia(token.span[0], pending);
+        const result = token as WeslToken;
+        if (kind === "word" && keywordOrReserved.has(token.text)) {
+          result.kind = "keyword";
+        }
+        return result;
       }
     }
   }
@@ -176,16 +223,11 @@ export class WeslStream implements Stream<WeslToken> {
     return tokens;
   }
 
-  private skipToEol(position: number): number {
+  /** End of a line comment: the start of the next line break (or end of file). */
+  private lineCommentEnd(position: number): number {
     this.eolPattern.lastIndex = position;
     const result = this.eolPattern.exec(this.src);
-    if (result === null) {
-      // We reached the end of the file
-      return this.src.length;
-    } else {
-      // Move forward
-      return this.eolPattern.lastIndex;
-    }
+    return result === null ? this.src.length : result.index;
   }
 
   private skipBlockComment(start: number): number {
@@ -322,4 +364,9 @@ export class WeslStream implements Stream<WeslToken> {
       }
     }
   }
+}
+
+/** Count line breaks in a whitespace run. */
+function countLineBreaks(text: string): number {
+  return text.match(lineBreaks)?.length ?? 0;
 }

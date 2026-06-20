@@ -1,14 +1,21 @@
-import type { AttributeElem, StatementElem } from "../AbstractElems.ts";
-import { beginElem, finishElem } from "./ContentsHelpers.ts";
+import type {
+  AttributeElem,
+  BlockElem,
+  ExpressionElem,
+  IfElem,
+  SwitchClauseElem,
+  SwitchElem,
+} from "../AbstractElems.ts";
+import { beginElem } from "./ContentsHelpers.ts";
 import { parseAttributeList } from "./ParseAttribute.ts";
 import {
   beginStatement,
   expectCompound,
-  finishBlockStatement,
+  finishStatement,
   parseCompoundStatement,
 } from "./ParseStatement.ts";
 import {
-  attachAttributes,
+  attrsOrUndef,
   expect,
   expectExpression,
   throwParseError,
@@ -22,52 +29,69 @@ import type { ParsingContext } from "./ParsingContext.ts";
 export function parseIfStatement(
   ctx: ParsingContext,
   attributes?: AttributeElem[],
-): StatementElem | null {
-  const startPos = beginStatement(ctx, "if", attributes);
+): IfElem | null {
+  const startPos = beginStatement(ctx, "if", "if", attributes);
   if (startPos === null) return null;
 
-  expectExpression(ctx, "Expected condition expression after 'if'");
-
+  const condition = expectExpression(ctx, "Expected condition after 'if'");
   const body = expectCompound(ctx, "Expected '{' after if condition");
   ctx.addElem(body);
-  parseElseChain(ctx);
+  const elseBranch = parseElseChain(ctx);
 
-  return finishBlockStatement(startPos, ctx, attributes);
+  const params = { condition, body, else: elseBranch };
+  return finishStatement("if", startPos, ctx, params, attributes);
 }
 
 /** Grammar: switch_statement : attribute* 'switch' expression switch_body */
 export function parseSwitchStatement(
   ctx: ParsingContext,
   attributes?: AttributeElem[],
-): StatementElem | null {
-  const startPos = beginStatement(ctx, "switch", attributes);
+): SwitchElem | null {
+  const startPos = beginStatement(ctx, "switch", "switch", attributes);
   if (startPos === null) return null;
 
-  expectExpression(ctx, "Expected expression after 'switch'");
-  expectSwitchClauses(ctx);
+  const selector = expectExpression(ctx, "Expected expression after 'switch'");
+  const { bodyAttributes, clauses } = expectSwitchClauses(ctx);
 
-  return finishBlockStatement(startPos, ctx, attributes);
+  const params = { selector, clauses, bodyAttributes };
+  return finishStatement("switch", startPos, ctx, params, attributes);
 }
 
 /**
  * Grammar: else_if_clause : 'else' 'if' expression compound_statement
  * Grammar: else_clause : 'else' compound_statement
+ *
+ * An else-if nests as an IfElem in the outer if's `else` field; a plain else is
+ * a BlockElem. Emit and the AST dump read these typed fields, so the nested
+ * IfElem carries only structure (its condition and body), no contents.
  */
-function parseElseChain(ctx: ParsingContext): void {
+function parseElseChain(ctx: ParsingContext): IfElem | BlockElem | undefined {
   const { stream } = ctx;
-  while (stream.matchText("else")) {
-    const elseIf = stream.matchText("if");
-    if (elseIf) {
-      expectExpression(ctx, "Expected expression after 'else if'");
-      const body = expectCompound(ctx, "Expected '{' after else if");
-      ctx.addElem(body);
-      continue;
-    }
+  const elseStart = stream.checkpoint();
+  if (!stream.matchText("else")) return undefined;
 
-    const body = expectCompound(ctx, "Expected '{' after else");
+  if (stream.matchText("if")) {
+    const condition = expectExpression(
+      ctx,
+      "Expected expression after 'else if'",
+    );
+    const body = expectCompound(ctx, "Expected '{' after else if");
     ctx.addElem(body);
-    break;
+    const elseBranch = parseElseChain(ctx);
+    const end = stream.checkpoint();
+    return {
+      kind: "if",
+      condition,
+      body,
+      else: elseBranch,
+      start: elseStart,
+      end,
+    };
   }
+
+  const body = expectCompound(ctx, "Expected '{' after else");
+  ctx.addElem(body);
+  return body;
 }
 
 /**
@@ -76,54 +100,71 @@ function parseElseChain(ctx: ParsingContext): void {
  * Grammar: case_clause : 'case' case_selectors ':'? compound_statement
  * Grammar: default_alone_clause : 'default' ':'? compound_statement
  */
-function expectSwitchClauses(ctx: ParsingContext): void {
+function expectSwitchClauses(ctx: ParsingContext): {
+  bodyAttributes?: AttributeElem[];
+  clauses: SwitchClauseElem[];
+} {
   const { stream } = ctx;
-  parseAttributeList(ctx);
+  const bodyAttrs = parseAttributeList(ctx);
   expect(stream, "{", "switch expression");
+  const clauses: SwitchClauseElem[] = [];
   while (!stream.matchText("}")) {
     const clauseStart = stream.checkpoint();
     const clauseAttrs = parseAttributeList(ctx);
-    beginElem(
-      ctx,
-      "switch-clause",
-      clauseAttrs.length ? clauseAttrs : undefined,
-    );
+    const attrs = attrsOrUndef(clauseAttrs);
+    beginElem(ctx, "switch-clause", attrs);
 
+    let selectors: (ExpressionElem | "default")[];
+    let body: BlockElem;
     if (stream.matchText("case")) {
-      parseCaseSelectors(ctx);
-      parseCaseBody(ctx, "Expected '{' after case value");
+      selectors = parseCaseSelectors(ctx);
+      body = parseCaseBody(ctx, "Expected '{' after case value");
     } else if (stream.matchText("default")) {
-      parseCaseBody(ctx, "Expected '{' after 'default'");
+      selectors = ["default"];
+      body = parseCaseBody(ctx, "Expected '{' after 'default'");
     } else {
       throwParseError(stream, "Expected 'case', 'default', or '}' in switch");
     }
 
-    const clauseElem = finishElem("switch-clause", clauseStart, ctx, {});
-    attachAttributes(clauseElem, clauseAttrs.length ? clauseAttrs : undefined);
+    const clauseElem = finishStatement(
+      "switch-clause",
+      clauseStart,
+      ctx,
+      { selectors, body },
+      attrs,
+    );
     ctx.addElem(clauseElem);
+    clauses.push(clauseElem);
   }
+  return { bodyAttributes: attrsOrUndef(bodyAttrs), clauses };
 }
 
 /** Grammar: case_selectors : case_selector (',' case_selector)* ','? */
-function parseCaseSelectors(ctx: ParsingContext): void {
+function parseCaseSelectors(
+  ctx: ParsingContext,
+): (ExpressionElem | "default")[] {
   const { stream } = ctx;
-  expectExpression(ctx, "Expected expression after 'case'");
+  const selectors = [expectExpression(ctx, "Expected expression after 'case'")];
   while (stream.matchText(",")) {
-    expectExpression(ctx, "Expected expression after ',' in case values");
+    selectors.push(
+      expectExpression(ctx, "Expected expression after ',' in case values"),
+    );
   }
+  return selectors;
 }
 
 /**
  * Grammar: case_clause : 'case' case_selectors ':'? compound_statement
  * Grammar: default_alone_clause : 'default' ':'? compound_statement
  */
-function parseCaseBody(ctx: ParsingContext, errorMsg: string): void {
+function parseCaseBody(ctx: ParsingContext, errorMsg: string): BlockElem {
   ctx.stream.matchText(":");
 
   const bodyAttrs = parseAttributeList(ctx);
-  const attrs = bodyAttrs.length > 0 ? bodyAttrs : undefined;
+  const attrs = attrsOrUndef(bodyAttrs);
 
   const body = parseCompoundStatement(ctx, attrs);
   if (!body) throwParseError(ctx.stream, errorMsg);
   ctx.addElem(body);
+  return body;
 }

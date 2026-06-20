@@ -3,12 +3,12 @@ import type {
   StructElem,
   StructMemberElem,
 } from "../AbstractElems.ts";
-import { beginElem, finishElem } from "./ContentsHelpers.ts";
+import { beginElem } from "./ContentsHelpers.ts";
 import { parseAttributeList } from "./ParseAttribute.ts";
-import { getStartWithAttributes } from "./ParseStatement.ts";
+import { finishStatement, getStartWithAttributes } from "./ParseStatement.ts";
 import { parseSimpleTypeRef } from "./ParseType.ts";
 import {
-  attachAttributes,
+  attrsOrUndef,
   createDeclIdentElem,
   expect,
   expectWord,
@@ -48,8 +48,13 @@ export function parseStructDecl(
 
   expect(stream, "}", "struct member");
 
-  const elem = finishElem("struct", start, ctx, { name: identElem, members });
-  attachAttributes(elem, attributes);
+  const elem = finishStatement(
+    "struct",
+    start,
+    ctx,
+    { name: identElem, members },
+    attributes,
+  );
   linkDeclIdentElem(identElem, elem);
   return elem;
 }
@@ -65,16 +70,17 @@ function parseStructMembers(ctx: ParsingContext): StructMemberElem[] {
 function parseStructMember(ctx: ParsingContext): StructMemberElem | null {
   const { stream } = ctx;
   const checkpoint = stream.checkpoint();
-  const attributes = parseAttributeList(ctx);
+  const attrs = parseAttributeList(ctx);
 
   const nameToken = stream.matchKind("word");
   if (!nameToken) {
     stream.reset(checkpoint);
     return null;
   }
+  const attributes = attrsOrUndef(attrs);
 
   const start = getStartWithAttributes(attributes, nameToken.span[0]);
-  beginElem(ctx, "member", attributes.length ? attributes : undefined);
+  beginElem(ctx, "member", attributes);
   const name = makeNameElem(nameToken);
   ctx.addElem(name);
   expect(stream, ":", "struct member name");
@@ -83,7 +89,5 @@ function parseStructMember(ctx: ParsingContext): StructMemberElem | null {
   if (!typeRef) throwParseError(stream, "Expected type after ':'");
   ctx.addElem(typeRef);
 
-  const elem = finishElem("member", start, ctx, { name, typeRef });
-  attachAttributes(elem, attributes.length ? attributes : undefined);
-  return elem;
+  return finishStatement("member", start, ctx, { name, typeRef }, attributes);
 }

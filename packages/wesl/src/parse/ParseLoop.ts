@@ -1,17 +1,19 @@
 import type {
   AttributeElem,
   ContinuingElem,
-  StatementElem,
+  ExpressionElem,
+  ForElem,
+  ForInit,
+  ForUpdate,
+  LoopElem,
+  WhileElem,
 } from "../AbstractElems.ts";
 import { parseLocalVarDecl } from "./ParseLocalVar.ts";
-import {
-  parseAssignmentRhs,
-  parseIncDecOperator,
-} from "./ParseSimpleStatement.ts";
+import { parseAssignmentRhs, parseIncDecOp } from "./ParseSimpleStatement.ts";
 import {
   beginStatement,
   expectCompound,
-  finishBlockStatement,
+  finishStatement,
 } from "./ParseStatement.ts";
 import {
   expect,
@@ -27,55 +29,70 @@ import type { ParsingContext } from "./ParsingContext.ts";
 export function parseForStatement(
   ctx: ParsingContext,
   attributes?: AttributeElem[],
-): StatementElem | null {
+): ForElem | null {
   const { stream } = ctx;
-  const startPos = beginStatement(ctx, "for", attributes);
+  const startPos = beginStatement(ctx, "for", "for", attributes);
   if (startPos === null) return null;
 
   ctx.pushScope();
   expect(stream, "(", "'for'");
 
-  parseForInit(ctx);
-  parseContentExpression(ctx); // null if empty condition
+  const init = parseForInit(ctx);
+  const condition = parseContentExpression(ctx) ?? undefined;
   expect(stream, ";", "for loop condition");
-  parseForUpdate(ctx);
+  const update = parseForUpdate(ctx);
   expect(stream, ")", "for loop header");
 
   const body = expectCompound(ctx, "Expected '{' after for loop header");
   ctx.addElem(body);
   ctx.popScope();
 
-  return finishBlockStatement(startPos, ctx, attributes);
+  const params = { init, condition, update, body };
+  return finishStatement("for", startPos, ctx, params, attributes);
 }
 
 /** Grammar: while_statement : attribute* 'while' expression compound_statement */
 export function parseWhileStatement(
   ctx: ParsingContext,
   attributes?: AttributeElem[],
-): StatementElem | null {
-  const startPos = beginStatement(ctx, "while", attributes);
+): WhileElem | null {
+  const startPos = beginStatement(ctx, "while", "while", attributes);
   if (startPos === null) return null;
 
-  expectExpression(ctx, "Expected condition expression after 'while'");
-
+  const condition = expectExpression(ctx, "Expected condition after 'while'");
   const body = expectCompound(ctx, "Expected '{' after while condition");
   ctx.addElem(body);
 
-  return finishBlockStatement(startPos, ctx, attributes);
+  return finishStatement(
+    "while",
+    startPos,
+    ctx,
+    { condition, body },
+    attributes,
+  );
 }
 
 /** Grammar: loop_statement : attribute* 'loop' attribute* '{' statement* continuing_statement? '}' */
 export function parseLoopStatement(
   ctx: ParsingContext,
   attributes?: AttributeElem[],
-): StatementElem | null {
-  const startPos = beginStatement(ctx, "loop", attributes);
+): LoopElem | null {
+  const startPos = beginStatement(ctx, "loop", "loop", attributes);
   if (startPos === null) return null;
 
   const body = expectCompound(ctx, "Expected '{' after 'loop'", true);
   ctx.addElem(body);
+  const continuing = body.body.find(
+    (s): s is ContinuingElem => s.kind === "continuing",
+  );
 
-  return finishBlockStatement(startPos, ctx, attributes);
+  return finishStatement(
+    "loop",
+    startPos,
+    ctx,
+    { body, continuing },
+    attributes,
+  );
 }
 
 /** Grammar: continuing_statement : 'continuing' continuing_compound_statement */
@@ -83,33 +100,65 @@ export function parseContinuingStatement(
   ctx: ParsingContext,
   attributes?: AttributeElem[],
 ): ContinuingElem | null {
-  const startPos = beginStatement(ctx, "continuing", attributes, "continuing");
+  const startPos = beginStatement(ctx, "continuing", "continuing", attributes);
   if (startPos === null) return null;
 
   const body = expectCompound(ctx, "Expected '{' after 'continuing'");
   ctx.addElem(body);
+  const breakIf = body.body.find(s => s.kind === "break")?.condition;
 
-  return finishBlockStatement(startPos, ctx, attributes, "continuing");
+  const params = { body, breakIf };
+  return finishStatement("continuing", startPos, ctx, params, attributes);
 }
 
 /** Grammar: for_init? ';'
  *           for_init : variable_or_value_statement | variable_updating_statement | func_call_statement
  */
-function parseForInit(ctx: ParsingContext): void {
+function parseForInit(ctx: ParsingContext): ForInit | undefined {
   const { stream } = ctx;
   const varDecl = parseLocalVarDecl(ctx);
   if (varDecl) {
     ctx.addElem(varDecl);
-    // parseLocalVarDecl already consumed the ';'
-  } else {
-    parseContentExpression(ctx); // null for empty case
-    expect(stream, ";", "for loop init");
+    return varDecl; // parseLocalVarDecl already consumed the ';'
   }
+  const expr = parseContentExpression(ctx); // null for empty case
+  const update = expr ? finishForUpdate(ctx, expr) : undefined;
+  expect(stream, ";", "for loop init");
+  return update;
 }
 
-/** Grammar: for_update : variable_updating_statement | func_call_statement
- *           variable_updating_statement : assignment_statement | increment_statement | decrement_statement */
-function parseForUpdate(ctx: ParsingContext): void {
-  parseContentExpression(ctx);
-  if (!parseIncDecOperator(ctx.stream)) parseAssignmentRhs(ctx);
+/** Grammar: for_update : variable_updating_statement | func_call_statement */
+function parseForUpdate(ctx: ParsingContext): ForUpdate | undefined {
+  const expr = parseContentExpression(ctx);
+  if (!expr) return undefined;
+  return finishForUpdate(ctx, expr);
+}
+
+/**
+ * Build a typed for-init/for-update node from an already-parsed lhs expression,
+ * consuming its trailing operator (++/-- or an assignment + rhs).
+ */
+function finishForUpdate(
+  ctx: ParsingContext,
+  expr: ExpressionElem,
+): ForUpdate | undefined {
+  const { stream } = ctx;
+  const start = expr.start;
+  const incDec = parseIncDecOp(stream);
+  if (incDec) {
+    const end = stream.checkpoint();
+    if (incDec.op === "++")
+      return { kind: "increment", target: expr, start, end };
+    return { kind: "decrement", target: expr, start, end };
+  }
+  const assign = parseAssignmentRhs(ctx);
+  if (assign) {
+    const { op, rhs } = assign;
+    const end = stream.checkpoint();
+    return { kind: "assign", lhs: expr, op, rhs, start, end };
+  }
+  if (expr.kind === "call-expression") {
+    return { kind: "call", call: expr, start, end: stream.checkpoint() };
+  }
+  return undefined;
 }

@@ -115,7 +115,6 @@ dependencies = ["auto"]  # Auto-detect from package.json
 ## Prototype Extensions
 
 - **SimpleReflectExtension** - Demo for extension authors showing how to generate JS/TS from shader structs
-- **BindingLayoutExtension** - Prototype for generating `BindGroupLayout` objects from shaders
 
 ## Writing Custom Extensions
 

@@ -4,10 +4,10 @@ import type {
   AttributeElem,
   ConditionalAttribute,
   ConstAssertElem,
-  DoBlockElem,
   GlobalDeclarationElem,
   ModuleElem,
 } from "../AbstractElems.ts";
+import { declsOfKind } from "../LinkerUtil.ts";
 import { ParseError } from "../ParseError.ts";
 import { findMap } from "../Util.ts";
 import { parseAttributeList } from "./ParseAttribute.ts";
@@ -22,6 +22,7 @@ import {
 import { parseWeslImports } from "./ParseImport.ts";
 import { parseStructDecl } from "./ParseStruct.ts";
 import {
+  attrsOrUndef,
   hasConditionalAttribute,
   parseMany,
   throwParseError,
@@ -45,6 +46,10 @@ export function parseModule(ctx: ParsingContext): void {
   parseImports(ctx);
   parseDirectives(ctx);
   while (parseNextDeclaration(ctx)) {}
+  // reject input the declaration loop couldn't consume (e.g. a directive after a
+  // declaration, or stray tokens); otherwise it would be silently dropped
+  if (ctx.stream.peek() !== null)
+    throwParseError(ctx.stream, "Expected a declaration or directive");
 }
 
 /**
@@ -53,12 +58,10 @@ export function parseModule(ctx: ParsingContext): void {
  * small module-local pass, deliberately not part of bindIdents.
  */
 export function checkDoBlockNames(moduleElem: ModuleElem): void {
-  const doBlocks = moduleElem.contents.filter(
-    (e): e is DoBlockElem => e.kind === "do",
-  );
+  const doBlocks = declsOfKind(moduleElem, "do");
   if (doBlocks.length === 0) return;
 
-  const declNames = new Set(moduleElem.contents.map(globalDeclName));
+  const declNames = new Set(moduleElem.decls.map(globalDeclName));
   const conflict = doBlocks.find(b => declNames.has(b.name.name));
   if (conflict) {
     const { name, start, end } = conflict.name;
@@ -117,8 +120,7 @@ function globalDeclName(elem: AbstractElem): string | undefined {
 
 /** Try each declaration parser until one succeeds. */
 function parseDecl(ctx: ParsingContext, attrs: AttributeElem[]): boolean {
-  const attrsOrUndef = attrs.length ? attrs : undefined;
-  const elem = findMap(declParsers, p => p(ctx, attrsOrUndef));
+  const elem = findMap(declParsers, p => p(ctx, attrsOrUndef(attrs)));
   if (elem) {
     recordDecl(ctx, elem, attrs);
     return true;

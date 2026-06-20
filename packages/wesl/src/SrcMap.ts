@@ -122,11 +122,6 @@ export class SrcMap {
   }
 }
 
-/** sort entries in place by src start position */
-function sortSrc(entries: SrcMapEntry[]): void {
-  entries.sort((a, b) => a.srcStart - b.srcStart);
-}
-
 /** Incrementally append to a string, tracking source references */
 export class SrcMapBuilder {
   #fragments: string[] = [];
@@ -191,12 +186,6 @@ export class SrcMapBuilder {
     this.add("\n", srcStart, srcEnd);
   }
 
-  /** copy a string fragment from the src to the destination string */
-  addCopy(srcStart: number, srcEnd: number): void {
-    const fragment = this.source.text.slice(srcStart, srcEnd);
-    this.add(fragment, srcStart, srcEnd);
-  }
-
   /** return a SrcMap */
   static build(builders: SrcMapBuilder[]): SrcMap {
     const map = new SrcMap(
@@ -206,4 +195,9 @@ export class SrcMapBuilder {
     map.compact();
     return map;
   }
+}
+
+/** sort entries in place by src start position */
+function sortSrc(entries: SrcMapEntry[]): void {
+  entries.sort((a, b) => a.srcStart - b.srcStart);
 }
