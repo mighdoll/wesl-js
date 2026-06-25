@@ -1,15 +1,19 @@
 #!/usr/bin/env node
-// Measures realistic bundle size for wgsl-play and two smaller variants, so we
-// can see what each capability tier costs a downstream consumer.
+// Measures realistic bundle size across capability tiers, so we can see what
+// each one costs a downstream consumer.
 //
 // Variants (all minified with terser, then gzip + brotli):
-//   1. wesl-core         - just `link` from wesl. The parse + link baseline.
-//   2. do-blocks-runtime - wesl core + the headless do-block execution runtime
-//                          (GPU compute/render pipeline from wgsl-play, plus
-//                          wesl-gpu / wesl-reflect), but NO preact UI. This is
-//                          the "do blocks for any wesl library" tier.
-//   3. wgsl-play-full    - the whole wgsl-play custom element, including the
-//                          preact UI (results panel, controls, overlays, css).
+//   wesl-core           - just `link` from wesl. The parse + link baseline.
+//   do-blocks-runtime   - wesl core + wgsl-play's headless GPU compute/render
+//                         pipeline, but NO preact UI.
+//   wgsl-play-full      - the whole wgsl-play custom element, incl. preact UI.
+//   do-interpreter      - the do-block CPU interpreter alone (wgsl-test), the
+//                         executor residue over the GPU/reflect layer.
+//   core+do-interpreter - link + the do-block interpreter, no UI: a generic
+//                         "run do blocks for any wesl library" runtime.
+//   relink-no-parser    - bind + emit + conditions only, parser stubbed out:
+//                         the floor for a built app that ships a pre-parsed AST
+//                         and only re-links with live conditions at runtime.
 //
 // All variants apply the same production transforms wesl ships in
 // vite.nodebug.config.ts (debug/validation stripped, parser error context
@@ -29,6 +33,7 @@ import { build, type Plugin } from "vite";
 const scriptDir = import.meta.dirname;
 const pkgDir = resolve(scriptDir, "..");
 const srcDir = resolve(pkgDir, "src");
+const testSrcDir = resolve(pkgDir, "../wgsl-test/src");
 const tmpRoot = resolve(pkgDir, ".size-check-tmp");
 
 interface Sizes {
@@ -66,6 +71,18 @@ const variants: Variant[] = [
     name: "wgsl-play-full",
     blurb: "full custom element + preact UI",
     entry: `export * from ${json(`${srcDir}/index.ts`)};\n`,
+  },
+  {
+    name: "do-interpreter",
+    blurb: "the do-block CPU interpreter alone (executor residue)",
+    entry: `export * from ${json(`${testSrcDir}/DoInterpreter.ts`)};\n`,
+  },
+  {
+    name: "core+do-interpreter",
+    blurb: "link + do-block interpreter, no UI (generic do-block runtime)",
+    entry:
+      `export { link } from "wesl";\n` +
+      `export { runDoInterpreter } from ${json(`${testSrcDir}/DoInterpreter.ts`)};\n`,
   },
   {
     name: "relink-no-parser",
@@ -225,13 +242,15 @@ async function main() {
   }
   console.log();
 
-  // Deltas over the wesl-core baseline (brotli).
+  // Deltas vs the wesl-core baseline (brotli). Some variants are subsets of
+  // core (no parser, interpreter-only), so they can be smaller.
   const base = rows[0].s.brotli;
   for (const { v, s } of rows.slice(1)) {
     const d = s.brotli - base;
-    console.log(
-      `${v.name}: +${(d / 1024).toFixed(1)} kB brotli over wesl-core (${((d / base) * 100).toFixed(0)}% more)`,
-    );
+    const mag = (Math.abs(d) / 1024).toFixed(1);
+    const pct = Math.abs((d / base) * 100).toFixed(0);
+    const dir = d >= 0 ? "larger" : "smaller";
+    console.log(`${v.name}: ${mag} kB ${dir} than wesl-core (${pct}%)`);
   }
   console.log();
 
