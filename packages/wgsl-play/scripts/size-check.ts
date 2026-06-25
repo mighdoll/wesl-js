@@ -42,6 +42,8 @@ interface Variant {
   blurb: string;
   /** Entry module source. Imports resolve from the wgsl-play package. */
   entry: string;
+  /** Replace the WESL grammar with a stub so the parser tree-shakes out. */
+  stubParser?: boolean;
 }
 
 const variants: Variant[] = [
@@ -65,7 +67,36 @@ const variants: Variant[] = [
     blurb: "full custom element + preact UI",
     entry: `export * from ${json(`${srcDir}/index.ts`)};\n`,
   },
+  {
+    name: "relink-no-parser",
+    blurb: "bind + emit + conditions only, parser stubbed (Direction-A floor)",
+    entry: `export { linkRegistry } from "wesl";\n`,
+    stubParser: true,
+  },
 ];
+
+// Absolute path of the WESL grammar root we stub out for the no-parser floor.
+const parserRoot = resolve(
+  pkgDir,
+  "../wesl/src/parse/ParseWesl.ts",
+);
+const parserStub = resolve(scriptDir, "parser-stub.ts");
+
+/** Redirect the WESL grammar root to a stub so the parser tree-shakes away. */
+function stubParserPlugin(): Plugin {
+  return {
+    name: "stub-parser",
+    enforce: "pre",
+    resolveId(source, importer) {
+      if (
+        source.endsWith("parse/ParseWesl.ts") ||
+        (importer && resolve(dirname(importer), source) === parserRoot)
+      ) {
+        return parserStub;
+      }
+    },
+  };
+}
 
 function json(s: string): string {
   return JSON.stringify(s);
@@ -143,7 +174,11 @@ async function measure(variant: Variant): Promise<Sizes> {
   await build({
     configFile: false,
     logLevel: "error",
-    plugins: [rawImports(), nodebugTransform()],
+    plugins: [
+      ...(variant.stubParser ? [stubParserPlugin()] : []),
+      rawImports(),
+      nodebugTransform(),
+    ],
     build: {
       target: "es2024",
       lib: { entry: entryFile, formats: ["es"], fileName: () => outFile },
