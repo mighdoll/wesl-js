@@ -10,6 +10,7 @@
   "scripts": {
     "build": "tsdown",
     "build:cases": "vite build test-page --config vite.config.ts",
+    "build:size": "./scripts/size-check.ts",
     "deploy:cases": "pnpm build:cases && wrangler pages deploy --project-name wgsl-play-cases --branch main site",
     "dev": "vite test-page --config vite.config.ts",
     "prepublishOnly": "run-s build",
