@@ -11,6 +11,7 @@
   "scripts": {
     "build": "tsdown",
     "build:demo": "vite build --config vite.config.ts demo",
+    "build:size": "tsx ./scripts/size-check.ts",
     "deploy": "pnpm build:demo && pnpx wrangler pages deploy --project-name wgsl-edit --branch main site",
     "dev": "vite demo --config vite.config.ts",
     "dev:test": "vite test-page --config vite.config.ts",
